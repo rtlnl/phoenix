@@ -1,0 +1,21 @@
+version: '3'
+services:
+  app:
+    build: .
+    command: []
+    environment:
+      - NODE_ENV=production
+    ports:
+      - 1235:3000
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:4.0.5-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    hostname: redis
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
