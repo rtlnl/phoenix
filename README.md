@@ -64,7 +64,7 @@ The major issues stands in selecting the correct `UUID` to delete and avoid long
 Fortunately, Redis comes with a command called `SCAN` that will return part of the `KEYS` that follows a certain patter helping us in
 `DELETING` effeciently without long `LOCKS`. Although, we need to pay attention to the `Time complexity`. Here is why:
 
-- `SCAN` operation is `O(n)``
+- `SCAN` operation is `O(n)`
 - `DEL` operation is `O(1)`
 
 Given the above, the final time complexity is still `O(n)` which is an acceptable time considering that SCAN will only read a certain
