@@ -28,7 +28,8 @@ func (c *Internal) Run(host, dbHosts, dbPassword, s3Bucket, s3Region string) err
 	c.App.Use(middleware.S3(s3Bucket, s3Region))
 
 	// Routes
-	c.App.POST("/populate", Populate)
+	c.App.POST("/personalizations", AddPersonalizations)
+	c.App.DELETE("/personalizations", DeletePersonalizations)
 
 	return c.App.Run(host)
 }
