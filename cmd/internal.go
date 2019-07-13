@@ -6,25 +6,30 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	s3BucketFlag = "s3-bucket"
+	s3RegionFlag = "s3-region"
+)
+
 // internalCmd represents the internal command
 var internalCmd = &cobra.Command{
 	Use:   "internal",
 	Short: "Internal APIs for populating the personalized content",
-	Long:  ``,
+	Long: `This command will start the server for the internal
+	APIs for populating the personalized content into the database.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		addr := viper.GetString(addressFlag)
-		dbHost := viper.GetString(dbHostFlag)
-		dbPort := viper.GetString(dbPortFlag)
-		dbUser := viper.GetString(dbUserFlag)
+		dbHosts := viper.GetString(dbHostsFlag)
 		dbPassword := viper.GetString(dbPasswordFlag)
-		dbName := viper.GetString(dbNameFlag)
+		s3Bucket := viper.GetString(s3BucketFlag)
+		s3Region := viper.GetString(s3RegionFlag)
 
 		i, err := internal.NewInternalAPI()
 		if err != nil {
 			panic(err)
 		}
 
-		if err = i.Run(addr, dbHost, dbPort, dbUser, dbPassword, dbName); err != nil {
+		if err = i.Run(addr, dbHosts, dbPassword, s3Bucket, s3Region); err != nil {
 			panic(err)
 		}
 	},
@@ -36,18 +41,16 @@ func init() {
 	f := internalCmd.PersistentFlags()
 
 	f.String(addressFlag, ":8081", "server address")
-	f.String(dbHostFlag, "127.0.0.1", "database host")
-	f.String(dbPortFlag, "6379", "database port")
-	f.String(dbUserFlag, "", "database username")
+	f.String(dbHostsFlag, ":7000,:7001,:7002,:7003,:7004,:7005", "database hosts separated by comma")
 	f.String(dbPasswordFlag, "", "database password")
-	f.String(dbNameFlag, "0", "database name")
+	f.String(s3BucketFlag, "test", "s3 bucket")
+	f.String(s3RegionFlag, "eu-west-1", "s3 region")
 
 	viper.BindEnv(addressFlag, "ADDRESS_HOST")
-	viper.BindEnv(dbHostFlag, "DB_HOST")
-	viper.BindEnv(dbPortFlag, "DB_PORT")
-	viper.BindEnv(dbUserFlag, "DB_USER")
+	viper.BindEnv(dbHostsFlag, "DB_HOSTS")
 	viper.BindEnv(dbPasswordFlag, "DB_PASSOWRD")
-	viper.BindEnv(dbNameFlag, "DB_NAME")
+	viper.BindEnv(s3BucketFlag, "S3_BUCKET")
+	viper.BindEnv(s3RegionFlag, "S3_REGION")
 
 	viper.BindPFlags(f)
 }

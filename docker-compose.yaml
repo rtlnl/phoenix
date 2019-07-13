@@ -1,21 +1,54 @@
 version: '3'
 services:
-  app:
-    build: .
-    command: []
-    environment:
-      - NODE_ENV=production
-    ports:
-      - 1235:3000
-    depends_on:
-      - redis
+  # public:
+  #   build: .
+  #   command: []
+  #   environment:
+  #     - NODE_ENV=production
+  #   ports:
+  #     - 8080:8080
+  #   depends_on:
+  #     - redis
+  
+  # internal:
+  #   build: .
+  #   command: []
+  #   environment:
+  #     - DB_HOST=127.0.0.1
+  #     - DB_PORT=":7000,:7001,:7002,:7003,:7004,:7005"
+  #   ports:
+  #     - 8081:8081
+  #   depends_on:
+  #     - redis
 
-  redis:
-    image: redis:4.0.5-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+  redis-cluster:
+    container_name: redis-cluster
+    image: grokzen/redis-cluster:5.0.5
     hostname: redis
+    environment:
+      - IP=0.0.0.0
+      - SENTINEL=true
+      - STANDALONE=true
+    ports:
+      - '7000-7007:7000-7007'
+      - '5000-5002:5000-5002'
     volumes:
       - redis-data:/data
+
+  localstack:
+    container_name: localstack
+    image: localstack/localstack
+    ports:
+      - "4572:4572"
+      - "8080:8080"
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=eu-west-1
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - './.localstack:/tmp/localstack'
 
 volumes:
   redis-data:

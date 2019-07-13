@@ -23,11 +23,11 @@ func NewPublicAPI() (*Public, error) {
 
 // Run will initialize the server and will listen to the specified
 // port from the config file
-func (c *Public) Run(host, dbURL, dbPort, dbUsername, dbPassword, dbName string) error {
+func (c *Public) Run(host, dbHosts, dbPassword string) error {
 	c.App.RedirectTrailingSlash = true
 
 	// middleware to inject Redis to all the routes for caching the client
-	c.App.Use(middleware.Redis(dbURL, dbPort, dbUsername, dbPassword, dbName))
+	c.App.Use(middleware.Redis(dbHosts, dbPassword))
 
 	// Routes
 	c.App.GET("/recommend", recommend)

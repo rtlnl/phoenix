@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/rtlnl/data-personalization-api/middleware"
 )
@@ -22,19 +20,15 @@ func NewInternalAPI() (*Internal, error) {
 
 // Run will initialize the server and will listen to the specified
 // port from the config file
-func (c *Internal) Run(host, dbURL, dbPort, dbUsername, dbPassword, dbName string) error {
+func (c *Internal) Run(host, dbHosts, dbPassword, s3Bucket, s3Region string) error {
 	c.App.RedirectTrailingSlash = true
 
-	// middleware to inject Redis to all the routes for caching the client
-	c.App.Use(middleware.Redis(dbURL, dbPort, dbUsername, dbPassword, dbName))
+	// middlewares for injecting clients that are always in used. Caching is important when low latency is due
+	c.App.Use(middleware.Redis(dbHosts, dbPassword))
+	c.App.Use(middleware.S3(s3Bucket, s3Region))
 
 	// Routes
-	c.App.GET("/populate", populate)
+	c.App.POST("/populate", Populate)
 
 	return c.App.Run(host)
-}
-
-// populate will take care of populating the personalized content for all the users
-func populate(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, `{"message":"populated"}`)
 }

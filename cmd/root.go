@@ -8,11 +8,8 @@ import (
 
 var (
 	addressFlag    = "address-host"
-	dbHostFlag     = "db-host"
-	dbPortFlag     = "db-port"
-	dbUserFlag     = "db-user"
+	dbHostsFlag    = "db-hosts"
 	dbPasswordFlag = "db-password"
-	dbNameFlag     = "db-name"
 )
 
 // rootCmd represents the base command when called without any subcommands

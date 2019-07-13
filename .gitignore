@@ -12,3 +12,6 @@
 *.out
 
 vendor/
+
+.localstack/
+.vscode/
