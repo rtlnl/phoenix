@@ -1,69 +1,39 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var (
+	addressFlag    = "address-host"
+	dbHostFlag     = "db-host"
+	dbPortFlag     = "db-port"
+	dbUserFlag     = "db-user"
+	dbPasswordFlag = "db-password"
+	dbNameFlag     = "db-name"
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "pipeline",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Use:   "personalization",
+	Short: "Personalization root command for initializing APIs",
+	Long: `Personalization is able to spin up two different type of services: Internal
+	or Public APIs. The internal APIs have the objective of populating the personalized content
+	given from the data-science team. The Public APIs will be the frontend part where clients
+	can connect to`,
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+// Execute will start the application
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
-
-func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", ".pipeline.toml", "config file (default is .pipeline.toml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal().Err(err).Msg("")
+	}
 }
 
-// initConfig reads in config file and ENV variables if set.
+// initConfig sets AutomaticEnv in viper to true.
 func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Search config in the working directory with name ".pipeline" (without extension).
-		viper.AddConfigPath(".")
-		viper.SetConfigName(".pipeline")
-		viper.SetConfigType("toml")
-	}
-
 	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	} else {
-		fmt.Println(err)
-	}
 }

@@ -1,40 +1,41 @@
 package public
 
 import (
-	"fmt"
+	"net/http"
 
-	"github.com/kataras/iris"
-	"github.com/spf13/viper"
+	"github.com/rtlnl/data-personalization-api/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
 // Public is the struct that will retain the server for ingesting the
 // event from the trackers
 type Public struct {
-	App      *iris.Application
-	Backbone string
+	App *gin.Engine
 }
 
-// NewPublic creates a new Collector object
-func NewPublic() (*Public, error) {
+// NewPublicAPI creates a new Collector object
+func NewPublicAPI() (*Public, error) {
 	return &Public{
-		App: iris.Default(),
+		App: gin.Default(),
 	}, nil
 }
 
 // Run will initialize the server and will listen to the specified
 // port from the config file
-func (c *Public) Run() error {
-	c.App.Get("/collect", collect)
+func (c *Public) Run(host, dbURL, dbPort, dbUsername, dbPassword, dbName string) error {
+	c.App.RedirectTrailingSlash = true
 
-	host := fmt.Sprintf("%s:%d", viper.GetString("collector.url"), viper.GetInt("collector.port"))
-	addr := iris.Addr(host)
+	// middleware to inject Redis to all the routes for caching the client
+	c.App.Use(middleware.Redis(dbURL, dbPort, dbUsername, dbPassword, dbName))
 
-	return c.App.Run(addr)
+	// Routes
+	c.App.GET("/recommend", recommend)
+
+	return c.App.Run(host)
 }
 
-// collect will take care of getting the incoming event and do something with it
-func collect(ctx iris.Context) {
-	ctx.JSON(iris.Map{
-		"message": "collected",
-	})
+// recommend will take care of fetching the personalized content for a specific user
+func recommend(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, `{"message":"recommended"}`)
 }

@@ -1,20 +1,17 @@
 package cmd
 
 import (
-	"github.com/rtlnl/data-personalization-api/public"
-
+	"github.com/rtlnl/data-personalization-api/internal"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// publicCmd represents the public command
-var publicCmd = &cobra.Command{
-	Use:   "public",
-	Short: "Starts the public APIs for personalized content",
-	Long: `This command will start the server for the public
-APIs for serving the personalized content.`,
+// internalCmd represents the internal command
+var internalCmd = &cobra.Command{
+	Use:   "internal",
+	Short: "Internal APIs for populating the personalized content",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		addr := viper.GetString(addressFlag)
 		dbHost := viper.GetString(dbHostFlag)
 		dbPort := viper.GetString(dbPortFlag)
@@ -22,23 +19,23 @@ APIs for serving the personalized content.`,
 		dbPassword := viper.GetString(dbPasswordFlag)
 		dbName := viper.GetString(dbNameFlag)
 
-		p, err := public.NewPublicAPI()
+		i, err := internal.NewInternalAPI()
 		if err != nil {
 			panic(err)
 		}
 
-		if err = p.Run(addr, dbHost, dbPort, dbUser, dbPassword, dbName); err != nil {
+		if err = i.Run(addr, dbHost, dbPort, dbUser, dbPassword, dbName); err != nil {
 			panic(err)
 		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(publicCmd)
+	rootCmd.AddCommand(internalCmd)
 
-	f := publicCmd.Flags()
+	f := internalCmd.PersistentFlags()
 
-	f.String(addressFlag, ":8080", "server address")
+	f.String(addressFlag, ":8081", "server address")
 	f.String(dbHostFlag, "127.0.0.1", "database host")
 	f.String(dbPortFlag, "6379", "database port")
 	f.String(dbUserFlag, "", "database username")
@@ -53,5 +50,4 @@ func init() {
 	viper.BindEnv(dbNameFlag, "DB_NAME")
 
 	viper.BindPFlags(f)
-
 }
