@@ -84,7 +84,7 @@ The deletion operation is done in the following manner:
 Failover is always something that we need to take care of. Redis claims that due to the Atomicity and `LOCK` system on the server when
 executing operations errors are very difficult to get. The possible errors are in the data format.
 Having a strong validation on line-by-line will allow us to store all the new data incoming without breaking the workflow. In fact,
-Redis *doesn't have* a `roll-back` mechanisms because it is not Transactional. Although, atomicity guarantees that the information is
+Redis **doesn't have** a `roll-back` mechanisms because it is not Transactional. Although, atomicity guarantees that the information is
 stored properly without errors.
 
 ## How to start
@@ -96,3 +96,12 @@ Here are some commands
 - `aws --endpoint-url=http://localhost:4572 s3 mb s3://test` to create a bucket in local S3
 - `aws --endpoint-url=http://localhost:4572 s3api put-bucket-acl --bucket test --acl public-read` to set up a policy for testing with local s3
 - `aws --endpoint-url=http://localhost:4572 s3 cp ~/Desktop/personalization.csv s3://test/content/20190713/` to copy a file to local S3
+
+## References
+
+Some useful links:
+
+- [Pipeline in Redis](https://redis.io/topics/pipelining)
+- [Find and Delete keys](https://medium.com/oyotech/finding-and-deleting-the-redis-keys-by-pattern-the-right-way-123629d7730)
+- [Scan cursor and matching pattern](https://redis.io/commands/scan)
+- [Expire command](https://redis.io/commands/expire)
