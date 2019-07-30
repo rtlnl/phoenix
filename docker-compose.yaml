@@ -8,7 +8,7 @@ services:
   #   ports:
   #     - 8080:8080
   #   depends_on:
-  #     - redis
+  #     - aerospike
   
   # internal:
   #   build: .
@@ -19,21 +19,15 @@ services:
   #   ports:
   #     - 8081:8081
   #   depends_on:
-  #     - redis
+  #     - aerospike
 
-  redis-cluster:
-    container_name: redis-cluster
-    image: grokzen/redis-cluster:5.0.5
-    hostname: redis
+  aerospike:
+    image: aerospike
+    container_name: aerospike
     environment:
-      - IP=0.0.0.0
-      - SENTINEL=true
-      - STANDALONE=true
+      NAMESPACE: personalization
     ports:
-      - '7000-7007:7000-7007'
-      - '5000-5002:5000-5002'
-    volumes:
-      - redis-data:/data
+    - "3000:3000"
 
   localstack:
     container_name: localstack
@@ -51,4 +45,4 @@ services:
       - './.localstack:/tmp/localstack'
 
 volumes:
-  redis-data:
+  aerospike-data:

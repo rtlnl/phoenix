@@ -15,16 +15,17 @@ var publicCmd = &cobra.Command{
 APIs for serving the personalized content.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		addr := viper.GetString(addressFlag)
-		dbHosts := viper.GetString(dbHostsFlag)
-		dbPassword := viper.GetString(dbPasswordFlag)
+		addr := viper.GetString(addressPublicFlag)
+		dbHost := viper.GetString(dbHostPublicFlag)
+		dbPort := viper.GetInt(dbPortPublicFlag)
+		dbNamespace := viper.GetString(dbNamespacePublicFlag)
 
 		p, err := public.NewPublicAPI()
 		if err != nil {
 			panic(err)
 		}
 
-		if err = p.Run(addr, dbHosts, dbPassword); err != nil {
+		if err = p.Run(addr, dbHost, dbNamespace, dbPort); err != nil {
 			panic(err)
 		}
 	},
@@ -35,13 +36,15 @@ func init() {
 
 	f := publicCmd.Flags()
 
-	f.String(addressFlag, ":8081", "server address")
-	f.String(dbHostsFlag, ":7000,:7001,:7002,:7003,:7004,:7005", "database hosts separated by comma")
-	f.String(dbPasswordFlag, "", "database password")
+	f.String(addressPublicFlag, ":8082", "server address")
+	f.String(dbHostPublicFlag, "127.0.0.1", "database host")
+	f.String(dbNamespacePublicFlag, "personalization", "namespace of the database")
+	f.Int(dbPortPublicFlag, 3000, "database port")
 
-	viper.BindEnv(addressFlag, "ADDRESS_HOST")
-	viper.BindEnv(dbHostsFlag, "DB_HOSTS")
-	viper.BindEnv(dbPasswordFlag, "DB_PASSOWRD")
+	viper.BindEnv(addressPublicFlag, "ADDRESS_HOST")
+	viper.BindEnv(dbHostPublicFlag, "DB_HOST")
+	viper.BindEnv(dbPortPublicFlag, "DB_PORT")
+	viper.BindEnv(dbNamespacePublicFlag, "DB_NAMESPACE")
 
 	viper.BindPFlags(f)
 }

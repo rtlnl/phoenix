@@ -20,16 +20,19 @@ func NewInternalAPI() (*Internal, error) {
 
 // Run will initialize the server and will listen to the specified
 // port from the config file
-func (c *Internal) Run(host, dbHosts, dbPassword, s3Bucket, s3Region string) error {
+func (c *Internal) Run(host, dbHost, dbNamespace, s3Bucket, s3Region string, dbPort int) error {
 	c.App.RedirectTrailingSlash = true
 
 	// middlewares for injecting clients that are always in used. Caching is important when low latency is due
-	c.App.Use(middleware.Redis(dbHosts, dbPassword))
+	c.App.Use(middleware.Aerospike(dbHost, dbNamespace, dbPort))
 	c.App.Use(middleware.S3(s3Bucket, s3Region))
 
 	// Routes
 	c.App.POST("/personalizations", AddPersonalizations)
 	c.App.DELETE("/personalizations", DeletePersonalizations)
+
+	// Healthz
+	c.App.GET("/healthz", Healthz)
 
 	return c.App.Run(host)
 }
