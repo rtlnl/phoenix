@@ -12,13 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rtlnl/data-personalization-api/pkg/db"
-
-	"github.com/rtlnl/data-personalization-api/middleware"
-
 	aero "github.com/aerospike/aerospike-client-go"
-
 	"github.com/gin-gonic/gin"
+	"github.com/rtlnl/data-personalization-api/middleware"
+	"github.com/rtlnl/data-personalization-api/pkg/db"
 )
 
 const (
