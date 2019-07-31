@@ -15,12 +15,12 @@ type S3Client struct {
 }
 
 // NewS3Client is a wrapper object around the official aws s3 client
-func NewS3Client(bucket, region string) *S3Client {
+func NewS3Client(bucket, region, endpoint string, disableSSL bool) *S3Client {
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:           aws.String(region),
 		S3ForcePathStyle: aws.Bool(true),
-		DisableSSL:       aws.Bool(true),               // TODO: Remove this
-		Endpoint:         aws.String("localhost:4572"), // TODO: Remove this
+		DisableSSL:       aws.Bool(disableSSL),
+		Endpoint:         aws.String(endpoint),
 	}))
 
 	return &S3Client{
