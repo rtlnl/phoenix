@@ -1,0 +1,47 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "RTL-DI Personalization APIs",
+    "description": "This is the RESTful APIs of RTL Personalization models",
+    "version": "1.0.0"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "basePath": "/",
+  "paths": {
+    "/recommend": {
+      "post": {
+        "summary": "Version of the APIs",
+        "description": "Return the current version of the NHT APIs",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "PredictRequest": {
+      "type": "object",
+      "properties": {
+        "epoch_ms": {
+          "description": "Timestamp of the current log line",
+          "example": "1520280001034",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model"
+      ]
+    }
+  }
+}

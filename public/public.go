@@ -28,10 +28,14 @@ func (c *Public) Run(host, dbHost, dbNamespace string, dbPort int) error {
 	c.App.Use(middleware.Aerospike(dbHost, dbNamespace, dbPort))
 
 	// Routes
+	c.App.GET("/", LongVersion)
 	c.App.POST("/recommend", Recommend)
 
 	// Healthz
 	c.App.GET("/healthz", Healthz)
+
+	// Docs
+	c.App.Static("/docs", "docs/swagger-public")
 
 	return c.App.Run(host)
 }

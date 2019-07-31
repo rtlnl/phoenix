@@ -9,15 +9,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AddPersonalizations will take care of populating the personalized content for all the users
-func AddPersonalizations(c *gin.Context) {
+// Streaming will upload in a streaming fashion a set of data
+func Streaming(c *gin.Context) {
 	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
 	_ = c.MustGet("S3Client").(*db.S3Client)
 
 	utils.Response(c, http.StatusCreated, "import succeeded")
 }
 
-// DeletePersonalizations will delete the personalized content of the previous day
-func DeletePersonalizations(c *gin.Context) {
+// Batch will upload in batch a set to the database
+func Batch(c *gin.Context) {
 
 }

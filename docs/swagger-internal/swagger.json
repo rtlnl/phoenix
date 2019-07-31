@@ -1,0 +1,123 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "RTL-DI Personalization APIs",
+    "description": "This is the RESTful APIs of RTL Personalization models",
+    "version": "1.0.0"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "basePath": "/",
+  "paths": {
+    "/streaming": {
+      "post": {
+        "summary": "Predict label",
+        "description": "Predict a label based on the log line in input",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Log line representation for requiring a prediction",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PredictRequest"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Prediction model couldn't work properly"
+          }
+        }
+      }
+    },
+    "/batch": {
+      "post": {
+        "summary": "Predict label",
+        "description": "Predict a label based on the log line in input",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Log line representation for requiring a prediction",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PredictRequest"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Prediction model couldn't work properly"
+          }
+        }
+      }
+    },
+    "/management/model": {
+      "post": {
+        "summary": "Predict label",
+        "description": "Predict a label based on the log line in input",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Log line representation for requiring a prediction",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PredictRequest"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Prediction model couldn't work properly"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "PredictRequest": {
+      "type": "object",
+      "properties": {
+        "epoch_ms": {
+          "description": "Timestamp of the current log line",
+          "example": "1520280001034",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model"
+      ]
+    }
+  }
+}

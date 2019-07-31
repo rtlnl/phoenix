@@ -28,11 +28,22 @@ func (c *Internal) Run(host, dbHost, dbNamespace, s3Bucket, s3Region, s3Endpoint
 	c.App.Use(middleware.S3(s3Bucket, s3Region, s3Endpoint, s3DisableSSL))
 
 	// Routes
-	c.App.POST("/personalizations", AddPersonalizations)
-	c.App.DELETE("/personalizations", DeletePersonalizations)
+	c.App.GET("/", LongVersion)
+	c.App.POST("/streaming", Streaming)
+	c.App.POST("/batch", Batch)
+
+	// Management Routes
+	m := c.App.Group("/management/model")
+	m.POST("/", CreateModel)
+	m.DELETE("/", DeleteModel)
+	m.POST("/publish", PublishModel)
+	m.DELETE("/empty", EmptyModel)
 
 	// Healthz
 	c.App.GET("/healthz", Healthz)
+
+	// Docs
+	c.App.Static("/docs", "docs/swagger-internal")
 
 	return c.App.Run(host)
 }
