@@ -29,7 +29,7 @@ services:
       - "3000:3000"
     volumes: 
       - ./data:/opt/aerospike/data
-      - ./config/aerospike.conf:/opt/aerospike/etc/aerospike.conf
+      - ./config/aerospike.test.conf:/opt/aerospike/etc/aerospike.conf
 
   localstack:
     container_name: localstack

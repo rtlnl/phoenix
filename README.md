@@ -17,3 +17,9 @@ Here are some commands
 ## Aerospike
 
 For testing we use two different namespaces specified in the `./conf/aerospike.conf` file. We use a custom settings-file to create a secondary namespace a logically divide testing from development.
+
+## TODO
+
+- [ ] Improve SWAG definitions for public APIs
+- [ ] Improve SWAG definitions for internal APIs
+- [ ] Add more tests with edge cases
