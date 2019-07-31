@@ -15,7 +15,7 @@ services:
   #   command: []
   #   environment:
   #     - DB_HOST=127.0.0.1
-  #     - DB_PORT=":7000,:7001,:7002,:7003,:7004,:7005"
+  #     - DB_PORT=3000
   #   ports:
   #     - 8081:8081
   #   depends_on:
