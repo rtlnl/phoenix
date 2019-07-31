@@ -17,6 +17,17 @@ If you need to upload some files to the local S3, use the following commands aft
 - `aws --endpoint-url=http://localhost:4572 s3api put-bucket-acl --bucket test --acl public-read` to set up a policy for testing with local s3
 - `aws --endpoint-url=http://localhost:4572 s3 cp ~/Desktop/data.csv s3://test/content/20190713/` to copy a file to local S3
 
+## How to run tests
+
+To run all the tests, use the following command:
+
+```bash
+$: go clean -testcache && go test ./...
+```
+
+The first part is to avoid that Go will cache the result of the tests. This could lead to some evaluation errors
+if you change some tests. Better without cache.
+
 ## Aerospike
 
 For testing we use two different namespaces specified in the `./conf/aerospike.conf` file. We use a custom settings-file to create a secondary namespace a logically divide testing from development.
@@ -26,3 +37,4 @@ For testing we use two different namespaces specified in the `./conf/aerospike.c
 - [ ] Improve SWAG definitions for public APIs
 - [ ] Improve SWAG definitions for internal APIs
 - [ ] Add more tests with edge cases
+- [ ] Setup MinIO instead of Localstack
