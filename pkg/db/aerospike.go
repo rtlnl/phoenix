@@ -51,7 +51,7 @@ func (ac *AerospikeClient) GetOne(setName string, key interface{}) (interface{},
 	}, nil
 }
 
-// AddOne returns the associated Record (aka Bins) for the given key object
+// AddOne add the map value to the specified key in the set
 func (ac *AerospikeClient) AddOne(setName string, key interface{}, value map[string]interface{}) error {
 	k, err := aero.NewKey(ac.Namespace, setName, key)
 	if err != nil {
@@ -78,4 +78,29 @@ func (ac *AerospikeClient) Health() error {
 		return fmt.Errorf("database is not connected")
 	}
 	return nil
+}
+
+// DeleteOne deletes a single record in the specified set
+func (ac *AerospikeClient) DeleteOne(setName string, key interface{}) error {
+	k, err := aero.NewKey(ac.Namespace, setName, key)
+	if err != nil {
+		return fmt.Errorf("could not create key: %v", err)
+	}
+
+	_, err = ac.Client.Exists(ac.Client.DefaultPolicy, k)
+	if err != nil {
+		return fmt.Errorf("key does not exist: %v", err)
+	}
+
+	_, err = ac.Client.Delete(ac.Client.DefaultWritePolicy, k)
+	if err != nil {
+		return fmt.Errorf("could not delete the record record: %v", err)
+	}
+	return nil
+}
+
+// TruncateSet will remove all the keys in a set asynchronously based on the time specified
+// If time = nil
+func (ac *AerospikeClient) TruncateSet(setName string) error {
+	return ac.Client.Truncate(ac.Client.DefaultWritePolicy, ac.Namespace, setName, nil)
 }

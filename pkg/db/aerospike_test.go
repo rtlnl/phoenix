@@ -7,18 +7,18 @@ import (
 )
 
 const (
-	testDBHost       = "127.0.0.1"
-	testDBPort       = 3000
-	defaultNamespace = "personalization"
+	testDBHost    = "127.0.0.1"
+	testDBPort    = 3000
+	testNamespace = "test"
 )
 
 func TestNewAerospikeClient(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, defaultNamespace, testDBPort)
+	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
 	assert.NotNil(t, s)
 }
 
 func TestPing(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, defaultNamespace, testDBPort)
+	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
 
 	err := s.Health()
 	if err != nil {
@@ -27,7 +27,7 @@ func TestPing(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, defaultNamespace, testDBPort)
+	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
 
 	err := s.Close()
 	if err != nil {
@@ -36,33 +36,33 @@ func TestClose(t *testing.T) {
 }
 
 func TestSetOne(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, defaultNamespace, testDBPort)
+	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
 
 	values := map[string]interface{}{
 		"extra": 1,
 	}
 
 	// key --> user_id:item_id
-	err := s.AddOne(defaultNamespace, "123:1", values)
+	err := s.AddOne(testNamespace, "123:1", values)
 	if err != nil {
 		t.Errorf("TestSetOne(%v) got unexpected error", err)
 	}
 }
 
 func TestGetOne(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, defaultNamespace, testDBPort)
+	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
 
 	values := map[string]interface{}{
 		"extra": 1,
 	}
 
 	// key --> user_id:item_id
-	err := s.AddOne(defaultNamespace, "123:1", values)
+	err := s.AddOne(testNamespace, "123:1", values)
 	if err != nil {
 		t.Errorf("TestGetOne(%v) got unexpected error", err)
 	}
 
-	v, err := s.GetOne(defaultNamespace, "123:1")
+	v, err := s.GetOne(testNamespace, "123:1")
 	if err != nil {
 		t.Errorf("TestGetOne(%v) got unexpected error", err)
 	}

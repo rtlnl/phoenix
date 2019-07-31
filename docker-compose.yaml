@@ -22,12 +22,14 @@ services:
   #     - aerospike
 
   aerospike:
-    image: aerospike
+    image: aerospike/aerospike-server
     container_name: aerospike
-    environment:
-      NAMESPACE: personalization
+    command: ["--config-file", "/opt/aerospike/etc/aerospike.conf"]
     ports:
-    - "3000:3000"
+      - "3000:3000"
+    volumes: 
+      - ./data:/opt/aerospike/data
+      - ./config/aerospike.conf:/opt/aerospike/etc/aerospike.conf
 
   localstack:
     container_name: localstack
