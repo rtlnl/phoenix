@@ -7,12 +7,15 @@ The Project is divided in two main parts:
 
 ## How to start
 
-Here are some commands
+Assuming that you have `docker` and `docker-compose` installed in your machine, run `docker-compose up -d` to spin up aerospike and localstack (for local S3).
 
-- `docker-compose up -d` to spin up aerospike and localstack
+After having the services up and running, assuming that you have your Go environment in your `PATH`, you should be able to start directly with `go run main.go --help`. This command should print the `help` message.
+
+If you need to upload some files to the local S3, use the following commands after `localstack` has been created:
+
 - `aws --endpoint-url=http://localhost:4572 s3 mb s3://test` to create a bucket in local S3
 - `aws --endpoint-url=http://localhost:4572 s3api put-bucket-acl --bucket test --acl public-read` to set up a policy for testing with local s3
-- `aws --endpoint-url=http://localhost:4572 s3 cp ~/Desktop/personalization.csv s3://test/content/20190713/` to copy a file to local S3
+- `aws --endpoint-url=http://localhost:4572 s3 cp ~/Desktop/data.csv s3://test/content/20190713/` to copy a file to local S3
 
 ## Aerospike
 
