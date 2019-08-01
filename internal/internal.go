@@ -29,7 +29,9 @@ func (c *Internal) Run(host, dbHost, dbNamespace, s3Bucket, s3Region, s3Endpoint
 
 	// Routes
 	c.App.GET("/", LongVersion)
-	c.App.POST("/streaming", Streaming)
+	c.App.POST("/streaming", CreateStreaming)
+	c.App.PUT("/streaming", UpdateStreaming)
+	c.App.DELETE("/streaming", DeleteStreaming)
 	c.App.POST("/batch", Batch)
 
 	// Management Routes
