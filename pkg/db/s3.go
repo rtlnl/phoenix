@@ -30,7 +30,8 @@ func NewS3Client(bucket, region, endpoint string, disableSSL bool) *S3Client {
 }
 
 // GetObject returns the specified object-key from the selected bucket
-// TODO: improve the function to stream it in chunks to optimize the reading process
+// TODO: We need to be smarted here! Currently we download the whole file.
+// Better if we manage to separate it in different chunks
 func (c *S3Client) GetObject(key string) (*io.ReadCloser, error) {
 	o, err := c.Service.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(c.Bucket),
@@ -42,4 +43,21 @@ func (c *S3Client) GetObject(key string) (*io.ReadCloser, error) {
 	}
 
 	return &o.Body, nil
+}
+
+// ExistsObject test if the specified key exists in the bucket
+// It returns true if the key exists, false otherwise
+func (c *S3Client) ExistsObject(key string) bool {
+	// There is no official method to test if a key exists or not.
+	// To avoid downloading the object, we require the metadata
+	// information instead
+	req, _ := c.Service.HeadObjectRequest(&s3.HeadObjectInput{
+		Bucket: aws.String(c.Bucket),
+		Key:    aws.String(key),
+	})
+
+	if err := req.Send(); err != nil {
+		return false
+	}
+	return true
 }

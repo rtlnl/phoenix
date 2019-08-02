@@ -1,12 +1,21 @@
 package internal
 
 import (
+	"bufio"
+	"fmt"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/rtlnl/data-personalization-api/pkg/db"
 	"github.com/rtlnl/data-personalization-api/utils"
 
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	// The current CSV file we read contains only 2 columns: signal;items
+	numOfColumnsInDataFile = 2
 )
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
@@ -22,10 +31,9 @@ type StreamingResponse struct {
 	Summary string `json:"summary"`
 }
 
-// CreateStreaming creates a new record
+// CreateStreaming creates a new record in the selected campaign
 func CreateStreaming(c *gin.Context) {
 	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
-	_ = c.MustGet("S3Client").(*db.S3Client)
 
 	var sr StreamingRequest
 	if err := c.BindJSON(&sr); err != nil {
@@ -36,10 +44,9 @@ func CreateStreaming(c *gin.Context) {
 	utils.Response(c, http.StatusCreated, "import succeeded")
 }
 
-// UpdateStreaming updates a single record
+// UpdateStreaming updates a single record in the selected campaign
 func UpdateStreaming(c *gin.Context) {
 	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
-	_ = c.MustGet("S3Client").(*db.S3Client)
 
 	var sr StreamingRequest
 	if err := c.BindJSON(&sr); err != nil {
@@ -50,10 +57,9 @@ func UpdateStreaming(c *gin.Context) {
 	utils.Response(c, http.StatusCreated, "import succeeded")
 }
 
-// DeleteStreaming deletes a single record
+// DeleteStreaming deletes a single record in the selected campaign
 func DeleteStreaming(c *gin.Context) {
 	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
-	_ = c.MustGet("S3Client").(*db.S3Client)
 
 	var sr StreamingRequest
 	if err := c.BindJSON(&sr); err != nil {
@@ -65,6 +71,7 @@ func DeleteStreaming(c *gin.Context) {
 }
 
 // BatchRequest is the object that represents the payload of the request for the batch endpoints
+// Conditions: Data takes precedence in case also DataLocation is specified
 type BatchRequest struct {
 	Action           string      `json:"action"`
 	PublicationPoint string      `json:"publicationPoint"`
@@ -81,9 +88,16 @@ type BatchResponse struct {
 	Summary string `json:"summary"`
 }
 
+// DataUploaded is the object that represents the result for uplaoding the data
+type DataUploaded struct {
+	NumberOfSignals         int `description:"total count of signals that have been uploaded"`
+	NumberOfRecommendations int `description:"total count of recommendations items that have been uploaded"`
+}
+
 // Batch will upload in batch a set to the database
 func Batch(c *gin.Context) {
-	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	s := c.MustGet("S3Client").(*db.S3Client)
 
 	var br BatchRequest
 	if err := c.BindJSON(&br); err != nil {
@@ -91,5 +105,103 @@ func Batch(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, "import successed")
+	var du *DataUploaded
+	var err error
+	if len(br.Data) > 0 && br.Data != nil {
+		du, err = uploadDataDirectly(ac, br.Data, br.PublicationPoint, br.Campaign, "staged")
+	} else {
+		// check if file exists
+		key := strings.TrimPrefix(br.DataLocation, fmt.Sprintf("s3://%s/", s.Bucket))
+		if s.ExistsObject(key) == false {
+			utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("key %s does not exists", br.DataLocation))
+			return
+		}
+		// download the file
+		f, err := s.GetObject(key)
+		if err != nil {
+			utils.ResponseError(c, http.StatusInternalServerError, err)
+			return
+		}
+		du, err = uploadDataFromFile(ac, f, br.PublicationPoint, br.Campaign, "staged")
+	}
+
+	if du == nil && err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	summary := fmt.Sprintf("%s %s %s %d %d", br.Action, br.PublicationPoint, br.Campaign, du.NumberOfSignals, du.NumberOfRecommendations)
+	utils.Response(c, http.StatusCreated, &BatchResponse{Summary: summary})
+}
+
+// formatSetName returns the name of the "set" formatted in such a way that we can
+// split it up again by a separator. The separator is #.
+func formatSetName(publicationPoint, campaign, environment string) string {
+	// publicationPoint#campaign#[published/staged]
+	return fmt.Sprintf("%s#%s#%s", publicationPoint, campaign, environment)
+}
+
+func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, publicationPoint, campaign, environment string) (*DataUploaded, error) {
+	var nr int
+	for _, data := range bd {
+		for sig, recommendedItems := range data {
+			nr += len(recommendedItems)
+
+			// transform to be complaint with the interface
+			v := make(map[string]interface{})
+			v[sig] = recommendedItems
+
+			// upload to Aerospike
+			// TODO: verify here if it works in this way
+			setName := formatSetName(publicationPoint, campaign, environment)
+			if err := ac.AddOne(setName, sig, v); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return &DataUploaded{NumberOfSignals: len(bd), NumberOfRecommendations: nr}, nil
+}
+
+func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, publicationPoint, campaign, environment string) (*DataUploaded, error) {
+
+	records := 0
+	rd := bufio.NewReader(*file)
+
+	var nr int
+	for {
+		l, err := rd.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+
+		// skip header in csv
+		if records <= 0 {
+			records++
+			continue
+		}
+
+		record := strings.Split(l, ";")
+		if len(record) != numOfColumnsInDataFile {
+			continue
+		}
+
+		sig := record[0]
+		recommendedItems := strings.Split(record[1], ",")
+
+		// count number of recommendations
+		nr += len(recommendedItems)
+
+		// transform to be complaint with the interface
+		v := make(map[string]interface{})
+		v[sig] = recommendedItems
+
+		// upload to Aerospike
+		// TODO: verify here if it works in this way
+		setName := formatSetName(publicationPoint, campaign, environment)
+		if err := ac.AddOne(setName, sig, v); err != nil {
+			return nil, err
+		}
+		records++
+	}
+	return &DataUploaded{NumberOfSignals: records, NumberOfRecommendations: nr}, nil
 }
