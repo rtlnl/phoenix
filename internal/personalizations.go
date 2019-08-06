@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/rtlnl/data-personalization-api/models"
+
 	"github.com/rtlnl/data-personalization-api/pkg/db"
 	"github.com/rtlnl/data-personalization-api/utils"
 
@@ -105,10 +107,16 @@ func Batch(c *gin.Context) {
 		return
 	}
 
+	// retrieve the model
+	m, err := models.GetExistingModel(br.PublicationPoint, br.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var du *DataUploaded
-	var err error
 	if len(br.Data) > 0 && br.Data != nil {
-		du, err = uploadDataDirectly(ac, br.Data, br.PublicationPoint, br.Campaign, "staged")
+		du, err = uploadDataDirectly(ac, br.Data, m)
 	} else {
 		// check if file exists
 		key := strings.TrimPrefix(br.DataLocation, fmt.Sprintf("s3://%s/", s.Bucket))
@@ -122,7 +130,7 @@ func Batch(c *gin.Context) {
 			utils.ResponseError(c, http.StatusInternalServerError, err)
 			return
 		}
-		du, err = uploadDataFromFile(ac, f, br.PublicationPoint, br.Campaign, "staged")
+		du, err = uploadDataFromFile(ac, f, m)
 	}
 
 	if du == nil && err != nil {
@@ -134,14 +142,7 @@ func Batch(c *gin.Context) {
 	utils.Response(c, http.StatusCreated, &BatchResponse{Summary: summary})
 }
 
-// formatSetName returns the name of the "set" formatted in such a way that we can
-// split it up again by a separator. The separator is #.
-func formatSetName(publicationPoint, campaign, environment string) string {
-	// publicationPoint#campaign#[published/staged]
-	return fmt.Sprintf("%s#%s#%s", publicationPoint, campaign, environment)
-}
-
-func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, publicationPoint, campaign, environment string) (*DataUploaded, error) {
+func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model) (*DataUploaded, error) {
 	var nr int
 	for _, data := range bd {
 		for sig, recommendedItems := range data {
@@ -153,8 +154,8 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, publicationPoint
 
 			// upload to Aerospike
 			// TODO: verify here if it works in this way
-			setName := formatSetName(publicationPoint, campaign, environment)
-			if err := ac.AddOne(setName, sig, v); err != nil {
+			setName := m.ComposeSetName()
+			if err := ac.AddOne(setName, sig, sig, v); err != nil {
 				return nil, err
 			}
 		}
@@ -162,7 +163,7 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, publicationPoint
 	return &DataUploaded{NumberOfSignals: len(bd), NumberOfRecommendations: nr}, nil
 }
 
-func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, publicationPoint, campaign, environment string) (*DataUploaded, error) {
+func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.Model) (*DataUploaded, error) {
 
 	records := 0
 	rd := bufio.NewReader(*file)
@@ -197,8 +198,8 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, publication
 
 		// upload to Aerospike
 		// TODO: verify here if it works in this way
-		setName := formatSetName(publicationPoint, campaign, environment)
-		if err := ac.AddOne(setName, sig, v); err != nil {
+		setName := m.ComposeSetName()
+		if err := ac.AddOne(setName, sig, sig, v); err != nil {
 			return nil, err
 		}
 		records++

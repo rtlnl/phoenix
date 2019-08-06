@@ -48,18 +48,22 @@ func NewModel(publicationPoint, campaign, signalType string, ac *db.AerospikeCli
 		return nil, err
 	}
 
+	// fill up bins
 	bins := make(map[string]interface{})
 	bins["version"] = v.String()
 	bins["stage"] = initStage
 	bins["signal_type"] = signalType
 
-	// create a new entry
-	if err := ac.AddOne(publicationPoint, campaign, bins); err != nil {
-		return nil, err
+	// create model and fill up metadata
+	for k, v := range bins {
+		if err := ac.AddOne(publicationPoint, campaign, k, v); err != nil {
+			return nil, err
+		}
 	}
 
 	return &Model{
 		PublicationPoint: publicationPoint,
+		Campaign:         campaign,
 		SignalType:       signalType,
 		Stage:            initStage,
 		Version:          v,
@@ -81,6 +85,7 @@ func GetExistingModel(publicationPoint, campaign string, ac *db.AerospikeClient)
 
 	return &Model{
 		PublicationPoint: publicationPoint,
+		Campaign:         campaign,
 		SignalType:       m.Bins["signal_type"].(string),
 		Stage:            m.Bins["stage"].(StageType),
 		Version:          v,
@@ -94,7 +99,7 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 		return errors.New("model is already published")
 	}
 
-	snStaged := fmt.Sprintf("%s#%s#%s", m.PublicationPoint, m.Campaign, m.Stage)
+	snStaged := m.ComposeSetName()
 
 	// Copy data from staging to published
 	recordsStaged, err := ac.GetAllRecords(snStaged)
@@ -102,7 +107,11 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 		return err
 	}
 
-	snPublished := fmt.Sprintf("%s#%s#%s", m.PublicationPoint, m.Campaign, PUBLISHED)
+	// set the published stage
+	m.Stage = PUBLISHED
+	m.Version.IncMajor()
+
+	snPublished := m.ComposeSetName()
 	if err := ac.AddMultipleRecords(snPublished, recordsStaged); err != nil {
 		return err
 	}
@@ -112,9 +121,6 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 	if err := ac.TruncateSet(snStaged); err != nil {
 		return err
 	}
-
-	m.Stage = PUBLISHED
-	m.Version.IncMajor()
 
 	return nil
 }
@@ -127,7 +133,7 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 		return errors.New("model is already STAGED")
 	}
 
-	snPublished := composeSetName(m.PublicationPoint, m.Campaign, m.Stage)
+	snPublished := m.ComposeSetName()
 
 	// Copy data from published to staging
 	recordsPublished, err := ac.GetAllRecords(snPublished)
@@ -135,7 +141,11 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 		return err
 	}
 
-	snStaged := composeSetName(m.PublicationPoint, m.Campaign, STAGED)
+	// set the staging stage
+	m.Stage = STAGED
+	m.Version.IncMinor()
+
+	snStaged := m.ComposeSetName()
 	if err := ac.AddMultipleRecords(snPublished, recordsPublished); err != nil {
 		return err
 	}
@@ -145,9 +155,6 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 	if err := ac.TruncateSet(snStaged); err != nil {
 		return err
 	}
-
-	m.Stage = STAGED
-	m.Version.IncMinor()
 
 	return nil
 }
@@ -159,7 +166,7 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 		return errors.New("you cannot delete a model that is PUBLISHED. Change the stage to STAGED first")
 	}
 
-	sn := composeSetName(m.PublicationPoint, m.Campaign, m.Stage)
+	sn := m.ComposeSetName()
 	// delete the published data of the model
 	// Recommendations setName => publicationPoint#campaign#STAGED
 	if err := ac.TruncateSet(sn); err != nil {
@@ -186,7 +193,7 @@ func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) erro
 	}
 
 	// truncate data
-	setName := composeSetName(m.PublicationPoint, m.Campaign, m.Stage)
+	setName := m.ComposeSetName()
 	if err := ac.TruncateSet(setName); err != nil {
 		return err
 	}
@@ -198,6 +205,7 @@ func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) erro
 	return nil
 }
 
-func composeSetName(publicationPoint, campaign string, stage StageType) string {
-	return fmt.Sprintf("%s#%s#%s", publicationPoint, campaign, stage)
+// ComposeSetName returns a string with the formatted value of the key we store in Aerospike
+func (m *Model) ComposeSetName() string {
+	return fmt.Sprintf("%s#%s#%s", m.PublicationPoint, m.Campaign, m.Stage)
 }

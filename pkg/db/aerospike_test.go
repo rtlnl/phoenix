@@ -13,62 +13,73 @@ const (
 	testNamespace = "test"
 )
 
+func createAerospikeClient() *AerospikeClient {
+	ac := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	ac.TruncateSet(testNamespace)
+
+	return ac
+}
+
 func TestNewAerospikeClient(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
-	assert.NotNil(t, s)
+	ac := createAerospikeClient()
+	assert.NotNil(t, ac)
 }
 
 func TestPing(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	ac := createAerospikeClient()
 
-	err := s.Health()
+	err := ac.Health()
 	if err != nil {
 		t.Errorf("TestPing(%v) got unexpected error", err)
 	}
 }
 
 func TestClose(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	ac := createAerospikeClient()
 
-	err := s.Close()
+	err := ac.Close()
 	if err != nil {
 		t.Errorf("TestClose(%v) got unexpected error", err)
 	}
 }
 
 func TestSetOne(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	ac := createAerospikeClient()
 
-	err := s.AddOne(testNamespace, "key", "value")
+	err := ac.AddOne(testNamespace, "key", "bin_key", "bin_value")
 	if err != nil {
 		t.Errorf("TestSetOne(%v) got unexpected error", err)
 	}
 }
 
 func TestGetOne(t *testing.T) {
-	s := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	ac := createAerospikeClient()
 
-	// key --> value
-	err := s.AddOne(testNamespace, "key", "value")
+	// key --> bin_key:bin_value
+	err := ac.AddOne(testNamespace, "key", "bin_key", "bin_value")
 	if err != nil {
 		t.Errorf("TestGetOne(%v) got unexpected error", err)
 	}
 
-	rec, err := s.GetOne(testNamespace, "key")
+	rec, err := ac.GetOne(testNamespace, "key")
 	if err != nil {
 		t.Errorf("TestGetOne(%v) got unexpected error", err)
 	}
 
-	for _, value := range rec.Bins {
-		if value.(string) != "value" {
-			t.Errorf("TestGetOne() expeted greater than 0 got error instead: %v", err)
+	for bk, bv := range rec.Bins {
+		if bk != "bin_key" {
+			t.Errorf("TestGetOne() expeted %s got error instead: %v", "bin_key", err)
+		}
+
+		if bv.(string) != "bin_value" {
+			t.Errorf("TestGetOne() expeted %s got error instead: %v", "bin_value", err)
 		}
 	}
 }
 
 func TestAddMultipleRecords(t *testing.T) {
 	// write into Aerospike first
-	ac := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	ac := createAerospikeClient()
 
 	// clean up previous tests
 	if err := ac.TruncateSet("model_1"); err != nil {
@@ -82,9 +93,11 @@ func TestAddMultipleRecords(t *testing.T) {
 	testSetName := "model_1"
 	for i := 0; i < 10; i++ {
 		k := fmt.Sprintf("key_%d", i)
-		v := fmt.Sprintf("value_%d", i)
 
-		err := ac.AddOne(testSetName, k, v)
+		bk := fmt.Sprintf("bin_key_%d", i)
+		bv := fmt.Sprintf("bin_value_%d", i)
+
+		err := ac.AddOne(testSetName, k, bk, bv)
 		if err != nil {
 			t.Errorf("AddMultipleRecords(%v) got unexpected error", err)
 		}

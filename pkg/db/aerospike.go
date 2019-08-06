@@ -64,13 +64,13 @@ func (ac *AerospikeClient) GetOne(setName string, key string) (*Record, error) {
 }
 
 // AddOne add the map value to the specified key in the set
-func (ac *AerospikeClient) AddOne(setName string, key string, value interface{}) error {
+func (ac *AerospikeClient) AddOne(setName string, key string, binKey string, binValue interface{}) error {
 	k, err := aero.NewKey(ac.Namespace, setName, key)
 	if err != nil {
 		return fmt.Errorf("could not create key: %v", err)
 	}
 
-	bin := aero.NewBin(key, value)
+	bin := aero.NewBin(binKey, binValue)
 
 	err = ac.Client.PutBins(ac.writingPolicy, k, bin)
 	if err != nil {
