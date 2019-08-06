@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/Masterminds/semver"
 	"github.com/rtlnl/data-personalization-api/pkg/db"
@@ -208,4 +209,22 @@ func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) erro
 // ComposeSetName returns a string with the formatted value of the key we store in Aerospike
 func (m *Model) ComposeSetName() string {
 	return fmt.Sprintf("%s#%s#%s", m.PublicationPoint, m.Campaign, m.Stage)
+}
+
+// ComposeSignalKey returns the actual key composition given a list of signals' values based on the model
+func (m *Model) ComposeSignalKey(signals map[string]string) string {
+	signalsList := strings.Split(m.SignalType, "_")
+
+	// split and compose key
+	var kb strings.Builder
+	for _, sKey := range signalsList {
+		sVal := signals[sKey]
+
+		kb.WriteString(sVal)
+		kb.WriteString("#")
+	}
+
+	// remove last occurrence of #
+	key := strings.TrimSuffix(kb.String(), "#")
+	return key
 }
