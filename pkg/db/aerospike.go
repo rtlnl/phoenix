@@ -10,6 +10,10 @@ import (
 type AerospikeClient struct {
 	Client    *aero.Client
 	Namespace string
+
+	basePolicy    *aero.BasePolicy  // Base policy for reading data
+	scanPolicy    *aero.ScanPolicy  // Special Policy for scanning data
+	writingPolicy *aero.WritePolicy // Special policy for writing data
 }
 
 // NewAerospikeClient connects and return an aerospike client instance where to store/read information
@@ -19,7 +23,13 @@ func NewAerospikeClient(addr, namespace string, port int) *AerospikeClient {
 		panic(err)
 	}
 
-	return &AerospikeClient{Client: client, Namespace: namespace}
+	return &AerospikeClient{
+		Client:        client,
+		Namespace:     namespace,
+		basePolicy:    aero.NewPolicy(),
+		scanPolicy:    createNewScanPolicy(),
+		writingPolicy: createNewWritingPolicy(),
+	}
 }
 
 // Record struct contains the result data of a query
@@ -55,9 +65,6 @@ func (ac *AerospikeClient) GetOne(setName string, key string) (*Record, error) {
 
 // AddOne add the map value to the specified key in the set
 func (ac *AerospikeClient) AddOne(setName string, key string, value interface{}) error {
-	wp := aero.NewWritePolicy(0, 0)
-	wp.SendKey = true
-
 	k, err := aero.NewKey(ac.Namespace, setName, key)
 	if err != nil {
 		return fmt.Errorf("could not create key: %v", err)
@@ -65,7 +72,7 @@ func (ac *AerospikeClient) AddOne(setName string, key string, value interface{})
 
 	bin := aero.NewBin(key, value)
 
-	err = ac.Client.PutBins(wp, k, bin)
+	err = ac.Client.PutBins(ac.writingPolicy, k, bin)
 	if err != nil {
 		return fmt.Errorf("could not add key/value pair: %v", err)
 	}
@@ -74,9 +81,6 @@ func (ac *AerospikeClient) AddOne(setName string, key string, value interface{})
 
 // AddRecord is used to add an already wrapped object into Aerospike database
 func (ac *AerospikeClient) AddRecord(setName string, key aero.Value, value aero.BinMap) error {
-	wp := aero.NewWritePolicy(0, 0)
-	wp.SendKey = true
-
 	// value can contain multiple bins object (aka map[string]interface{})
 	// hence we need to iterate through it
 	for k, v := range value {
@@ -86,7 +90,7 @@ func (ac *AerospikeClient) AddRecord(setName string, key aero.Value, value aero.
 		}
 
 		b := aero.NewBin(k, v)
-		if err := ac.Client.AddBins(wp, newKey, b); err != nil {
+		if err := ac.Client.AddBins(ac.writingPolicy, newKey, b); err != nil {
 			return fmt.Errorf("could not add key/value pair: %v", err)
 		}
 	}
@@ -115,12 +119,12 @@ func (ac *AerospikeClient) DeleteOne(setName string, key interface{}) error {
 		return fmt.Errorf("could not create key: %v", err)
 	}
 
-	_, err = ac.Client.Exists(ac.Client.DefaultPolicy, k)
+	_, err = ac.Client.Exists(ac.basePolicy, k)
 	if err != nil {
 		return fmt.Errorf("key does not exist: %v", err)
 	}
 
-	_, err = ac.Client.Delete(ac.Client.DefaultWritePolicy, k)
+	_, err = ac.Client.Delete(ac.writingPolicy, k)
 	if err != nil {
 		return fmt.Errorf("could not delete the record record: %v", err)
 	}
@@ -130,17 +134,12 @@ func (ac *AerospikeClient) DeleteOne(setName string, key interface{}) error {
 // TruncateSet will remove all the keys in a set asynchronously based on the time specified
 // If time = nil
 func (ac *AerospikeClient) TruncateSet(setName string) error {
-	return ac.Client.Truncate(ac.Client.DefaultWritePolicy, ac.Namespace, setName, nil)
+	return ac.Client.Truncate(ac.writingPolicy, ac.Namespace, setName, nil)
 }
 
 // GetAllRecords returns all the records of a specific set
 func (ac *AerospikeClient) GetAllRecords(setName string) (*aero.Recordset, error) {
-	p := aero.NewScanPolicy()
-	p.ConcurrentNodes = true
-	p.Priority = aero.LOW
-	p.IncludeBinData = true
-
-	return ac.Client.ScanAll(p, ac.Namespace, setName)
+	return ac.Client.ScanAll(ac.scanPolicy, ac.Namespace, setName)
 }
 
 // AddMultipleRecords add an x amount of records to a specific set
@@ -153,4 +152,22 @@ func (ac *AerospikeClient) AddMultipleRecords(setName string, records *aero.Reco
 		}
 	}
 	return nil
+}
+
+// Custom policy for scanning and reading the data in aerospike
+func createNewScanPolicy() *aero.ScanPolicy {
+	sp := aero.NewScanPolicy()
+	sp.ConcurrentNodes = true
+	sp.Priority = aero.LOW
+	sp.IncludeBinData = true
+
+	return sp
+}
+
+// Custom policy for writing/deleting data in aerospike
+func createNewWritingPolicy() *aero.WritePolicy {
+	wp := aero.NewWritePolicy(0, 0)
+	wp.SendKey = true
+
+	return wp
 }

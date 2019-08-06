@@ -97,11 +97,23 @@ func PublishModel(c *gin.Context) {
 
 // EmptyModel truncate the content of a model but leave the model in the database
 func EmptyModel(c *gin.Context) {
-	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
+		return
+	}
+
+	// empty model from database
+	if err := m.DeleteModel(ac); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 

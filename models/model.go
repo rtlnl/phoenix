@@ -165,6 +165,14 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 	if err := ac.TruncateSet(sn); err != nil {
 		return err
 	}
+
+	// reset version back to initial
+	v, err := semver.NewVersion(initVersion)
+	if err != nil {
+		return err
+	}
+	m.Version = v
+
 	return nil
 }
 
