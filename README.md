@@ -37,4 +37,5 @@ For testing we use two different namespaces specified in the `./conf/aerospike.c
 - [ ] Improve SWAG definitions for public APIs
 - [ ] Improve SWAG definitions for internal APIs
 - [ ] Add more tests with edge cases
-- [ ] Setup MinIO instead of Localstack
+- [ ] Create stress tests
+- [ ] Create Benchmarks
