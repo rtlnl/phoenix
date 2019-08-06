@@ -24,12 +24,13 @@ func NewAerospikeClient(addr, namespace string, port int) *AerospikeClient {
 
 // Record struct contains the result data of a query
 type Record struct {
+	Key        string                 `json:"key"`
 	Bins       map[string]interface{} `json:"bins"`
 	Expiration uint32                 `json:"exp"`
 }
 
 // GetOne returns the associated Record (aka Bins) for the given key object
-func (ac *AerospikeClient) GetOne(setName string, key interface{}) (interface{}, error) {
+func (ac *AerospikeClient) GetOne(setName string, key string) (*Record, error) {
 	k, err := aero.NewKey(ac.Namespace, setName, key)
 	if err != nil {
 		return nil, fmt.Errorf("could not create key: %v", err)
@@ -46,21 +47,48 @@ func (ac *AerospikeClient) GetOne(setName string, key interface{}) (interface{},
 	}
 
 	return &Record{
+		Key:        r.Key.Value().String(),
 		Bins:       r.Bins,
 		Expiration: r.Expiration,
 	}, nil
 }
 
 // AddOne add the map value to the specified key in the set
-func (ac *AerospikeClient) AddOne(setName string, key interface{}, value map[string]interface{}) error {
+func (ac *AerospikeClient) AddOne(setName string, key string, value interface{}) error {
+	wp := aero.NewWritePolicy(0, 0)
+	wp.SendKey = true
+
 	k, err := aero.NewKey(ac.Namespace, setName, key)
 	if err != nil {
 		return fmt.Errorf("could not create key: %v", err)
 	}
 
-	err = ac.Client.Add(ac.Client.DefaultWritePolicy, k, value)
+	bin := aero.NewBin(key, value)
+
+	err = ac.Client.PutBins(wp, k, bin)
 	if err != nil {
 		return fmt.Errorf("could not add key/value pair: %v", err)
+	}
+	return nil
+}
+
+// AddRecord is used to add an already wrapped object into Aerospike database
+func (ac *AerospikeClient) AddRecord(setName string, key aero.Value, value aero.BinMap) error {
+	wp := aero.NewWritePolicy(0, 0)
+	wp.SendKey = true
+
+	// value can contain multiple bins object (aka map[string]interface{})
+	// hence we need to iterate through it
+	for k, v := range value {
+		newKey, err := aero.NewKey(ac.Namespace, setName, key.String())
+		if err != nil {
+			return fmt.Errorf("could not add key/value pair: %v", err)
+		}
+
+		b := aero.NewBin(k, v)
+		if err := ac.Client.AddBins(wp, newKey, b); err != nil {
+			return fmt.Errorf("could not add key/value pair: %v", err)
+		}
 	}
 	return nil
 }
@@ -103,4 +131,26 @@ func (ac *AerospikeClient) DeleteOne(setName string, key interface{}) error {
 // If time = nil
 func (ac *AerospikeClient) TruncateSet(setName string) error {
 	return ac.Client.Truncate(ac.Client.DefaultWritePolicy, ac.Namespace, setName, nil)
+}
+
+// GetAllRecords returns all the records of a specific set
+func (ac *AerospikeClient) GetAllRecords(setName string) (*aero.Recordset, error) {
+	p := aero.NewScanPolicy()
+	p.ConcurrentNodes = true
+	p.Priority = aero.LOW
+	p.IncludeBinData = true
+
+	return ac.Client.ScanAll(p, ac.Namespace, setName)
+}
+
+// AddMultipleRecords add an x amount of records to a specific set
+func (ac *AerospikeClient) AddMultipleRecords(setName string, records *aero.Recordset) error {
+	// TODO: use channels/goroutines to improve the insert
+	// examples: https://github.com/aerospike/aerospike-client-go/blob/master/tools/benchmark/benchmark.go
+	for res := range records.Results() {
+		if err := ac.AddRecord(setName, res.Record.Key.Value(), res.Record.Bins); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -1,7 +1,10 @@
 package internal
 
 import (
+	"fmt"
 	"net/http"
+
+	"github.com/rtlnl/data-personalization-api/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rtlnl/data-personalization-api/pkg/db"
@@ -24,7 +27,7 @@ type ManagementModelResponse struct {
 
 // CreateModel create a new model in the database where to upload the data
 func CreateModel(c *gin.Context) {
-	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
@@ -32,16 +35,36 @@ func CreateModel(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, "model creation succeeded")
+	_, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.SignalOrder, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.Response(c, http.StatusCreated, &ManagementModelResponse{
+		Summary: fmt.Sprintf("create %s %s %s", mm.PublicationPoint, mm.Campaign, mm.SignalOrder),
+	})
 }
 
 // DeleteModel deletes a model in the database and all its related data
 func DeleteModel(c *gin.Context) {
-	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
+		return
+	}
+
+	// delete model from database
+	if err := m.DeleteModel(ac); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -50,11 +73,22 @@ func DeleteModel(c *gin.Context) {
 
 // PublishModel set a model to be the one to be used by the clients
 func PublishModel(c *gin.Context) {
-	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
+		return
+	}
+
+	if err := m.PublishModel(ac); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 
