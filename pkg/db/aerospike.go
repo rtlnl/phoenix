@@ -113,7 +113,7 @@ func (ac *AerospikeClient) Health() error {
 }
 
 // DeleteOne deletes a single record in the specified set
-func (ac *AerospikeClient) DeleteOne(setName string, key interface{}) error {
+func (ac *AerospikeClient) DeleteOne(setName string, key string) error {
 	k, err := aero.NewKey(ac.Namespace, setName, key)
 	if err != nil {
 		return fmt.Errorf("could not create key: %v", err)

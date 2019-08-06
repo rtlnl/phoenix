@@ -30,12 +30,12 @@ type StreamingRequest struct {
 
 // StreamingResponse is the object that represents the payload for the response in the streaming endpoints
 type StreamingResponse struct {
-	Summary string `json:"summary"`
+	Message string `json:"message"`
 }
 
 // CreateStreaming creates a new record in the selected campaign
 func CreateStreaming(c *gin.Context) {
-	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
 	var sr StreamingRequest
 	if err := c.BindJSON(&sr); err != nil {
@@ -43,12 +43,30 @@ func CreateStreaming(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, "import succeeded")
+	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	// transform to be complaint with the interface
+	v := make(map[string]interface{})
+	v[sr.Signal] = sr.Recommendations
+
+	sn := m.ComposeSetName()
+	if err := ac.AddOne(sn, sr.Signal, sr.Signal, v); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.Response(c, http.StatusCreated, &StreamingResponse{
+		Message: fmt.Sprintf("signal %s created", sr.Signal),
+	})
 }
 
 // UpdateStreaming updates a single record in the selected campaign
 func UpdateStreaming(c *gin.Context) {
-	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
 	var sr StreamingRequest
 	if err := c.BindJSON(&sr); err != nil {
@@ -56,12 +74,32 @@ func UpdateStreaming(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, "import succeeded")
+	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	// transform to be complaint with the interface
+	v := make(map[string]interface{})
+	v[sr.Signal] = sr.Recommendations
+
+	sn := m.ComposeSetName()
+
+	// The AddOne method does an UPSERT
+	if err := ac.AddOne(sn, sr.Signal, sr.Signal, v); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+
+	}
+	utils.Response(c, http.StatusOK, &StreamingResponse{
+		Message: fmt.Sprintf("signal %s updated", sr.Signal),
+	})
 }
 
 // DeleteStreaming deletes a single record in the selected campaign
 func DeleteStreaming(c *gin.Context) {
-	_ = c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
 	var sr StreamingRequest
 	if err := c.BindJSON(&sr); err != nil {
@@ -69,7 +107,21 @@ func DeleteStreaming(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, "import succeeded")
+	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	sn := m.ComposeSetName()
+	if err := ac.DeleteOne(sn, sr.Signal); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.Response(c, http.StatusCreated, &StreamingResponse{
+		Message: fmt.Sprintf("signal %s deleted", sr.Signal),
+	})
 }
 
 // BatchRequest is the object that represents the payload of the request for the batch endpoints
