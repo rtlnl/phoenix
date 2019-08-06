@@ -3,6 +3,7 @@ module github.com/rtlnl/data-personalization-api
 go 1.12
 
 require (
+	github.com/Masterminds/semver v1.4.2
 	github.com/aerospike/aerospike-client-go v2.2.0+incompatible
 	github.com/aws/aws-sdk-go v1.20.20
 	github.com/gin-contrib/sse v0.1.0 // indirect
