@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -119,7 +120,7 @@ func DeleteStreaming(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, &StreamingResponse{
+	utils.Response(c, http.StatusOK, &StreamingResponse{
 		Message: fmt.Sprintf("signal %s deleted", sr.Signal),
 	})
 }
@@ -127,7 +128,6 @@ func DeleteStreaming(c *gin.Context) {
 // BatchRequest is the object that represents the payload of the request for the batch endpoints
 // Conditions: Data takes precedence in case also DataLocation is specified
 type BatchRequest struct {
-	Action           string      `json:"action"`
 	PublicationPoint string      `json:"publicationPoint"`
 	Campaign         string      `json:"campaign"`
 	Data             []BatchData `json:"data" description:"used for uploading some information directly from the request"`
@@ -139,7 +139,7 @@ type BatchData map[string][]string
 
 // BatchResponse is the object that represents the payload of the response for the batch endpoints
 type BatchResponse struct {
-	Summary string `json:"summary"`
+	Message string `json:"message"`
 }
 
 // DataUploaded is the object that represents the result for uplaoding the data
@@ -163,6 +163,12 @@ func Batch(c *gin.Context) {
 	m, err := models.GetExistingModel(br.PublicationPoint, br.Campaign, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	// cannot uplaod data to published models
+	if m.Stage == models.PUBLISHED {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot upload data on already published models. stage it first"))
 		return
 	}
 
@@ -190,8 +196,7 @@ func Batch(c *gin.Context) {
 		return
 	}
 
-	summary := fmt.Sprintf("%s %s %s %d %d", br.Action, br.PublicationPoint, br.Campaign, du.NumberOfSignals, du.NumberOfRecommendations)
-	utils.Response(c, http.StatusCreated, &BatchResponse{Summary: summary})
+	utils.Response(c, http.StatusCreated, &BatchResponse{Message: "data uploaded"})
 }
 
 func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model) (*DataUploaded, error) {

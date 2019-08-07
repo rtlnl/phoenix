@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/rtlnl/data-personalization-api/models"
@@ -22,7 +21,7 @@ type ManagementModelRequest struct {
 
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
 type ManagementModelResponse struct {
-	Summary string `json:"summary" description:"summary of the action just taken"`
+	Message string `json:"message" description:"summary of the action just taken"`
 }
 
 // CreateModel create a new model in the database where to upload the data
@@ -42,7 +41,7 @@ func CreateModel(c *gin.Context) {
 	}
 
 	utils.Response(c, http.StatusCreated, &ManagementModelResponse{
-		Summary: fmt.Sprintf("create %s %s %s", mm.PublicationPoint, mm.Campaign, mm.SignalOrder),
+		Message: "model created",
 	})
 }
 
@@ -68,7 +67,9 @@ func DeleteModel(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, "model deletion succeeded")
+	utils.Response(c, http.StatusCreated, &ManagementModelResponse{
+		Message: "model deleted",
+	})
 }
 
 // PublishModel set a model to be the one to be used by the clients
@@ -92,7 +93,9 @@ func PublishModel(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, "model publication succeeded")
+	utils.Response(c, http.StatusCreated, &ManagementModelResponse{
+		Message: "model published",
+	})
 }
 
 // EmptyModel truncate the content of a model but leave the model in the database
@@ -117,5 +120,7 @@ func EmptyModel(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, "model empty succeeded")
+	utils.Response(c, http.StatusCreated, &ManagementModelResponse{
+		Message: "model empty",
+	})
 }

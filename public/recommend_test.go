@@ -94,7 +94,7 @@ func TestRecommendNoModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"code\":400,\"message\":\"key tuna does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"key tuna does not exist\"}", string(b))
 }
 
 func TestRecommendWrongSignal(t *testing.T) {
@@ -119,7 +119,7 @@ func TestRecommendWrongSignal(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"code\":400,\"message\":\"signal is not formatted correctly\"}", string(b))
+	assert.Equal(t, "{\"message\":\"signal is not formatted correctly\"}", string(b))
 }
 
 func TestRecommendModelStaged(t *testing.T) {
@@ -144,5 +144,5 @@ func TestRecommendModelStaged(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"code\":400,\"message\":\"model is staged. Clients cannot access staged models\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model is staged. Clients cannot access staged models\"}", string(b))
 }

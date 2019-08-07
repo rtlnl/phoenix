@@ -9,14 +9,12 @@ import (
 
 // RespError represents the response structu when an error occurs
 type RespError struct {
-	Code    int    `json:"code" example:"400"`
 	Message string `json:"message" example:"status bad request"`
 }
 
 // ResponseError will return the error message
 func ResponseError(c *gin.Context, status int, err error) {
 	er := RespError{
-		Code:    status,
 		Message: err.Error(),
 	}
 	c.JSON(status, er)
