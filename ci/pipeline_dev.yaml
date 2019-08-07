@@ -4,7 +4,7 @@ resources:
     icon: github-circle
     source:
       uri: git@github.com:rtlnl/data-personalization-api.git
-      branch: master
+      branch: endpoints
       private_key: ((github_private_key))
 
   - name: ecr-docker-reg
@@ -63,6 +63,7 @@ jobs:
               #   and then pass it through to the task.
               # - When the image is passed to the task, Concourse can often get the image from its cache.
               docker load -i aerospike/image
+              docker tag "$(cat aerospike/image-id)" "$(cat aerospike/repository):$(cat aerospike/tag)"
               # docker load -i localstack/image
               # Run the container with tests and its dependencies.
               docker-compose -f git-repo/docker-compose.yaml up -d
@@ -83,10 +84,9 @@ jobs:
             - |
               SRCPATH=$PWD/go/src/github.com/rtlnl/data-personalization-api
               GOPATH=$PWD/go
-              DB_HOST=aerospike
               cd $SRCPATH
               go get -t -v ./...
-              go test -v ./...
+              DB_HOST=aerospike DB_PORT=3000 go test -v ./...
     # release the image if the tests are successful
   - put: ecr-docker-reg
     params:

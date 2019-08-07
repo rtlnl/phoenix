@@ -4,6 +4,8 @@ services:
     image: aerospike/aerospike-server
     container_name: aerospike
     command: ["--config-file", "/opt/aerospike/etc/aerospike.conf"]
+    networks:
+      - personalize    
     ports:
       - "3000:3000"
     volumes: 
@@ -13,6 +15,8 @@ services:
   localstack:
     container_name: localstack
     image: localstack/localstack
+    networks:
+      - personalize
     ports:
       - "4572:4572"
       - "8080:8080"
@@ -27,3 +31,6 @@ services:
 
 volumes:
   aerospike-data:
+
+networks:
+  personalize: {}
