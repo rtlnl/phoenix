@@ -19,9 +19,9 @@ type StageType string
 
 const (
 	// STAGED instructs the data to be internally available only
-	STAGED StageType = "staging"
+	STAGED StageType = "STAGED"
 	// PUBLISHED instructs the data to be available for the recommendations
-	PUBLISHED StageType = "production"
+	PUBLISHED StageType = "PUBLISHED"
 )
 
 // Model is the object that acts as container for the metadata of each model
@@ -43,7 +43,6 @@ type Model struct {
 //             Stage = STAGED
 //             SignalType = signalType
 func NewModel(publicationPoint, campaign, signalType string, ac *db.AerospikeClient) (*Model, error) {
-
 	v, err := semver.NewVersion(initVersion)
 	if err != nil {
 		return nil, err
@@ -84,11 +83,14 @@ func GetExistingModel(publicationPoint, campaign string, ac *db.AerospikeClient)
 		return nil, err
 	}
 
+	// read string and convert to enum
+	stg := m.Bins["stage"].(string)
+
 	return &Model{
 		PublicationPoint: publicationPoint,
 		Campaign:         campaign,
 		SignalType:       m.Bins["signal_type"].(string),
-		Stage:            m.Bins["stage"].(StageType),
+		Stage:            StageType(stg),
 		Version:          v,
 	}, nil
 }
@@ -120,6 +122,16 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 	// delete the staged data of the model
 	// Recommendations setName => publicationPoint#campaign#STAGED
 	if err := ac.TruncateSet(snStaged); err != nil {
+		return err
+	}
+
+	// store model stage
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "stage", m.Stage); err != nil {
+		return err
+	}
+
+	// store new version
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "version", m.Version.String()); err != nil {
 		return err
 	}
 
@@ -157,6 +169,16 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 		return err
 	}
 
+	// store model stage
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "stage", m.Stage); err != nil {
+		return err
+	}
+
+	// store new version
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "version", m.Version.String()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -181,6 +203,11 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 	}
 	m.Version = v
 
+	// store new version
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "version", m.Version.String()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -202,6 +229,16 @@ func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) erro
 	// change signalType
 	m.SignalType = signalType
 	m.Version.IncPatch()
+
+	// store model signaltype
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "signal_type", m.SignalType); err != nil {
+		return err
+	}
+
+	// store new version
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "version", m.Version.String()); err != nil {
+		return err
+	}
 
 	return nil
 }

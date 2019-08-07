@@ -43,17 +43,22 @@ type Record struct {
 func (ac *AerospikeClient) GetOne(setName string, key string) (*Record, error) {
 	k, err := aero.NewKey(ac.Namespace, setName, key)
 	if err != nil {
-		return nil, fmt.Errorf("could not create key: %v", err)
+		return nil, fmt.Errorf("could not create key %s. error %v", key, err)
 	}
 
-	_, err = ac.Client.Exists(ac.Client.DefaultPolicy, k)
+	e, err := ac.Client.Exists(ac.basePolicy, k)
 	if err != nil {
-		return nil, fmt.Errorf("key does not exist: %v", err)
+		return nil, fmt.Errorf("key %s does not exist. error %v", key, err)
 	}
 
-	r, err := ac.Client.Get(ac.Client.DefaultPolicy, k)
+	// key doesn't exists
+	if e == false {
+		return nil, fmt.Errorf("key %s does not exist", key)
+	}
+
+	r, err := ac.Client.Get(ac.basePolicy, k)
 	if err != nil {
-		return nil, fmt.Errorf("could not get record: %v", err)
+		return nil, fmt.Errorf("could not get record. error %v", err)
 	}
 
 	return &Record{

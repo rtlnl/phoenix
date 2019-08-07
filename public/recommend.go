@@ -1,6 +1,7 @@
 package public
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/rtlnl/data-personalization-api/models"
@@ -12,15 +13,15 @@ import (
 
 // RecommendRequest is the object that represents the payload of the request for the recommend endpoint
 type RecommendRequest struct {
-	Signals          []Signal
-	PublicationPoint string
-	Campaign         string
+	Signals          []Signal `json:"signals" binding:"required"`
+	PublicationPoint string   `json:"publicationPoint" binding:"required"`
+	Campaign         string   `json:"campaign" binding:"required"`
 }
 
 // RecommendResponse is the object that represents the payload of the response for the recommend endpoint
 type RecommendResponse struct {
-	Signals         []Signal
-	Recommendations []string
+	Signals         []Signal    `json:"signals"`
+	Recommendations interface{} `json:"recommendations"`
 }
 
 // Signal is an alias that represents the signal defintion
@@ -42,9 +43,19 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
+	// If the model is staged, the clients cannot access it
+	if m.Stage == models.STAGED {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("model is staged. Clients cannot access staged models"))
+		return
+	}
+
 	// compose key to retrieve recommended items
 	// TODO: fix this
 	key := m.ComposeSignalKey(rr.Signals[0])
+	if key == "" {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("signal is not formatted correctly"))
+		return
+	}
 
 	sn := m.ComposeSetName()
 	r, err := ac.GetOne(sn, key)
@@ -53,10 +64,8 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	reccItems := r.Bins[key].([]string)
-
-	utils.Response(c, http.StatusCreated, &RecommendResponse{
+	utils.Response(c, http.StatusOK, &RecommendResponse{
 		Signals:         rr.Signals,
-		Recommendations: reccItems,
+		Recommendations: r.Bins[key],
 	})
 }
