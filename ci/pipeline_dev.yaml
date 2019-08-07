@@ -1,0 +1,93 @@
+resources:
+  - name: git-repo
+    type: git
+    icon: github-circle
+    source:
+      uri: git@github.com:rtlnl/data-personalization-api.git
+      branch: master
+      private_key: ((github_private_key))
+
+  - name: ecr-docker-reg
+    type: docker-image
+    source:
+      aws_access_key_id: ((ecr_access_key_id))
+      aws_secret_access_key: ((ecr_secret_access_key))
+      repository: ((ecr_repository))/data-personalization-api    
+      tag: dev
+
+  - name: aerospike
+    type: docker-image
+    source:
+      repository: aerospike/aerospike-server
+      tag: 4.5.3.4
+
+  # - name: localstack
+  #   type: docker-image
+  #   source:
+  #     repository: localstack/localstack
+  #     tag: latest 
+
+
+jobs:
+- name: build
+  plan:
+  - do:
+    - get: git-repo
+      trigger: true
+    - get: aerospike
+      params: {save: true}
+    # - get: localstack
+      # params: {save: true}
+    - task: Run integration tests
+      privileged: true
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: amidos/dcind
+        inputs:
+          - name: git-repo
+          - name: aerospike
+          # - name: localstack
+        run:
+          path: bash
+          args:
+            - -exc
+            - |
+              source /docker-lib.sh
+              start_docker
+              # Strictly speaking, preloading of Docker images is not required.
+              # However, you might want to do this for a couple of reasons:
+              # - If the image comes from a private repository, it is much easier to let Concourse pull it,
+              #   and then pass it through to the task.
+              # - When the image is passed to the task, Concourse can often get the image from its cache.
+              docker load -i aerospike/image
+              # docker load -i localstack/image
+              # Run the container with tests and its dependencies.
+              docker-compose -f git-repo/docker-compose.yaml up -d
+
+    - task: integration-tests
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: golang}
+        inputs:
+          - name: git-repo
+            path: /go/src/github.com/rtlnl/data-personalization-api
+        run:
+          path: /bin/sh
+          args:
+            - -c
+            - |
+              SRCPATH=$PWD/go/src/github.com/rtlnl/data-personalization-api
+              GOPATH=$PWD/go
+              DB_HOST=aerospike
+              cd $SRCPATH
+              go get -t -v ./...
+              go test -v ./...
+    # release the image if the tests are successful
+  - put: ecr-docker-reg
+    params:
+      build: git-repo

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -15,11 +16,12 @@ import (
 	"github.com/rtlnl/data-personalization-api/middleware"
 	"github.com/rtlnl/data-personalization-api/models"
 	"github.com/rtlnl/data-personalization-api/pkg/db"
+	"github.com/rtlnl/data-personalization-api/utils"
 )
 
-const (
-	testDBHost     = "127.0.0.1"
-	testDBPort     = 3000
+var (
+	testDBHost     = utils.GetEnv("DB_HOST", "127.0.0.1")
+	testDBPort     = utils.GetEnv("DB_PORT", "3000")
 	testNamespace  = "test"
 	testBucket     = "test"
 	testRegion     = "eu-west-1"
@@ -45,7 +47,8 @@ func tearUp() {
 	// Load fixtures
 	loadFixtures()
 
-	router.Use(middleware.Aerospike(testDBHost, testNamespace, testDBPort))
+	p, _ := strconv.Atoi(testDBPort)
+	router.Use(middleware.Aerospike(testDBHost, testNamespace, p))
 	router.Use(middleware.S3(testBucket, testRegion, testEndpoint, testDisableSSL))
 
 	// subscribe routes here due to multiple tests on the same endpoint
@@ -69,7 +72,8 @@ func tearDown() {
 }
 
 func loadFixtures() {
-	ac := db.NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	p, _ := strconv.Atoi(testDBPort)
+	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
 
 	// load fixtures here
 	// model

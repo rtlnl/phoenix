@@ -8,19 +8,21 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/rtlnl/data-personalization-api/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rtlnl/data-personalization-api/middleware"
 	"github.com/rtlnl/data-personalization-api/pkg/db"
 )
 
-const (
-	testDBHost    = "127.0.0.1"
-	testDBPort    = 3000
+var (
+	testDBHost    = utils.GetEnv("DB_HOST", "127.0.0.1")
+	testDBPort    = utils.GetEnv("DB_PORT", "3000")
 	testNamespace = "test"
 )
 
@@ -42,7 +44,8 @@ func tearUp() {
 	// Load fixtures
 	loadFixtures()
 
-	router.Use(middleware.Aerospike(testDBHost, testNamespace, testDBPort))
+	p, _ := strconv.Atoi(testDBPort)
+	router.Use(middleware.Aerospike(testDBHost, testNamespace, p))
 
 	// subscribe route Recommend here due to multiple tests on this route
 	// it avoids a panic error for registering the route multiple times
@@ -54,7 +57,8 @@ func tearDown() {
 }
 
 func loadFixtures() {
-	ac := db.NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	p, _ := strconv.Atoi(testDBPort)
+	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
 
 	// load fixtures here
 	// model
