@@ -150,7 +150,6 @@ func (ac *AerospikeClient) GetAllRecords(setName string) (*aero.Recordset, error
 // AddMultipleRecords add an x amount of records to a specific set
 func (ac *AerospikeClient) AddMultipleRecords(setName string, records *aero.Recordset) error {
 	// TODO: use channels/goroutines to improve the insert
-	// examples: https://github.com/aerospike/aerospike-client-go/blob/master/tools/benchmark/benchmark.go
 	for res := range records.Results() {
 		if err := ac.AddRecord(setName, res.Record.Key.Value(), res.Record.Bins); err != nil {
 			return err
