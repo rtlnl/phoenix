@@ -53,6 +53,7 @@ func tearUp() {
 	router.POST("/streaming", CreateStreaming)
 	router.PUT("/streaming", UpdateStreaming)
 	router.DELETE("/streaming", DeleteStreaming)
+
 	router.POST("/batch", Batch)
 
 	// Management Routes

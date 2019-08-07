@@ -23,10 +23,10 @@ const (
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
 type StreamingRequest struct {
-	Signal           string   `json:"signal"`
-	PublicationPoint string   `json:"publicationPoint"`
-	Campaign         string   `json:"campaign"`
-	Recommendations  []string `json:"recommendations"`
+	Signal           string   `json:"signal" binding:"required"`
+	PublicationPoint string   `json:"publicationPoint" binding:"required"`
+	Campaign         string   `json:"campaign" binding:"required"`
+	Recommendations  []string `json:"recommendations" binding:"required"`
 }
 
 // StreamingResponse is the object that represents the payload for the response in the streaming endpoints
@@ -47,6 +47,12 @@ func CreateStreaming(c *gin.Context) {
 	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	// cannot add data to published models
+	if m.Stage == models.PUBLISHED {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot add data on already published models. stage it first"))
 		return
 	}
 
@@ -81,6 +87,12 @@ func UpdateStreaming(c *gin.Context) {
 		return
 	}
 
+	// cannot update data to published models
+	if m.Stage == models.PUBLISHED {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot update data on already published models. stage it first"))
+		return
+	}
+
 	// transform to be complaint with the interface
 	v := make(map[string]interface{})
 	v[sr.Signal] = sr.Recommendations
@@ -111,6 +123,12 @@ func DeleteStreaming(c *gin.Context) {
 	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	// cannot delete data to published models
+	if m.Stage == models.PUBLISHED {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot delete data on already published models. stage it first"))
 		return
 	}
 
