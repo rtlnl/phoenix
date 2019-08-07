@@ -2,19 +2,22 @@ package db
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
+	"github.com/rtlnl/data-personalization-api/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	testDBHost    = "127.0.0.1"
-	testDBPort    = 3000
+var (
+	testDBHost    = utils.GetEnv("DB_HOST", "127.0.0.1")
+	testDBPort    = utils.GetEnv("DB_PORT", "3000")
 	testNamespace = "test"
 )
 
 func createAerospikeClient() *AerospikeClient {
-	ac := NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	p, _ := strconv.Atoi(testDBPort)
+	ac := NewAerospikeClient(testDBHost, testNamespace, p)
 	ac.TruncateSet(testNamespace)
 
 	return ac
