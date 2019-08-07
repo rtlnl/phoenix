@@ -33,4 +33,5 @@ volumes:
   aerospike-data:
 
 networks:
-  personalize: {}
+  personalize:
+    driver: bridge
