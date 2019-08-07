@@ -18,11 +18,11 @@ import (
 
 const (
 	// The current CSV file we read contains only 2 columns: signal;items
-	COLUMNS_DATA_FILE = 2
+	columnsDataFile = 2
 	// csv delimiter character
-	CSV_DELIMITER = ";"
+	csvDelimiter = ";"
 	// record delimiter that separates each recommended item
-	RECORD_DELIMITER = ","
+	recordDelimiter = ","
 )
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
@@ -260,13 +260,13 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 			continue
 		}
 
-		record := strings.Split(l, CSV_DELIMITER)
-		if len(record) != COLUMNS_DATA_FILE {
+		record := strings.Split(l, csvDelimiter)
+		if len(record) != columnsDataFile {
 			continue
 		}
 
 		sig := record[0]
-		recommendedItems := strings.Split(record[1], RECORD_DELIMITER)
+		recommendedItems := strings.Split(record[1], recordDelimiter)
 
 		// count number of recommendations
 		nr += len(recommendedItems)
