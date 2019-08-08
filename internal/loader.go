@@ -50,7 +50,7 @@ func CreateStreaming(c *gin.Context) {
 
 	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
@@ -87,7 +87,7 @@ func UpdateStreaming(c *gin.Context) {
 
 	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
@@ -126,7 +126,7 @@ func DeleteStreaming(c *gin.Context) {
 
 	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
@@ -184,7 +184,7 @@ func Batch(c *gin.Context) {
 	// retrieve the model
 	m, err := models.GetExistingModel(br.PublicationPoint, br.Campaign, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 

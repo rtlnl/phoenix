@@ -95,7 +95,7 @@ func (ac *AerospikeClient) AddRecord(setName string, key aero.Value, value aero.
 		}
 
 		b := aero.NewBin(k, v)
-		if err := ac.Client.AddBins(ac.writingPolicy, newKey, b); err != nil {
+		if err := ac.Client.PutBins(ac.writingPolicy, newKey, b); err != nil {
 			return fmt.Errorf("could not add key/value pair: %v", err)
 		}
 	}
@@ -172,6 +172,7 @@ func createNewScanPolicy() *aero.ScanPolicy {
 func createNewWritingPolicy() *aero.WritePolicy {
 	wp := aero.NewWritePolicy(0, 0)
 	wp.SendKey = true
+	wp.RecordExistsAction = aero.UPDATE
 
 	return wp
 }

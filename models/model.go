@@ -26,11 +26,11 @@ const (
 
 // Model is the object that acts as container for the metadata of each model
 type Model struct {
-	PublicationPoint string          `description:"name of the table where the data will live"`
-	Campaign         string          `description:"name of the campaign that will be used"`
-	Stage            StageType       `description:"defines if the data is available to the clients or not"`
-	Version          *semver.Version `description:"internal version of the model. Should follow this pattern Major.Minor"`
-	SignalType       string          `description:"definition of the internal signal for composing the key"`
+	PublicationPoint string          `json:"publicationPoint" description:"name of the table where the data will live"`
+	Campaign         string          `json:"campaign" description:"name of the campaign that will be used"`
+	Stage            StageType       `json:"stage" description:"defines if the data is available to the clients or not"`
+	Version          *semver.Version `json:"version" description:"internal version of the model. Should follow this pattern Major.Minor"`
+	SignalType       string          `json:"signalType" description:"definition of the internal signal for composing the key"`
 }
 
 // NewModel is invoked when a new model is created in the database.

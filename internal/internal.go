@@ -35,11 +35,11 @@ func (c *Internal) Run(host, dbHost, dbNamespace, s3Bucket, s3Region, s3Endpoint
 	c.App.POST("/batch", Batch)
 
 	// Management Routes
-	m := c.App.Group("/management/model")
-	m.POST("/", CreateModel)
-	m.DELETE("/", DeleteModel)
-	m.POST("/publish", PublishModel)
-	m.DELETE("/empty", EmptyModel)
+	mm := c.App.Group("/management/model")
+	mm.GET("/", GetModel)
+	mm.POST("/", CreateModel)
+	mm.DELETE("/", EmptyModel)
+	mm.POST("/publish", PublishModel)
 
 	// Healthz
 	c.App.GET("/healthz", Healthz)

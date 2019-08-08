@@ -39,7 +39,7 @@ func Recommend(c *gin.Context) {
 
 	m, err := models.GetExistingModel(rr.PublicationPoint, rr.Campaign, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 

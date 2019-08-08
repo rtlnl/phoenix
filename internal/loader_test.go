@@ -197,7 +197,7 @@ func TestStreamingModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, http.StatusNotFound, code)
 	assert.Equal(t, "{\"message\":\"key pizza does not exist\"}", string(b))
 }
 
@@ -220,7 +220,7 @@ func TestStreamingUpdateModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, http.StatusNotFound, code)
 	assert.Equal(t, "{\"message\":\"key pizza does not exist\"}", string(b))
 }
 
@@ -243,7 +243,7 @@ func TestStreamingDeleteModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, http.StatusNotFound, code)
 	assert.Equal(t, "{\"message\":\"key pizza does not exist\"}", string(b))
 }
 
@@ -391,7 +391,7 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, http.StatusNotFound, code)
 	assert.Equal(t, "{\"message\":\"key pizza does not exist\"}", string(b))
 }
 

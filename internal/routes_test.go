@@ -60,11 +60,11 @@ func tearUp() {
 	router.POST("/batch", Batch)
 
 	// Management Routes
-	m := router.Group("/management/model")
-	m.POST("/", CreateModel)
-	m.DELETE("/", DeleteModel)
-	m.POST("/publish", PublishModel)
-	m.DELETE("/empty", EmptyModel)
+	mm := router.Group("/management/model")
+	mm.GET("", GetModel)
+	mm.POST("", CreateModel)
+	mm.DELETE("", EmptyModel)
+	mm.POST("/publish", PublishModel)
 }
 
 func tearDown() {

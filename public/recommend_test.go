@@ -93,7 +93,7 @@ func TestRecommendNoModel(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, http.StatusNotFound, code)
 	assert.Equal(t, "{\"message\":\"key tuna does not exist\"}", string(b))
 }
 
