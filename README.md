@@ -11,7 +11,7 @@ Assuming that you have `go`, `docker` and `docker-compose` installed in your mac
 
 After having the services up and running, assuming that you have your Go environment in your `PATH`, you should be able to start directly with `go run main.go --help`. This command should print the `help` message.
 
-Proceed by running `go run main.go internal`
+Proceed by running `go run main.go internal` for the internal APIs (or `go run main.go public` for the public APIs)
 
 If you need to upload some files to the local S3, use the following commands after `localstack` has been created:
 
@@ -39,4 +39,5 @@ For testing we use two different namespaces specified in the `./conf/aerospike.c
 - [ ] Improve SWAG definitions for public APIs
 - [ ] Improve SWAG definitions for internal APIs
 - [ ] Add more tests with edge cases
-- [ ] Setup MinIO instead of Localstack
+- [ ] Create stress tests
+- [ ] Create Benchmarks
