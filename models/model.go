@@ -249,8 +249,8 @@ func (m *Model) ComposeSetName() string {
 }
 
 // ComposeSignalKey returns the actual key composition given a list of signals' values based on the model
-func (m *Model) ComposeSignalKey(signals map[string]string) string {
-	signalsList := strings.Split(m.SignalType, "_")
+func (m *Model) ComposeSignalKey(signals map[string]string, separator string) string {
+	signalsList := strings.Split(m.SignalType, separator)
 
 	// split and compose key
 	var kb strings.Builder

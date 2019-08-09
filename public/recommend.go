@@ -11,6 +11,10 @@ import (
 	"github.com/rtlnl/data-personalization-api/utils"
 )
 
+const (
+	signalSeparator = "_"
+)
+
 // RecommendRequest is the object that represents the payload of the request for the recommend endpoint
 type RecommendRequest struct {
 	Signals          []Signal `json:"signals" binding:"required"`
@@ -50,8 +54,14 @@ func Recommend(c *gin.Context) {
 	}
 
 	// compose key to retrieve recommended items
-	// TODO: fix this
-	key := m.ComposeSignalKey(rr.Signals[0])
+	ss := make(map[string]string, len(rr.Signals))
+	for _, s := range rr.Signals {
+		for k, v := range s {
+			ss[k] = v
+		}
+	}
+
+	key := m.ComposeSignalKey(ss, signalSeparator)
 	if key == "" {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("signal is not formatted correctly"))
 		return
