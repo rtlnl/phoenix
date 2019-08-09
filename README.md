@@ -7,9 +7,11 @@ The Project is divided in two main parts:
 
 ## How to start
 
-Assuming that you have `docker` and `docker-compose` installed in your machine, run `docker-compose up -d` to spin up aerospike and localstack (for local S3).
+Assuming that you have `go`, `docker` and `docker-compose` installed in your machine, run `docker-compose up -d` to spin up aerospike and localstack (for local S3).
 
 After having the services up and running, assuming that you have your Go environment in your `PATH`, you should be able to start directly with `go run main.go --help`. This command should print the `help` message.
+
+Proceed by running `go run main.go internal`
 
 If you need to upload some files to the local S3, use the following commands after `localstack` has been created:
 
@@ -37,5 +39,4 @@ For testing we use two different namespaces specified in the `./conf/aerospike.c
 - [ ] Improve SWAG definitions for public APIs
 - [ ] Improve SWAG definitions for internal APIs
 - [ ] Add more tests with edge cases
-- [ ] Create stress tests
-- [ ] Create Benchmarks
+- [ ] Setup MinIO instead of Localstack
