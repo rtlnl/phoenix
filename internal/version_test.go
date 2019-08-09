@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHealthz(t *testing.T) {
-	router.GET("/healthz", Healthz)
+func TestLongVersion(t *testing.T) {
+	router.GET("/", LongVersion)
 
-	code, body, err := MockRequest(http.MethodGet, "/healthz", nil)
+	code, body, err := MockRequest(http.MethodGet, "/", nil)
 	if err != nil {
 		t.FailNow()
 	}
@@ -22,5 +22,5 @@ func TestHealthz(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"message\":\"I'm healthy\"}", string(b))
+	assert.Equal(t, "{\"version\":\"Internal Personalization APIs v0.0.1\"}", string(b))
 }

@@ -8,7 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// HealthzResponse is the object that represents the response for the healthz endpoint
+type HealthzResponse struct {
+	Message string `json:"message"`
+}
+
 // Healthz will ping the api to make sure that it's alive
 func Healthz(c *gin.Context) {
-	utils.Response(c, http.StatusOK, "I'm healthy")
+	utils.Response(c, http.StatusOK, &HealthzResponse{Message: "I'm healthy"})
 }

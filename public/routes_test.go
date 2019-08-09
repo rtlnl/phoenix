@@ -3,7 +3,7 @@ package public
 import (
 	"bufio"
 	"bytes"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,17 +12,18 @@ import (
 	"strings"
 	"testing"
 
-	aero "github.com/aerospike/aerospike-client-go"
+	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/rtlnl/data-personalization-api/utils"
+
 	"github.com/gin-gonic/gin"
 	"github.com/rtlnl/data-personalization-api/middleware"
 	"github.com/rtlnl/data-personalization-api/pkg/db"
 )
 
-const (
-	testDBHost    = "127.0.0.1"
-	testDBPort    = 3000
+var (
+	testDBHost    = utils.GetEnv("DB_HOST", "127.0.0.1")
+	testDBPort    = utils.GetEnv("DB_PORT", "3000")
 	testNamespace = "test"
-	testSet       = "test_model"
 )
 
 var router *gin.Engine
@@ -43,7 +44,12 @@ func tearUp() {
 	// Load fixtures
 	loadFixtures()
 
-	router.Use(middleware.Aerospike(testDBHost, testNamespace, testDBPort))
+	p, _ := strconv.Atoi(testDBPort)
+	router.Use(middleware.Aerospike(testDBHost, testNamespace, p))
+
+	// subscribe route Recommend here due to multiple tests on this route
+	// it avoids a panic error for registering the route multiple times
+	router.POST("/recommend", Recommend)
 }
 
 func tearDown() {
@@ -51,19 +57,65 @@ func tearDown() {
 }
 
 func loadFixtures() {
-	ac := db.NewAerospikeClient(testDBHost, testNamespace, testDBPort)
+	p, _ := strconv.Atoi(testDBPort)
+	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
 
-	// truncate sets first to clean db for security
-	if err := ac.TruncateSet(testSet); err != nil {
+	// load fixtures here
+	// model
+	if err := uploadModel(ac, "../fixtures/test_model.csv"); err != nil {
 		panic(err)
 	}
 
-	// load fixtures here
+	// test data
 	if err := uploadData(ac, "../fixtures/test_data.csv"); err != nil {
 		panic(err)
 	}
 
 	ac.Close()
+}
+
+func uploadModel(ac *db.AerospikeClient, testDataPath string) error {
+	f, err := os.OpenFile(testDataPath, os.O_RDONLY, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	sc := bufio.NewScanner(f)
+
+	i := 0
+	for sc.Scan() {
+		line := sc.Text() // GET the line string
+
+		// skip header of csv file
+		if i <= 0 {
+			i++
+			continue
+		}
+
+		splittedLine := strings.Split(line, ";")
+		if len(splittedLine) != 4 {
+			return errors.New("fixtures contains the wrong columns amount")
+		}
+
+		// order should be: publicationPoint;campaign;signalType;stage
+		m, _ := models.NewModel(splittedLine[0], splittedLine[1], splittedLine[2], ac)
+		// model may exists already because aerospike doesn't support delete of setnames
+		if m == nil {
+			continue
+		}
+
+		// publish model
+		if models.StageType(splittedLine[3]) == models.PUBLISHED {
+			m.PublishModel(ac)
+		}
+
+		i++
+	}
+	if err := sc.Err(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func uploadData(ac *db.AerospikeClient, testDataPath string) error {
@@ -85,43 +137,34 @@ func uploadData(ac *db.AerospikeClient, testDataPath string) error {
 			continue
 		}
 
-		// generate bin and append to array
-		k, b := createBin(line, fmt.Sprintf("item_%d", i))
-		if k == nil || b == nil {
-			continue
+		// order should be: model;signal;items
+		splittedLine := strings.Split(line, ";")
+		if len(splittedLine) != 3 {
+			return errors.New("fixtures contains the wrong columns amount")
 		}
 
-		// store record
-		if err := ac.Client.PutBins(ac.Client.DefaultWritePolicy, k, b); err != nil {
-			panic(err)
+		// need to break down the name of the model to fetch the actual object
+		// from aerospike
+		mn := strings.Split(splittedLine[0], "#")
+
+		// TODO: this is slow! Need to find a smarter way. it works fine with small fixtures files
+		m, err := models.GetExistingModel(mn[0], mn[1], ac)
+		if err != nil {
+			return err
 		}
+
+		sn := m.ComposeSetName()
+		items := strings.Split(splittedLine[2], ",")
+		if err := ac.AddOne(sn, splittedLine[1], splittedLine[1], items); err != nil {
+			return err
+		}
+
 		i++
 	}
 	if err := sc.Err(); err != nil {
 		return err
 	}
 	return nil
-}
-
-func createBin(line, binKey string) (*aero.Key, *aero.Bin) {
-	splittedLine := strings.Split(line, ";")
-	if len(splittedLine) != 2 {
-		return nil, nil
-	}
-
-	key, err := strconv.Unquote(splittedLine[0])
-	if err != nil {
-		return nil, nil
-	}
-
-	items := strings.Split(splittedLine[1], ",")
-
-	ak, err := aero.NewKey(testNamespace, testSet, key)
-	if err != nil {
-		return nil, nil
-	}
-
-	return ak, aero.NewBin(binKey, items)
 }
 
 // MockRequest will send a request to the server. Used for testing purposes

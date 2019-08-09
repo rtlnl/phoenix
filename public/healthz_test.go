@@ -22,5 +22,5 @@ func TestHealthz(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"data\":\"I'm healthy\"}", string(b))
+	assert.Equal(t, "{\"message\":\"I'm healthy\"}", string(b))
 }

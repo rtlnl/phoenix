@@ -1,0 +1,47 @@
+resources:
+- name: git-repo
+  type: git
+  icon: github-circle
+  source:
+    uri: git@github.com:rtlnl/data-personalization-api.git
+    branch: master
+    private_key: ((github_private_key))
+
+- name: ecr-docker-reg
+  type: docker-image
+  source:
+    aws_access_key_id: ((ecr_access_key_id))
+    aws_secret_access_key: ((ecr_secret_access_key))
+    repository: ((ecr_repository))/data-personalization-api
+    tag: prod
+
+jobs:
+- name: build
+  public: false
+  plan:
+  - get: git-repo
+    trigger: true
+    
+  # need to find a way to have aerospike and localstack in concourse
+  # for running integration tests
+  
+  # - task: run-tests
+  #   config:
+  #     platform: linux
+  #     image_resource:
+  #       type: registry-image
+  #       source: {repository: golang}
+  #     inputs:
+  #       - name: git-repo
+  #     run:
+  #       path: /bin/sh
+  #       args:
+  #         - -c
+  #         - |
+  #           go get -t -v ./...
+  #           go test -v ./...
+
+    # release the image if the tests are successful
+  - put: ecr-docker-reg
+    params:
+      build: git-repo
