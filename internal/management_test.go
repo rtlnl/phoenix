@@ -72,7 +72,7 @@ func TestGetModelNotExist(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"key panini does not exist\"}", string(b))
 }
 
-func TestCreateModel(t *testing.T) {
+func TestCreateModelAlreadyExists(t *testing.T) {
 	r, err := createManagementModelRequest("kiwi", "oranges", "grapeId", []string{"grapeId"})
 	if err != nil {
 		t.Fail()
@@ -88,8 +88,8 @@ func TestCreateModel(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"message\":\"model created\"}", string(b))
+	assert.Equal(t, http.StatusUnprocessableEntity, code)
+	assert.Equal(t, "{\"message\":\"model with publicationPoint 'kiwi' and campaign 'oranges' exists already\"}", string(b))
 }
 
 func TestCreateModelFailValidation(t *testing.T) {
@@ -115,7 +115,7 @@ func TestCreateModelFailValidation(t *testing.T) {
 }
 
 func TestEmptyModel(t *testing.T) {
-	r, err := createManagementModelRequest("kiwi", "oranges", "grapeId", []string{"grapeId"})
+	r, err := createManagementModelRequest("banana", "pears", "appleId", []string{"appleId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -176,7 +176,7 @@ func TestEmptyModelNotExist(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"key pepperoni does not exist\"}", string(b))
 }
 
-func TestPublishModel(t *testing.T) {
+func TestPublishModelAlreadyPublished(t *testing.T) {
 	r, err := createManagementModelRequest("kiwi", "oranges", "grapeId", []string{"grapeId"})
 	if err != nil {
 		t.Fail()
@@ -192,8 +192,8 @@ func TestPublishModel(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"message\":\"model published\"}", string(b))
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "{\"message\":\"model is already published\"}", string(b))
 }
 
 func TestPublishModelFailValidation(t *testing.T) {

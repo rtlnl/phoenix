@@ -48,6 +48,12 @@ func NewModel(publicationPoint, campaign, signalType string, ac *db.AerospikeCli
 		return nil, err
 	}
 
+	// does model exists already
+	if m, _ := ac.GetOne(publicationPoint, campaign); m != nil {
+		msg := fmt.Sprintf("model with publicationPoint '%s' and campaign '%s' exists already", publicationPoint, campaign)
+		return nil, errors.New(msg)
+	}
+
 	// fill up bins
 	bins := make(map[string]interface{})
 	bins["version"] = v.String()

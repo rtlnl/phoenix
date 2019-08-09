@@ -56,8 +56,8 @@ We have two concepts:
 - **data**
 
 The model is a simple "table" in which contains the metadata of model itself. This is needed for then creating the appropriate Key in
-the "data" table(s). The "data" is organized similarly but with different specifications. 
-In aerospike the hierarchy is the following (where "-->"" means "contains many uniques items of"):
+the "data" table(s). The "data" is organized similarly but with different specifications.
+In aerospike the hierarchy is the following (where `-->` means `"contains many uniques items of"`):
 
 ```bash
 Namespace --> setName --> Keys --> Bins
@@ -133,6 +133,6 @@ Below you can find and example of data for a model
 
 - [ ] Improve SWAG definitions for public APIs
 - [ ] Improve SWAG definitions for internal APIs
-- [ ] Add more tests with edge cases
+- [ ] Add validations for `signalOrder` separator
 - [ ] Create stress tests
 - [ ] Create Benchmarks

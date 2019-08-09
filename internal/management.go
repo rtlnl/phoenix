@@ -60,7 +60,7 @@ func CreateModel(c *gin.Context) {
 
 	_, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.SignalOrder, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusInternalServerError, err)
+		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func PublishModel(c *gin.Context) {
 	}
 
 	if err := m.PublishModel(ac); err != nil {
-		utils.ResponseError(c, http.StatusInternalServerError, err)
+		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
 

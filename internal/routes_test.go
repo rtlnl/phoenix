@@ -114,16 +114,15 @@ func uploadModel(ac *db.AerospikeClient, testDataPath string) error {
 		}
 
 		// order should be: publicationPoint;campaign;signalType;stage
-		m, err := models.NewModel(splittedLine[0], splittedLine[1], splittedLine[2], ac)
-		if err != nil {
-			return err
+		m, _ := models.NewModel(splittedLine[0], splittedLine[1], splittedLine[2], ac)
+		// model may exists already because aerospike doesn't support delete of setnames
+		if m == nil {
+			continue
 		}
 
 		// publish model
 		if models.StageType(splittedLine[3]) == models.PUBLISHED {
-			if err := m.PublishModel(ac); err != nil {
-				return err
-			}
+			m.PublishModel(ac)
 		}
 
 		i++
