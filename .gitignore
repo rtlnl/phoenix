@@ -16,3 +16,4 @@ vendor/
 .localstack/
 .vscode/
 data/
+.idea
