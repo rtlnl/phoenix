@@ -131,8 +131,6 @@ Below you can find and example of data for a model
 
 ## TODO
 
-- [ ] Improve SWAG definitions for public APIs
-- [ ] Improve SWAG definitions for internal APIs
 - [ ] Add validations for `signalOrder` separator
 - [ ] Create stress tests
 - [ ] Create Benchmarks
