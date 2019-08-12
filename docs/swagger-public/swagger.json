@@ -1,47 +1,146 @@
 {
-  "swagger": "2.0",
+  "openapi": "3.0.0",
   "info": {
     "title": "RTL-DI Personalization APIs",
     "description": "This is the RESTful APIs of RTL Personalization models",
     "version": "1.0.0"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "basePath": "/",
   "paths": {
     "/recommend": {
       "post": {
-        "summary": "Version of the APIs",
-        "description": "Return the current version of the NHT APIs",
-        "produces": [
-          "application/json"
-        ],
+        "summary": "Fetch the recommended items",
+        "description": "This request will allow the client to read the recommended items given the parameters in the body",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendRequest"
+              }
+            }
+          },
+          "description": "Object describing the recommended items",
+          "required": true
+        },
         "responses": {
           "200": {
-            "description": "successful operation",
-            "schema": {
-              "type": "string"
+            "description": "Items retrieved correctly",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Model not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Could not upload data to the model",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseError"
+                }
+              }
             }
           }
         }
       }
     }
   },
-  "definitions": {
-    "PredictRequest": {
-      "type": "object",
-      "properties": {
-        "epoch_ms": {
-          "description": "Timestamp of the current log line",
-          "example": "1520280001034",
-          "type": "string"
+  "servers": [
+    {
+      "url": "https://personalization-dev.rtl-di.nl"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "RecommendRequest": {
+        "type": "object",
+        "properties": {
+          "publicationPoint": {
+            "description": "Publication Point name of the model",
+            "example": "videoland",
+            "type": "string"
+          },
+          "campaign": {
+            "description": "Campaign name of the models",
+            "example": "profile",
+            "type": "string"
+          },
+          "signals": {
+            "description": "Array of Key/Value objects representing the signal's id and value for fetching the recommendations",
+            "example": [
+              {
+                "userId": "123456"
+              },
+              {
+                "articleId": "654321"
+              }
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "campaign"
+        ]
+      },
+      "RecommendResponse": {
+        "type": "object",
+        "properties": {
+          "signals": {
+            "description": "Array of Key/Values objects representing the signal's id and value",
+            "example": [
+              {
+                "userId": "123456"
+              },
+              {
+                "articleId": "654321"
+              }
+            ],
+            "type": "object"
+          },
+          "recommendations": {
+            "description": "Recommended items for a particular signal",
+            "example": [
+              "item1",
+              "item2"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       },
-      "required": [
-        "model"
-      ]
+      "ResponseError": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "Error message of the failed operation",
+            "example": "Key pizza doesn't exist",
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }

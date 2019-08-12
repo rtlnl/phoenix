@@ -95,6 +95,32 @@ func PublishModel(c *gin.Context) {
 	})
 }
 
+// StageModel set a model to be the one to be used by the internal systems
+func StageModel(c *gin.Context) {
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+
+	var mm ManagementModelRequest
+	if err := c.BindJSON(&mm); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
+		return
+	}
+
+	if err := m.StageModel(ac); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	utils.Response(c, http.StatusOK, &ManagementModelResponse{
+		Message: "model staged",
+	})
+}
+
 // EmptyModel truncate the content of a model but leave the model in the database
 func EmptyModel(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)

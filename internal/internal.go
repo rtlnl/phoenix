@@ -40,6 +40,7 @@ func (c *Internal) Run(host, dbHost, dbNamespace, s3Bucket, s3Region, s3Endpoint
 	mm.POST("/", CreateModel)
 	mm.DELETE("/", EmptyModel)
 	mm.POST("/publish", PublishModel)
+	mm.POST("/stage", StageModel)
 
 	// Healthz
 	c.App.GET("/healthz", Healthz)
