@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/rtlnl/data-personalization-api/models"
 
 	"github.com/rtlnl/data-personalization-api/pkg/db"
@@ -173,7 +174,7 @@ type DataUploaded struct {
 // Batch will upload in batch a set to the database
 func Batch(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
-	s := c.MustGet("S3Client").(*db.S3Client)
+	sess := c.MustGet("AWSSession").(*session.Session)
 
 	var br BatchRequest
 	if err := c.BindJSON(&br); err != nil {
@@ -198,8 +199,11 @@ func Batch(c *gin.Context) {
 	if len(br.Data) > 0 && br.Data != nil {
 		du, err = uploadDataDirectly(ac, br.Data, m)
 	} else {
+		// create S3 client
+		bucket, key := stripS3URL(br.DataLocation)
+		s := db.NewS3Client(bucket, sess)
+
 		// check if file exists
-		key := strings.TrimPrefix(br.DataLocation, fmt.Sprintf("s3://%s/", s.Bucket))
 		if s.ExistsObject(key) == false {
 			utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("key %s does not exists", br.DataLocation))
 			return
@@ -219,6 +223,14 @@ func Batch(c *gin.Context) {
 	}
 
 	utils.Response(c, http.StatusCreated, &BatchResponse{Message: "data uploaded"})
+}
+
+func stripS3URL(URL string) (string, string) {
+	bucketTmp := strings.Replace(URL, "s3://", "", 0)
+	bucket := strings.TrimRight(bucketTmp, "/")
+	key := strings.TrimPrefix(URL, fmt.Sprintf("s3://%s/", bucket))
+
+	return bucket, key
 }
 
 func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model) (*DataUploaded, error) {

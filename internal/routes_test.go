@@ -49,7 +49,7 @@ func tearUp() {
 
 	p, _ := strconv.Atoi(testDBPort)
 	router.Use(middleware.Aerospike(testDBHost, testNamespace, p))
-	router.Use(middleware.S3(testBucket, testRegion, testEndpoint, testDisableSSL))
+	router.Use(middleware.AWSSession(testRegion, testEndpoint, testDisableSSL))
 
 	// subscribe routes here due to multiple tests on the same endpoint
 	// it avoids a panic error for registering the route multiple times

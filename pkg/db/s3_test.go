@@ -5,7 +5,10 @@ import (
 	"io"
 	"testing"
 
+	awsPersonalization "github.com/rtlnl/data-personalization-api/pkg/aws"
+
 	"github.com/aws/aws-sdk-go/aws"
+
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,12 +20,15 @@ const (
 )
 
 func TestNewS3Client(t *testing.T) {
-	s := NewS3Client(s3TestBucket, s3TestRegion, s3TestEndpoint, true)
+	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+
+	s := NewS3Client(s3TestBucket, sess)
 	assert.NotNil(t, s)
 }
 
 func TestGetObject(t *testing.T) {
-	s := NewS3Client(s3TestBucket, s3TestRegion, s3TestEndpoint, true)
+	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	s := NewS3Client(s3TestBucket, sess)
 
 	_, err := s.Service.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(s3TestBucket),
@@ -49,7 +55,8 @@ func TestGetObject(t *testing.T) {
 }
 
 func TestGetObjectFails(t *testing.T) {
-	s := NewS3Client(s3TestBucket, s3TestRegion, s3TestEndpoint, true)
+	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	s := NewS3Client(s3TestBucket, sess)
 
 	f, err := s.GetObject("foo/bar2.txt")
 	if err == nil {
@@ -60,7 +67,8 @@ func TestGetObjectFails(t *testing.T) {
 }
 
 func TestExistsObject(t *testing.T) {
-	s := NewS3Client(s3TestBucket, s3TestRegion, s3TestEndpoint, true)
+	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	s := NewS3Client(s3TestBucket, sess)
 
 	_, err := s.Service.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(s3TestBucket),
@@ -77,7 +85,8 @@ func TestExistsObject(t *testing.T) {
 }
 
 func TestExistsObjectFails(t *testing.T) {
-	s := NewS3Client(s3TestBucket, s3TestRegion, s3TestEndpoint, true)
+	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	s := NewS3Client(s3TestBucket, sess)
 
 	// Key should not exists
 	if s.ExistsObject("foo/bar2.txt") {
