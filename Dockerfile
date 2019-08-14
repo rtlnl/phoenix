@@ -16,7 +16,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/api
 
 # final stage
 FROM scratch
-COPY --from=builder /app/bin /app/
+COPY --from=builder /app /app
+
+WORKDIR /app
 
 EXPOSE 8082 8081
-ENTRYPOINT ["/app/api"]
+ENTRYPOINT ["/app/bin/api"]

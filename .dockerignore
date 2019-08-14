@@ -1,0 +1,5 @@
+.git
+.localstack
+.vscode
+data
+.DS_Store
