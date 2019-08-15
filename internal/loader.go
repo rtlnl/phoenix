@@ -24,6 +24,9 @@ const (
 	csvDelimiter = ";"
 	// record delimiter that separates each recommended item
 	recordDelimiter = ","
+	// name of the key of the bins containing the recommended items
+	// Max 15 characters due to Aerospike limitation
+	binKey = "items"
 )
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
@@ -61,12 +64,8 @@ func CreateStreaming(c *gin.Context) {
 		return
 	}
 
-	// transform to be complaint with the interface
-	v := make(map[string]interface{})
-	v[sr.Signal] = sr.Recommendations
-
 	sn := m.ComposeSetName()
-	if err := ac.AddOne(sn, sr.Signal, sr.Signal, v); err != nil {
+	if err := ac.AddOne(sn, sr.Signal, binKey, sr.Recommendations); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -98,14 +97,10 @@ func UpdateStreaming(c *gin.Context) {
 		return
 	}
 
-	// transform to be complaint with the interface
-	v := make(map[string]interface{})
-	v[sr.Signal] = sr.Recommendations
-
 	sn := m.ComposeSetName()
 
 	// The AddOne method does an UPSERT
-	if err := ac.AddOne(sn, sr.Signal, sr.Signal, v); err != nil {
+	if err := ac.AddOne(sn, sr.Signal, binKey, sr.Recommendations); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 
@@ -239,14 +234,10 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model)
 		for sig, recommendedItems := range data {
 			nr += len(recommendedItems)
 
-			// transform to be complaint with the interface
-			v := make(map[string]interface{})
-			v[sig] = recommendedItems
-
 			// upload to Aerospike
 			// TODO: verify here if it works in this way
 			setName := m.ComposeSetName()
-			if err := ac.AddOne(setName, sig, sig, v); err != nil {
+			if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
 				return nil, err
 			}
 		}
@@ -283,14 +274,10 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 		// count number of recommendations
 		nr += len(recommendedItems)
 
-		// transform to be complaint with the interface
-		v := make(map[string]interface{})
-		v[sig] = recommendedItems
-
 		// upload to Aerospike
 		// TODO: verify here if it works in this way
 		setName := m.ComposeSetName()
-		if err := ac.AddOne(setName, sig, sig, v); err != nil {
+		if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
 			return nil, err
 		}
 		records++

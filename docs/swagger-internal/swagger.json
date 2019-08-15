@@ -371,10 +371,10 @@
   },
   "servers": [
     {
-      "url": "https://personalization-dev.rtl-di.nl/"
+      "url": "https://personalization-dev.rtl-di.nl/internal/"
     },
     {
-      "url": "https://personalization-prod.rtl-di.nl/"
+      "url": "https://personalization-prod.rtl-di.nl/internal/"
     }
   ],
   "components": {

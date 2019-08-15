@@ -170,7 +170,7 @@ func uploadData(ac *db.AerospikeClient, testDataPath string) error {
 
 		sn := m.ComposeSetName()
 		items := strings.Split(splittedLine[2], ",")
-		if err := ac.AddOne(sn, splittedLine[1], splittedLine[1], items); err != nil {
+		if err := ac.AddOne(sn, splittedLine[1], binKey, items); err != nil {
 			return err
 		}
 
