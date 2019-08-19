@@ -395,6 +395,17 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"key pizza does not exist\"}", string(b))
 }
 
+func TestStripS3URL(t *testing.T) {
+	l := "s3://test-bucket/foo/bar/hello.csv"
+	expectedBucket := "test-bucket"
+	expectedKey := "foo/bar/hello.csv"
+
+	bucket, key := StripS3URL(l)
+
+	assert.Equal(t, expectedBucket, bucket)
+	assert.Equal(t, expectedKey, key)
+}
+
 func TestBatchUploadS3(t *testing.T) {
 
 }

@@ -13,6 +13,7 @@ import (
 
 const (
 	signalSeparator = "_"
+	binKey          = "items"
 )
 
 // RecommendRequest is the object that represents the payload of the request for the recommend endpoint
@@ -70,12 +71,12 @@ func Recommend(c *gin.Context) {
 	sn := m.ComposeSetName()
 	r, err := ac.GetOne(sn, key)
 	if err != nil {
-		utils.ResponseError(c, http.StatusInternalServerError, err)
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	utils.Response(c, http.StatusOK, &RecommendResponse{
 		Signals:         rr.Signals,
-		Recommendations: r.Bins[key],
+		Recommendations: r.Bins[binKey],
 	})
 }

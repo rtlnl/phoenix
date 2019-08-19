@@ -24,6 +24,9 @@ const (
 	csvDelimiter = ";"
 	// record delimiter that separates each recommended item
 	recordDelimiter = ","
+	// name of the key of the bins containing the recommended items
+	// Max 15 characters due to Aerospike limitation
+	binKey = "items"
 )
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
@@ -61,12 +64,8 @@ func CreateStreaming(c *gin.Context) {
 		return
 	}
 
-	// transform to be complaint with the interface
-	v := make(map[string]interface{})
-	v[sr.Signal] = sr.Recommendations
-
 	sn := m.ComposeSetName()
-	if err := ac.AddOne(sn, sr.Signal, sr.Signal, v); err != nil {
+	if err := ac.AddOne(sn, sr.Signal, binKey, sr.Recommendations); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -98,14 +97,10 @@ func UpdateStreaming(c *gin.Context) {
 		return
 	}
 
-	// transform to be complaint with the interface
-	v := make(map[string]interface{})
-	v[sr.Signal] = sr.Recommendations
-
 	sn := m.ComposeSetName()
 
 	// The AddOne method does an UPSERT
-	if err := ac.AddOne(sn, sr.Signal, sr.Signal, v); err != nil {
+	if err := ac.AddOne(sn, sr.Signal, binKey, sr.Recommendations); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 
@@ -185,7 +180,7 @@ func Batch(c *gin.Context) {
 	// retrieve the model
 	m, err := models.GetExistingModel(br.PublicationPoint, br.Campaign, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model with publicationPoint %s and campaign %s not found", br.PublicationPoint, br.Campaign))
 		return
 	}
 
@@ -200,12 +195,12 @@ func Batch(c *gin.Context) {
 		du, err = uploadDataDirectly(ac, br.Data, m)
 	} else {
 		// create S3 client
-		bucket, key := stripS3URL(br.DataLocation)
+		bucket, key := StripS3URL(br.DataLocation)
 		s := db.NewS3Client(bucket, sess)
 
 		// check if file exists
 		if s.ExistsObject(key) == false {
-			utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("key %s does not exists", br.DataLocation))
+			utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("key %s does not exists in S3", br.DataLocation))
 			return
 		}
 		// download the file
@@ -225,9 +220,11 @@ func Batch(c *gin.Context) {
 	utils.Response(c, http.StatusCreated, &BatchResponse{Message: "data uploaded"})
 }
 
-func stripS3URL(URL string) (string, string) {
-	bucketTmp := strings.Replace(URL, "s3://", "", 0)
-	bucket := strings.TrimRight(bucketTmp, "/")
+// StripS3URL returns the bucket and the key from a s3 url location
+func StripS3URL(URL string) (string, string) {
+	bucketTmp := strings.Replace(URL, "s3://", "", -1)
+
+	bucket := bucketTmp[:strings.IndexByte(bucketTmp, '/')]
 	key := strings.TrimPrefix(URL, fmt.Sprintf("s3://%s/", bucket))
 
 	return bucket, key
@@ -239,14 +236,10 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model)
 		for sig, recommendedItems := range data {
 			nr += len(recommendedItems)
 
-			// transform to be complaint with the interface
-			v := make(map[string]interface{})
-			v[sig] = recommendedItems
-
 			// upload to Aerospike
 			// TODO: verify here if it works in this way
 			setName := m.ComposeSetName()
-			if err := ac.AddOne(setName, sig, sig, v); err != nil {
+			if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
 				return nil, err
 			}
 		}
@@ -261,10 +254,13 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 
 	var nr int
 	for {
-		l, err := rd.ReadString('\n')
+		line, err := rd.ReadString('\n')
 		if err == io.EOF {
 			break
 		}
+
+		// string new-line character
+		l := strings.TrimSuffix(line, "\n")
 
 		// skip header in csv
 		if records <= 0 {
@@ -283,14 +279,10 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 		// count number of recommendations
 		nr += len(recommendedItems)
 
-		// transform to be complaint with the interface
-		v := make(map[string]interface{})
-		v[sig] = recommendedItems
-
 		// upload to Aerospike
 		// TODO: verify here if it works in this way
 		setName := m.ComposeSetName()
-		if err := ac.AddOne(setName, sig, sig, v); err != nil {
+		if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
 			return nil, err
 		}
 		records++

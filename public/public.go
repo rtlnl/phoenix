@@ -14,8 +14,17 @@ type Public struct {
 
 // NewPublicAPI creates a new Collector object
 func NewPublicAPI() (*Public, error) {
+	// Creates a router without any middleware by default
+	r := gin.New()
+
+	// Global middleware
+	r.Use(gin.Logger())
+
+	// Recovery middleware recovers from any panics and writes a 500 if there was one.
+	r.Use(gin.Recovery())
+
 	return &Public{
-		App: gin.Default(),
+		App: r,
 	}, nil
 }
 

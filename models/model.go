@@ -10,8 +10,11 @@ import (
 )
 
 const (
-	initVersion = "0.1.0"
-	initStage   = STAGED
+	initVersion      = "0.1.0"
+	initStage        = STAGED
+	binKeyStage      = "stage"
+	binKeyVersion    = "version"
+	binKeySignalType = "signal_type"
 )
 
 // StageType defines if the model is available for the recommendations or not
@@ -132,12 +135,12 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 	}
 
 	// store model stage
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "stage", m.Stage); err != nil {
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyStage, m.Stage); err != nil {
 		return err
 	}
 
 	// store new version
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "version", m.Version.String()); err != nil {
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyVersion, m.Version.String()); err != nil {
 		return err
 	}
 
@@ -176,12 +179,12 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 	}
 
 	// store model stage
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "stage", m.Stage); err != nil {
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyStage, m.Stage); err != nil {
 		return err
 	}
 
 	// store new version
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "version", m.Version.String()); err != nil {
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyVersion, m.Version.String()); err != nil {
 		return err
 	}
 
@@ -210,7 +213,7 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 	m.Version = v
 
 	// store new version
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "version", m.Version.String()); err != nil {
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyVersion, m.Version.String()); err != nil {
 		return err
 	}
 
@@ -237,12 +240,12 @@ func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) erro
 	m.Version.IncPatch()
 
 	// store model signaltype
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "signal_type", m.SignalType); err != nil {
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeySignalType, m.SignalType); err != nil {
 		return err
 	}
 
 	// store new version
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, "version", m.Version.String()); err != nil {
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyVersion, m.Version.String()); err != nil {
 		return err
 	}
 
