@@ -132,5 +132,4 @@ Below you can find and example of data for a model
 ## TODO
 
 - [ ] Add validations for `signalOrder` separator
-- [ ] Create stress tests
-- [ ] Create Benchmarks
+- [ ] Publish Benchmarks
