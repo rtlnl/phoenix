@@ -18,7 +18,7 @@ func NewPublicAPI() (*Public, error) {
 	r := gin.New()
 
 	// Global middleware
-	// r.Use(gin.Logger())
+	r.Use(gin.Logger())
 
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	r.Use(gin.Recovery())
