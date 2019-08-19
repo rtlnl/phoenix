@@ -1,0 +1,48 @@
+# First test
+
+N of Pods: 1
+Rate: 100 req/s
+Duration: 5s
+Mean latency: 39.784273ms
+Success rate: 100.000000
+
+N of Pods: 1
+Rate: 500 req/s
+Duration: 5s
+Mean latency: 71.480398ms
+Success rate: 100.000000
+
+N of Pods: 1
+Rate: 800 req/s
+Duration: 5s
+Mean latency: 3.997422221s
+Success rate: 100.000000
+
+
+N of Pods: 1
+Rate: 1000 req/s
+Duration: 5s
+Mean latency: 5.939491136s
+Success rate: 97.100000
+Status code: map[0:145 200:4855]
+
+RESULT: Breaking point 800 req/s
+
+
+# Second test
+
+N of Pods: 10
+Rate: 1000 req/s
+Duration: 5s
+Bucket           #     %       Histogram
+[0s,     20ms]   4799  95.98%  #######################
+[20ms,   50ms]   45    0.90%
+[50ms,   100ms]  60    1.20%
+[100ms,  200ms]  93    1.86%   #
+[200ms,  400ms]  3     0.06%
+[400ms,  1s]     0     0.00%
+[1s,     +Inf]   0     0.00%
+
+
+
+echo 'POST https://personalization-dev.rtl-di.nl/public/recommend BODY {"publicationPoint":"stress_test","campaign":"stress","signals":[{"id":"639811c3-650d-41a6-a995-922817b33586"}]}' | vegeta attack -rate 50 -duration 5s | vegeta report -type='hist[0,20ms,50ms,100ms,200ms,400ms,1s]'

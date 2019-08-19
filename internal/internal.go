@@ -13,8 +13,17 @@ type Internal struct {
 
 // NewInternalAPI creates a new Collector object
 func NewInternalAPI() (*Internal, error) {
+	// Creates a router without any middleware by default
+	r := gin.New()
+
+	// Global middleware
+	r.Use(gin.Logger())
+
+	// Recovery middleware recovers from any panics and writes a 500 if there was one.
+	r.Use(gin.Recovery())
+
 	return &Internal{
-		App: gin.Default(),
+		App: r,
 	}, nil
 }
 

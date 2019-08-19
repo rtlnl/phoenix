@@ -488,6 +488,14 @@
             "example": "rtl_nieuws",
             "type": "string"
           },
+          "signals": {
+            "description": "Array containing the signals name",
+            "example": "[\"articleID\",\"userID\"]",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "campaign": {
             "description": "Name of the campaign",
             "example": "homepage",
@@ -502,6 +510,7 @@
         "required": [
           "publicationPoint",
           "campaign",
+          "signals",
           "signalOrder"
         ]
       },
