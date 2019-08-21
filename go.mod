@@ -17,6 +17,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.3.0
+	github.com/tsenart/vegeta/lib v1.2.0
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7 // indirect
