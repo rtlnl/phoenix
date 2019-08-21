@@ -61,7 +61,7 @@ jobs:
   - in_parallel:
     - put: code-analysis
       params:
-        project_path: sonarqube-analysis-input
+        project_path: git-repo
         project_key: data-personalization-api
         additional_properties:
           sonar.javascript.lcov.reportPaths: coverage/coverage.out
