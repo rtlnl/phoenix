@@ -392,7 +392,7 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key pizza does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model with publicationPoint pasta and campaign pizza not found\"}", string(b))
 }
 
 func TestStripS3URL(t *testing.T) {

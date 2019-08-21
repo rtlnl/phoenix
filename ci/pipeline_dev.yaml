@@ -1,10 +1,17 @@
+resource_types:
+- name: sonar-runner
+  type: docker-image
+  source:
+    repository: cathive/concourse-sonarqube-resource
+    tag: latest
+
 resources:
 - name: git-repo
   type: git
   icon: github-circle
   source:
     uri: git@github.com:rtlnl/data-personalization-api.git
-    branch: development
+    branch: master
     private_key: ((github_private_key))
 
 - name: ecr-docker-reg
@@ -15,7 +22,30 @@ resources:
     repository: ((ecr_repository))/data-personalization-api
     tag: prod
 
+- name: code-analysis
+  type: sonar-runner
+  source:
+    host_url: https://sonarqube-controlplane.rtl-di.nl/
+    login: ((personalization_api_sonarqube_auth_token))
+    project_key: data-personalization-api
+
 jobs:
+- name: build-and-analyze
+  plan:
+  - get: git-repo
+    trigger: true
+  - in_parallel:
+    - put: code-analysis
+      params:
+        project_path: git-repo
+        project_key: data-personalization-api
+        additional_properties:
+          sonar.javascript.lcov.reportPaths: coverage/coverage.out
+      get_params:
+        quality_gate:
+          ignore_errors: ['new_coverage', 'violations']
+          ignore_warns: ['new_duplicated_lines_density', 'violations']
+
 - name: build
   public: false
   plan:

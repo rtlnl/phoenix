@@ -3,3 +3,5 @@
 .vscode
 data
 .DS_Store
+
+stress/data/*
