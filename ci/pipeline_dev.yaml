@@ -65,10 +65,6 @@ jobs:
         project_key: data-personalization-api
         additional_properties:
           sonar.go.coverage.reportPaths: coverage/coverage.out
-      get_params:
-        quality_gate:
-          ignore_errors: ['new_coverage', 'violations', 'new_duplicated_lines_density']
-          ignore_warns: ['new_duplicated_lines_density', 'violations']
 
 - name: qualitygate
   plan:
