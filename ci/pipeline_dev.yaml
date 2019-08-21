@@ -64,10 +64,10 @@ jobs:
         project_path: git-repo
         project_key: data-personalization-api
         additional_properties:
-          sonar.javascript.lcov.reportPaths: coverage/coverage.out
+          sonar.go.coverage.reportPaths: coverage/coverage.out
       get_params:
         quality_gate:
-          ignore_errors: ['new_coverage', 'violations']
+          ignore_errors: ['new_coverage', 'violations', 'new_duplicated_lines_density']
           ignore_warns: ['new_duplicated_lines_density', 'violations']
 
 - name: qualitygate
