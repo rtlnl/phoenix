@@ -28,16 +28,40 @@ resources:
     host_url: https://sonarqube-controlplane.rtl-di.nl/
     login: ((personalization_api_sonarqube_auth_token))
     project_key: data-personalization-api
+    branch_name: master
 
 jobs:
 - name: build-and-analyze
   plan:
   - get: git-repo
     trigger: true
+  - task: build
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: golang, tag: 1.12}
+      inputs:
+      - name: git-repo
+        path: /go/src/github.com/rtlnl/data-personalization-api        
+      run:
+        path: /bin/sh
+        # TODO: find a way to have aerospike and localstack in concourse
+        args:
+          - -c
+          - |
+            SRCPATH=$PWD/go/src/github.com/rtlnl/data-personalization-api
+            GOPATH=$PWD/go
+            cd $SRCPATH
+            export GO111MODULE=on
+            go get -t -v ./...
+            # go test -v ./...
+      outputs:
+      - name: sonarqube-analysis-input
   - in_parallel:
     - put: code-analysis
       params:
-        project_path: git-repo
+        project_path: sonarqube-analysis-input
         project_key: data-personalization-api
         additional_properties:
           sonar.javascript.lcov.reportPaths: coverage/coverage.out
@@ -46,31 +70,32 @@ jobs:
           ignore_errors: ['new_coverage', 'violations']
           ignore_warns: ['new_duplicated_lines_density', 'violations']
 
+- name: qualitygate
+  plan:
+  - get: code-analysis
+    passed:
+    - build-and-analyze
+    trigger: true
+  - task: check-sonarqube-quality-gate
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: cathive/concourse-sonarqube-qualitygate-task
+          tag: latest # Use one of the versioned tags for reproducible builds!
+      inputs:
+      - name: code-analysis
+      run:
+        path: /sonarqube-qualitygate-check
+        dir: code-analysis
+
 - name: build
   public: false
   plan:
   - get: git-repo
     trigger: true
   
-  # need to find a way to have aerospike and localstack in concourse
-  # for running integration tests
-  
-  # - task: run-tests
-  #   config:
-  #     platform: linux
-  #     image_resource:
-  #       type: registry-image
-  #       source: {repository: golang}
-  #     inputs:
-  #       - name: git-repo
-  #     run:
-  #       path: /bin/sh
-  #       args:
-  #         - -c
-  #         - |
-  #           go get -t -v ./...
-  #           go test -v ./...
-
     # release the image if the tests are successful
   - put: ecr-docker-reg
     params:
