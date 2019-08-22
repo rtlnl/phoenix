@@ -10,15 +10,6 @@ services:
       - ./data:/opt/aerospike/data
       - ./config/aerospike.test.conf:/opt/aerospike/etc/aerospike.conf
 
-  redis:
-    image: redis:5-alpine
-    container_name: redis
-    command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "6379:6379"
-    volumes:
-      - ./data:/data
-
   localstack:
     container_name: localstack
     image: localstack/localstack

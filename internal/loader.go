@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-redis/redis"
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -31,6 +30,10 @@ const (
 	// name of the key of the bins containing the recommended items
 	// Max 15 characters due to Aerospike limitation
 	binKey = "items"
+	// name of the setName for storing all the batchIDs
+	bulkStatusSetName = "bulkStatus"
+	// name of the key to retrieve the status of the bulk upload
+	statusBinKey = "status"
 )
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
@@ -178,7 +181,6 @@ type DataUploaded struct {
 // Batch will upload in batch a set to the database
 func Batch(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
-	rc := c.MustGet("RedisClient").(*redis.Client)
 	sess := c.MustGet("AWSSession").(*session.Session)
 
 	var br BatchRequest
@@ -231,7 +233,7 @@ func Batch(c *gin.Context) {
 	batchID := uuid.New().String()
 
 	// seprate thread
-	go uploadDataFromFile(ac, rc, f, m, batchID)
+	go uploadDataFromFile(ac, f, m, batchID)
 
 	utils.Response(c, http.StatusCreated, &BatchBulkResponse{BatchID: batchID})
 }
@@ -275,10 +277,10 @@ const (
 	BulkFailed = "FAILED"
 )
 
-func uploadDataFromFile(ac *db.AerospikeClient, rc *redis.Client, file *io.ReadCloser, m *models.Model, batchID string) {
+func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.Model, batchID string) {
 
-	// write to Redis it's uploading
-	if err := rc.Set(batchID, BulkUploading, 0).Err(); err != nil {
+	// write to Aerospike it's uploading
+	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkUploading); err != nil {
 		// if this fails than since we cannot return the request to the user
 		// we need to restart the application
 		log.Panicln(err)
@@ -318,8 +320,8 @@ func uploadDataFromFile(ac *db.AerospikeClient, rc *redis.Client, file *io.ReadC
 		// upload to Aerospike
 		setName := m.ComposeSetName()
 		if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
-			// write to Redis it failed
-			if err := rc.Set(batchID, BulkFailed, 0).Err(); err != nil {
+			// write to Aerospike it failed
+			if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkFailed); err != nil {
 				// if this fails than since we cannot return the request to the user
 				// we need to restart the application
 				log.Panicln(err)
@@ -329,8 +331,8 @@ func uploadDataFromFile(ac *db.AerospikeClient, rc *redis.Client, file *io.ReadC
 		records++
 	}
 
-	// write to Redis it succeeded
-	if err := rc.Set(batchID, BulkSucceeded, 0).Err(); err != nil {
+	// write to Aerospike it succeeded
+	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkSucceeded); err != nil {
 		// if this fails than since we cannot return the request to the user
 		// we need to restart the application
 		log.Panicln(err)
@@ -344,17 +346,15 @@ type BatchStatusResponse struct {
 
 // BatchStatus returns the current status of the batch upload
 func BatchStatus(c *gin.Context) {
-	rc := c.MustGet("RedisClient").(*redis.Client)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
 	batchID := c.Param("id")
 
-	s, err := rc.Get(batchID).Result()
-	if err == redis.Nil {
+	r, err := ac.GetOne("bulkStatus", batchID)
+	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("batch job with ID %s not found", batchID))
 		return
-	} else if err != nil {
-		utils.ResponseError(c, http.StatusInternalServerError, err)
-		return
 	}
-	utils.Response(c, http.StatusOK, &BatchStatusResponse{Status: s})
+
+	utils.Response(c, http.StatusOK, &BatchStatusResponse{Status: r.Bins["status"].(string)})
 }
