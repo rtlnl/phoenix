@@ -2,6 +2,7 @@ package db
 
 import (
 	"io"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -50,6 +51,7 @@ func (c *S3Client) ExistsObject(key string) bool {
 	})
 
 	if err := req.Send(); err != nil {
+		log.Println(err)
 		return false
 	}
 	return true
