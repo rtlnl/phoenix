@@ -7,11 +7,9 @@ import (
 )
 
 var (
-	redisAddrFlag     = "redis-addr"
-	redisPasswordFlag = "redis-password"
-	s3RegionFlag      = "s3-region"
-	s3EndpointFlag    = "s3-endpoint"
-	s3DisableSSLFlag  = "s3-disable-ssl"
+	s3RegionFlag     = "s3-region"
+	s3EndpointFlag   = "s3-endpoint"
+	s3DisableSSLFlag = "s3-disable-ssl"
 )
 
 // internalCmd represents the internal command
