@@ -5,8 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
+
+	"github.com/go-redis/redis"
+	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/rtlnl/data-personalization-api/models"
@@ -160,6 +164,11 @@ type BatchResponse struct {
 	Message string `json:"message"`
 }
 
+// BatchBulkResponse is the object that represents the payload of the response when uploading from S3
+type BatchBulkResponse struct {
+	BatchID string `json:"batchId"`
+}
+
 // DataUploaded is the object that represents the result for uplaoding the data
 type DataUploaded struct {
 	NumberOfSignals         int `description:"total count of signals that have been uploaded"`
@@ -169,6 +178,7 @@ type DataUploaded struct {
 // Batch will upload in batch a set to the database
 func Batch(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	rc := c.MustGet("RedisClient").(*redis.Client)
 	sess := c.MustGet("AWSSession").(*session.Session)
 
 	var br BatchRequest
@@ -190,34 +200,40 @@ func Batch(c *gin.Context) {
 		return
 	}
 
-	var du *DataUploaded
+	// upload data from request itself
 	if len(br.Data) > 0 && br.Data != nil {
-		du, err = uploadDataDirectly(ac, br.Data, m)
-	} else {
-		// create S3 client
-		bucket, key := StripS3URL(br.DataLocation)
-		s := db.NewS3Client(bucket, sess)
-
-		// check if file exists
-		if s.ExistsObject(key) == false {
-			utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("key %s does not exists in S3", br.DataLocation))
-			return
-		}
-		// download the file
-		f, err := s.GetObject(key)
-		if err != nil {
+		du, err := uploadDataDirectly(ac, br.Data, m)
+		if du == nil && err != nil {
 			utils.ResponseError(c, http.StatusInternalServerError, err)
 			return
 		}
-		du, err = uploadDataFromFile(ac, f, m)
+		utils.Response(c, http.StatusCreated, &BatchResponse{Message: "data uploaded"})
+		return
 	}
 
-	if du == nil && err != nil {
+	// upload data from S3 file
+	bucket, key := StripS3URL(br.DataLocation)
+	s := db.NewS3Client(bucket, sess)
+
+	// check if file exists
+	if s.ExistsObject(key) == false {
+		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("key %s does not exists in S3", br.DataLocation))
+		return
+	}
+	// download the file
+	f, err := s.GetObject(key)
+	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, &BatchResponse{Message: "data uploaded"})
+	// generate batchID
+	batchID := uuid.New().String()
+
+	// seprate thread
+	go uploadDataFromFile(ac, rc, f, m, batchID)
+
+	utils.Response(c, http.StatusCreated, &BatchBulkResponse{BatchID: batchID})
 }
 
 // StripS3URL returns the bucket and the key from a s3 url location
@@ -247,7 +263,26 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model)
 	return &DataUploaded{NumberOfSignals: len(bd), NumberOfRecommendations: nr}, nil
 }
 
-func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.Model) (*DataUploaded, error) {
+// BulkStatus defines the status of the batch upload from S3
+type BulkStatus string
+
+const (
+	// BulkUploading represents the uploading status
+	BulkUploading = "UPLOADING"
+	// BulkSucceeded represents the succeeded status
+	BulkSucceeded = "SUCCEEDED"
+	// BulkFailed represents the failed status
+	BulkFailed = "FAILED"
+)
+
+func uploadDataFromFile(ac *db.AerospikeClient, rc *redis.Client, file *io.ReadCloser, m *models.Model, batchID string) {
+
+	// write to Redis it's uploading
+	if err := rc.Set(batchID, BulkUploading, 0).Err(); err != nil {
+		// if this fails than since we cannot return the request to the user
+		// we need to restart the application
+		log.Panicln(err)
+	}
 
 	records := 0
 	rd := bufio.NewReader(*file)
@@ -263,6 +298,7 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 		l := strings.TrimSuffix(line, "\n")
 
 		// skip header in csv
+		// TODO: do we need to skip the header??
 		if records <= 0 {
 			records++
 			continue
@@ -280,12 +316,45 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 		nr += len(recommendedItems)
 
 		// upload to Aerospike
-		// TODO: verify here if it works in this way
 		setName := m.ComposeSetName()
 		if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
-			return nil, err
+			// write to Redis it failed
+			if err := rc.Set(batchID, BulkFailed, 0).Err(); err != nil {
+				// if this fails than since we cannot return the request to the user
+				// we need to restart the application
+				log.Panicln(err)
+			}
+			return
 		}
 		records++
 	}
-	return &DataUploaded{NumberOfSignals: records, NumberOfRecommendations: nr}, nil
+
+	// write to Redis it succeeded
+	if err := rc.Set(batchID, BulkSucceeded, 0).Err(); err != nil {
+		// if this fails than since we cannot return the request to the user
+		// we need to restart the application
+		log.Panicln(err)
+	}
+}
+
+// BatchStatusResponse is the response payload for getting the status of the bulk upload from S3
+type BatchStatusResponse struct {
+	Status string `json:"status"`
+}
+
+// BatchStatus returns the current status of the batch upload
+func BatchStatus(c *gin.Context) {
+	rc := c.MustGet("RedisClient").(*redis.Client)
+
+	batchID := c.Param("id")
+
+	s, err := rc.Get(batchID).Result()
+	if err == redis.Nil {
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("batch job with ID %s not found", batchID))
+		return
+	} else if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+	utils.Response(c, http.StatusOK, &BatchStatusResponse{Status: s})
 }

@@ -7,9 +7,11 @@ import (
 )
 
 var (
-	s3RegionFlag     = "s3-region"
-	s3EndpointFlag   = "s3-endpoint"
-	s3DisableSSLFlag = "s3-disable-ssl"
+	redisAddrFlag     = "redis-addr"
+	redisPasswordFlag = "redis-password"
+	s3RegionFlag      = "s3-region"
+	s3EndpointFlag    = "s3-endpoint"
+	s3DisableSSLFlag  = "s3-disable-ssl"
 )
 
 // internalCmd represents the internal command
@@ -23,6 +25,8 @@ var internalCmd = &cobra.Command{
 		dbHost := viper.GetString(dbHostInternalFlag)
 		dbPort := viper.GetInt(dbPortInternalFlag)
 		dbNamespace := viper.GetString(dbNamespaceInternalFlag)
+		redisAddr := viper.GetString(redisAddrFlag)
+		redisPassword := viper.GetString(redisPasswordFlag)
 		s3Region := viper.GetString(s3RegionFlag)
 		s3Endpoint := viper.GetString(s3EndpointFlag)
 		s3DisableSSL := viper.GetBool(s3DisableSSLFlag)
@@ -32,7 +36,7 @@ var internalCmd = &cobra.Command{
 			panic(err)
 		}
 
-		if err = i.Run(addr, dbHost, dbNamespace, s3Region, s3Endpoint, s3DisableSSL, dbPort); err != nil {
+		if err = i.Run(addr, dbHost, dbNamespace, redisAddr, redisPassword, s3Region, s3Endpoint, s3DisableSSL, dbPort); err != nil {
 			panic(err)
 		}
 	},
@@ -47,6 +51,8 @@ func init() {
 	f.String(dbHostInternalFlag, "127.0.0.1", "database host")
 	f.Int(dbPortInternalFlag, 3000, "database port")
 	f.String(dbNamespaceInternalFlag, "personalization", "namespace of the database")
+	f.String(redisAddrFlag, "localhost:6379", "redis host and port")
+	f.String(redisPasswordFlag, "", "redis password")
 	f.String(s3RegionFlag, "eu-west-1", "s3 region")
 	f.String(s3EndpointFlag, "localhost:4572", "s3 endpoint")
 	f.Bool(s3DisableSSLFlag, true, "disable SSL verification for s3")
@@ -55,6 +61,8 @@ func init() {
 	viper.BindEnv(dbHostInternalFlag, "DB_HOST")
 	viper.BindEnv(dbPortInternalFlag, "DB_PORT")
 	viper.BindEnv(dbNamespaceInternalFlag, "DB_NAMESPACE")
+	viper.BindEnv(redisAddrFlag, "REDIS_ADDR")
+	viper.BindEnv(redisPasswordFlag, "REDIS_PASSWORD")
 	viper.BindEnv(s3RegionFlag, "S3_REGION")
 	viper.BindEnv(s3EndpointFlag, "S3_ENDPOINT")
 	viper.BindEnv(s3DisableSSLFlag, "S3_DISABLE_SSL")
