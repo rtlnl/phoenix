@@ -29,5 +29,8 @@ func Response(c *gin.Context, code int, payload interface{}) {
 	}
 
 	r := string(b)
+
+	// set the header to format the response to json
+	c.Header("Content-Type", "application/json; charset=utf-8")
 	c.String(code, r)
 }
