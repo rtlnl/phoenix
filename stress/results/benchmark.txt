@@ -44,5 +44,20 @@ Bucket           #     %       Histogram
 [1s,     +Inf]   0     0.00%
 
 
+# Third test
+
+N of Pods: 10
+Rate: 5000 req/s
+Duration: 5s
+Bucket           #     %       Histogram
+[0s,     20ms]   399  7.98%    ####
+[20ms,   50ms]   504  10.80%   ####
+[50ms,   100ms]  2792 55.84%   ######################
+[100ms,  200ms]  864  17.28%   ######
+[200ms,  400ms]  9    0.16%    #
+[400ms,  1s]     54   1.80%    ##
+[1s,     +Inf]   378  7.56%    ###
+
+
 
 echo 'POST https://personalization-dev.rtl-di.nl/public/recommend BODY {"publicationPoint":"stress_test","campaign":"stress","signals":[{"id":"639811c3-650d-41a6-a995-922817b33586"}]}' | vegeta attack -rate 50 -duration 5s | vegeta report -type='hist[0,20ms,50ms,100ms,200ms,400ms,1s]'
