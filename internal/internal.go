@@ -42,6 +42,7 @@ func (c *Internal) Run(host, dbHost, dbNamespace, s3Region, s3Endpoint string, s
 	c.App.PUT("/streaming", UpdateStreaming)
 	c.App.DELETE("/streaming", DeleteStreaming)
 	c.App.POST("/batch", Batch)
+	c.App.GET("/batch/status/:id", BatchStatus)
 
 	// Management Routes
 	mm := c.App.Group("/management/model")
