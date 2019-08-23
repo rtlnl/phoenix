@@ -129,6 +129,14 @@ Below you can find and example of data for a model
 		  Bins = 5555 = ["g","h","i"]
 ```
 
+## Batch Upload
+
+The APIs gives the possibility to read a file from S3 and upload it to Aerospike. To avoid timeouts and having the client hanging waiting for the response, the APIs has a simple `checking` mechanism. The picture below explain how the process works
+
+![](/docs/images/batch_upload.png)
+
+The process of uploading the file from S3 to Aerospike is delegated to a separate `go routine`. The client should store the `batchID` that is returned from the initial request `(POST /batch)` and ask for the status with `GET /batch/status/:id`.
+
 ## TODO
 
 - [ ] Add validations for `signalOrder` separator
