@@ -146,12 +146,6 @@ func uploadData(ac *db.AerospikeClient, testDataPath string) error {
 	for sc.Scan() {
 		line := sc.Text() // GET the line string
 
-		// skip header of csv file
-		if i <= 0 {
-			i++
-			continue
-		}
-
 		// order should be: model;signal;items
 		splittedLine := strings.Split(line, ";")
 		if len(splittedLine) != 3 {

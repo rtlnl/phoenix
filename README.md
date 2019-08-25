@@ -24,7 +24,7 @@ If you need to upload some files to the local S3, use the following commands aft
 To run all the tests, use the following command:
 
 ```bash
-$: go clean -testcache && go test ./...
+$: go clean -testcache && go test -race ./...
 ```
 
 The first part is to avoid that Go will cache the result of the tests. This could lead to some evaluation errors
