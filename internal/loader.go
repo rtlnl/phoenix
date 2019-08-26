@@ -7,7 +7,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"runtime"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -66,7 +69,7 @@ func CreateStreaming(c *gin.Context) {
 	}
 
 	// cannot add data to published models
-	if m.Stage == models.PUBLISHED {
+	if m.IsPublished() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot add data on already published models. stage it first"))
 		return
 	}
@@ -99,7 +102,7 @@ func UpdateStreaming(c *gin.Context) {
 	}
 
 	// cannot update data to published models
-	if m.Stage == models.PUBLISHED {
+	if m.IsPublished() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot update data on already published models. stage it first"))
 		return
 	}
@@ -134,7 +137,7 @@ func DeleteStreaming(c *gin.Context) {
 	}
 
 	// cannot delete data to published models
-	if m.Stage == models.PUBLISHED {
+	if m.IsPublished() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot delete data on already published models. stage it first"))
 		return
 	}
@@ -197,7 +200,7 @@ func Batch(c *gin.Context) {
 	}
 
 	// cannot uplaod data to published models
-	if m.Stage == models.PUBLISHED {
+	if m.IsPublished() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot upload data on already published models. stage it first"))
 		return
 	}
@@ -277,7 +280,14 @@ const (
 	BulkFailed = "FAILED"
 )
 
+type recordQueue struct {
+	SetName string
+	Signal  string
+	Items   []string
+}
+
 func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.Model, batchID string) {
+	start := time.Now()
 
 	// write to Aerospike it's uploading
 	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkUploading); err != nil {
@@ -286,25 +296,49 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 		log.Panicln(err)
 	}
 
-	records := 0
+	setName := m.ComposeSetName()
 	rd := bufio.NewReader(*file)
+	rs := make(chan *recordQueue)
 
-	var nr int
-	for {
+	// create sync group
+	wg := &sync.WaitGroup{}
+
+	// fillup the channel with lines
+	go iterateFile(rd, setName, rs)
+
+	// consumes all the lines in parallel based on number of cpus
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+		go uploadRecord(ac, batchID, rs, wg)
+	}
+
+	// wait until done
+	wg.Wait()
+
+	// write to Aerospike it succeeded
+	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkSucceeded); err != nil {
+		// if this fails than since we cannot return the request to the user
+		// we need to restart the application
+		log.Panicln(err)
+	}
+
+	elapsed := time.Since(start)
+	log.Printf("Uploading took %s", elapsed)
+}
+
+func iterateFile(rd *bufio.Reader, setName string, rs chan<- *recordQueue) {
+	// close channel at the end when there are no more lines
+	defer close(rs)
+
+	eof := false
+	for !eof {
 		line, err := rd.ReadString('\n')
 		if err == io.EOF {
-			break
+			eof = true
 		}
 
 		// string new-line character
 		l := strings.TrimSuffix(line, "\n")
-
-		// skip header in csv
-		// TODO: do we need to skip the header??
-		if records <= 0 {
-			records++
-			continue
-		}
 
 		record := strings.Split(l, csvDelimiter)
 		if len(record) != columnsDataFile {
@@ -314,12 +348,17 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 		sig := record[0]
 		recommendedItems := strings.Split(record[1], recordDelimiter)
 
-		// count number of recommendations
-		nr += len(recommendedItems)
+		// add to channel
+		rs <- &recordQueue{SetName: setName, Signal: sig, Items: recommendedItems}
+	}
+}
 
-		// upload to Aerospike
-		setName := m.ComposeSetName()
-		if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
+func uploadRecord(ac *db.AerospikeClient, batchID string, rs chan *recordQueue, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// upload record to aerospike when it arrives
+	for r := range rs {
+		if err := ac.AddOne(r.SetName, r.Signal, binKey, r.Items); err != nil {
 			// write to Aerospike it failed
 			if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkFailed); err != nil {
 				// if this fails than since we cannot return the request to the user
@@ -328,14 +367,6 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 			}
 			return
 		}
-		records++
-	}
-
-	// write to Aerospike it succeeded
-	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkSucceeded); err != nil {
-		// if this fails than since we cannot return the request to the user
-		// we need to restart the application
-		log.Panicln(err)
 	}
 }
 

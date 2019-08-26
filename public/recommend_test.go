@@ -146,3 +146,21 @@ func TestRecommendModelStaged(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "{\"message\":\"model is staged. Clients cannot access staged models\"}", string(b))
 }
+
+func BenchmarkRecommend(b *testing.B) {
+	b.StopTimer()
+
+	ss := make([]Signal, 1)
+	ss[0] = Signal{
+		"articleId": "500083",
+	}
+
+	rb, err := createRecommendRequest("rtl_nieuws", "homepage", ss)
+	if err != nil {
+		b.Fail()
+	}
+
+	for i := 0; i < b.N; i++ {
+		MockRequestBenchmark(b, http.MethodPost, "/recommend", rb)
+	}
+}

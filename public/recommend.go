@@ -3,6 +3,7 @@ package public
 import (
 	"errors"
 	"net/http"
+	"sync"
 
 	"github.com/rtlnl/data-personalization-api/models"
 
@@ -32,12 +33,21 @@ type RecommendResponse struct {
 // Signal is an alias that represents the signal defintion
 type Signal map[string]string
 
+// rrPool is in charged of Pooling eventual requests in coming. This will help to reduce the alloc/s
+// and effeciently improve the garbage collection operations. rr is short for recommend-request
+var rrPool = sync.Pool{
+	New: func() interface{} { return new(RecommendRequest) },
+}
+
 // Recommend will take care of fetching the personalized content for a specific user
 func Recommend(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
-	var rr RecommendRequest
-	if err := c.BindJSON(&rr); err != nil {
+	// get a new object from the pool and then dispose it
+	rr := rrPool.Get().(*RecommendRequest)
+	defer rrPool.Put(rr)
+
+	if err := c.BindJSON(rr); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -49,7 +59,7 @@ func Recommend(c *gin.Context) {
 	}
 
 	// If the model is staged, the clients cannot access it
-	if m.Stage == models.STAGED {
+	if m.IsStaged() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("model is staged. Clients cannot access staged models"))
 		return
 	}

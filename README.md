@@ -24,7 +24,7 @@ If you need to upload some files to the local S3, use the following commands aft
 To run all the tests, use the following command:
 
 ```bash
-$: go clean -testcache && go test ./...
+$: go clean -testcache && go test -race ./...
 ```
 
 The first part is to avoid that Go will cache the result of the tests. This could lead to some evaluation errors
@@ -137,7 +137,8 @@ The APIs gives the possibility to read a file from S3 and upload it to Aerospike
 
 The process of uploading the file from S3 to Aerospike is delegated to a separate `go routine`. The client should store the `batchID` that is returned from the initial request `(POST /batch)` and ask for the status with `GET /batch/status/:id`.
 
+Time taken to upload **1.6M unique keys** from S3 is `3m 33secs`. Check this [PR](https://github.com/rtlnl/data-personalization-api/pull/5) for more information
+
 ## TODO
 
 - [ ] Add validations for `signalOrder` separator
-- [ ] Publish Benchmarks
