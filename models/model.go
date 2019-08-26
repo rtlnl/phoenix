@@ -10,11 +10,12 @@ import (
 )
 
 const (
-	initVersion      = "0.1.0"
-	initStage        = STAGED
-	binKeyStage      = "stage"
-	binKeyVersion    = "version"
-	binKeySignalType = "signal_type"
+	setNameComposition = "%s#%s#%s"
+	initVersion        = "0.1.0"
+	initStage          = STAGED
+	binKeyStage        = "stage"
+	binKeyVersion      = "version"
+	binKeySignalType   = "signal_type"
 )
 
 // StageType defines if the model is available for the recommendations or not
@@ -107,7 +108,7 @@ func GetExistingModel(publicationPoint, campaign string, ac *db.AerospikeClient)
 // PublishModel set the model to be available to the clients
 // Version: the major value is bumped up
 func (m *Model) PublishModel(ac *db.AerospikeClient) error {
-	if m.Stage == PUBLISHED {
+	if m.IsPublished() {
 		return errors.New("model is already published")
 	}
 
@@ -151,7 +152,7 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 // Version: the minor value is bumped up
 func (m *Model) StageModel(ac *db.AerospikeClient) error {
 	// if the model is already staged no need to perform any operation
-	if m.Stage == STAGED {
+	if m.IsStaged() {
 		return errors.New("model is already STAGED")
 	}
 
@@ -194,7 +195,7 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 // DeleteModel truncate all the data belonging to a model
 func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 	// It is not possible to delete models that are published
-	if m.Stage == PUBLISHED {
+	if m.IsPublished() {
 		return errors.New("you cannot delete a model that is PUBLISHED. Change the stage to STAGED first")
 	}
 
@@ -225,7 +226,7 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 //       This triggers a deletion of the data because there can be inconsistencies
 // Version: the patch value is bumped up
 func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) error {
-	if m.Stage == PUBLISHED {
+	if m.IsPublished() {
 		return errors.New("cannot change signal when model is published")
 	}
 
@@ -254,7 +255,7 @@ func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) erro
 
 // ComposeSetName returns a string with the formatted value of the key we store in Aerospike
 func (m *Model) ComposeSetName() string {
-	return fmt.Sprintf("%s#%s#%s", m.PublicationPoint, m.Campaign, m.Stage)
+	return fmt.Sprintf(setNameComposition, m.PublicationPoint, m.Campaign, m.Stage)
 }
 
 // ComposeSignalKey returns the actual key composition given a list of signals' values based on the model
@@ -273,4 +274,14 @@ func (m *Model) ComposeSignalKey(signals map[string]string, separator string) st
 	// remove last occurrence of #
 	key := strings.TrimSuffix(kb.String(), "#")
 	return key
+}
+
+// IsStaged determines if the model is in STAGED mode
+func (m *Model) IsStaged() bool {
+	return m.Stage == STAGED
+}
+
+// IsPublished determines if the model is in PUBLISHED mode
+func (m *Model) IsPublished() bool {
+	return m.Stage == PUBLISHED
 }

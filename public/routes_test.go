@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 func tearUp() {
 	gin.SetMode(gin.TestMode)
 
-	router = gin.Default()
+	router = gin.New()
 	router.RedirectTrailingSlash = true
 
 	// Load fixtures
@@ -181,4 +181,17 @@ func MockRequest(method, path string, body io.Reader) (int, *bytes.Buffer, error
 	router.ServeHTTP(w, req)
 
 	return w.Code, w.Body, nil
+}
+
+// MockRequestBenchmark will send a request to the server. Used for benchamrking purposes
+func MockRequestBenchmark(b *testing.B, method, path string, body io.Reader) {
+	req, _ := http.NewRequest(method, path, body)
+
+	// Create a response recorder so you can inspect the response
+	w := httptest.NewRecorder()
+
+	// Perform the request
+	b.StartTimer()
+	router.ServeHTTP(w, req)
+	b.StopTimer()
 }

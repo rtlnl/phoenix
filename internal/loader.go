@@ -69,7 +69,7 @@ func CreateStreaming(c *gin.Context) {
 	}
 
 	// cannot add data to published models
-	if m.Stage == models.PUBLISHED {
+	if m.IsPublished() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot add data on already published models. stage it first"))
 		return
 	}
@@ -102,7 +102,7 @@ func UpdateStreaming(c *gin.Context) {
 	}
 
 	// cannot update data to published models
-	if m.Stage == models.PUBLISHED {
+	if m.IsPublished() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot update data on already published models. stage it first"))
 		return
 	}
@@ -137,7 +137,7 @@ func DeleteStreaming(c *gin.Context) {
 	}
 
 	// cannot delete data to published models
-	if m.Stage == models.PUBLISHED {
+	if m.IsPublished() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot delete data on already published models. stage it first"))
 		return
 	}
@@ -200,7 +200,7 @@ func Batch(c *gin.Context) {
 	}
 
 	// cannot uplaod data to published models
-	if m.Stage == models.PUBLISHED {
+	if m.IsPublished() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot upload data on already published models. stage it first"))
 		return
 	}
