@@ -142,4 +142,3 @@ Time taken to upload **1.6M unique keys** from S3 is `3m 33secs`.
 ## TODO
 
 - [ ] Add validations for `signalOrder` separator
-- [ ] Publish Benchmarks
