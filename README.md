@@ -5,6 +5,7 @@ The Project is divided in two main parts:
 - Public APIs
 - Internal APIs
 
+    Description here
 ## How to start
 
 Assuming that you have `go`, `docker` and `docker-compose` installed in your machine, run `docker-compose up -d` to spin up aerospike and localstack (for local S3).
