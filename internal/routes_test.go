@@ -39,6 +39,7 @@ func TestMain(m *testing.M) {
 }
 
 func tearUp() {
+
 	gin.SetMode(gin.TestMode)
 
 	router = gin.Default()
