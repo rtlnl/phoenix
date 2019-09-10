@@ -3,9 +3,10 @@ package db
 import (
 	"bytes"
 	"io"
+	"os"
 	"testing"
 
-	awsPersonalization "github.com/rtlnl/data-personalization-api/pkg/aws"
+	paws "github.com/rtlnl/data-personalization-api/pkg/aws"
 
 	"github.com/aws/aws-sdk-go/aws"
 
@@ -17,17 +18,66 @@ const (
 	s3TestEndpoint = "localhost:4572"
 	s3TestBucket   = "test"
 	s3TestRegion   = "eu-west-1"
+	s3TestKey      = "/foo/bar.txt"
 )
 
+func TestMain(m *testing.M) {
+	tearUp()
+	c := m.Run()
+	tearDown()
+	os.Exit(c)
+}
+
+func tearUp() {
+	createS3Bucket()
+}
+
+func tearDown() {
+	// Nothing here for now
+}
+
+func createS3Bucket() {
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	sc := NewS3Client(s3TestBucket, sess)
+
+	input := &s3.HeadBucketInput{
+		Bucket: aws.String(s3TestBucket),
+	}
+
+	uploadFile := false
+	if _, err := sc.Service.HeadBucket(input); err != nil {
+		// create bucket if not
+		sc.Service.CreateBucket(&s3.CreateBucketInput{
+			Bucket: aws.String(s3TestBucket),
+			ACL:    aws.String("public-read-write"),
+		})
+		uploadFile = true
+	}
+
+	// add files
+	if uploadFile {
+		input := &s3.PutObjectInput{
+			Body:   bytes.NewReader([]byte("some-data")),
+			Bucket: aws.String(s3TestBucket),
+			Key:    aws.String(s3TestKey),
+			ACL:    aws.String("public-read-write"),
+		}
+
+		if _, err := sc.Service.PutObject(input); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func TestNewS3Client(t *testing.T) {
-	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
 
 	s := NewS3Client(s3TestBucket, sess)
 	assert.NotNil(t, s)
 }
 
 func TestGetObject(t *testing.T) {
-	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
 	s := NewS3Client(s3TestBucket, sess)
 
 	_, err := s.Service.PutObject(&s3.PutObjectInput{
@@ -55,7 +105,7 @@ func TestGetObject(t *testing.T) {
 }
 
 func TestGetObjectFails(t *testing.T) {
-	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
 	s := NewS3Client(s3TestBucket, sess)
 
 	f, err := s.GetObject("foo/bar2.txt")
@@ -67,7 +117,7 @@ func TestGetObjectFails(t *testing.T) {
 }
 
 func TestExistsObject(t *testing.T) {
-	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
 	s := NewS3Client(s3TestBucket, sess)
 
 	_, err := s.Service.PutObject(&s3.PutObjectInput{
@@ -85,7 +135,7 @@ func TestExistsObject(t *testing.T) {
 }
 
 func TestExistsObjectFails(t *testing.T) {
-	sess := awsPersonalization.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
 	s := NewS3Client(s3TestBucket, sess)
 
 	// Key should not exists
