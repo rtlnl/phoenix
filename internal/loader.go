@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -163,7 +164,11 @@ type BatchRequest struct {
 }
 
 // BatchData is the object representing the content of the data parameter in the batch request
-type BatchData map[string][]string
+type BatchData map[string][]ItemScore
+
+// ItemScore is the object containing the recommended item and its score
+// Example: {"item":"11","score":"0.6"}
+type ItemScore map[string]string
 
 // BatchResponse is the object that represents the payload of the response for the batch endpoints
 type BatchResponse struct {
@@ -258,7 +263,6 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model)
 			nr += len(recommendedItems)
 
 			// upload to Aerospike
-			// TODO: verify here if it works in this way
 			setName := m.ComposeSetName()
 			if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
 				return nil, err
@@ -283,7 +287,12 @@ const (
 type recordQueue struct {
 	SetName string
 	Signal  string
-	Items   []string
+	Items   []ItemScore
+}
+
+type singleEntry struct {
+	SignalID    string      `json:"signalID"`
+	Recommended []ItemScore `json:"recommended"`
 }
 
 func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.Model, batchID string) {
@@ -307,8 +316,8 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 	go iterateFile(rd, setName, rs)
 
 	// consumes all the lines in parallel based on number of cpus
+	wg.Add(runtime.NumCPU())
 	for i := 0; i < runtime.NumCPU(); i++ {
-		wg.Add(1)
 		go uploadRecord(ac, batchID, rs, wg)
 	}
 
@@ -340,16 +349,15 @@ func iterateFile(rd *bufio.Reader, setName string, rs chan<- *recordQueue) {
 		// string new-line character
 		l := strings.TrimSuffix(line, "\n")
 
-		record := strings.Split(l, csvDelimiter)
-		if len(record) != columnsDataFile {
+		// marshal the object
+		var entry singleEntry
+		if err := json.Unmarshal([]byte(l), &entry); err != nil {
+			// TODO: handle failed line
 			continue
 		}
 
-		sig := record[0]
-		recommendedItems := strings.Split(record[1], recordDelimiter)
-
 		// add to channel
-		rs <- &recordQueue{SetName: setName, Signal: sig, Items: recommendedItems}
+		rs <- &recordQueue{SetName: setName, Signal: entry.SignalID, Items: entry.Recommended}
 	}
 }
 

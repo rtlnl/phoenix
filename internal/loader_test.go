@@ -345,8 +345,21 @@ func TestBatchUploadDirect(t *testing.T) {
 
 func TestBatchUploadDirectModelPublished(t *testing.T) {
 	bd := make([]BatchData, 1)
-	d := []string{"item1", "item2", "item3"}
-	bd[0] = map[string][]string{
+	d := []ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+		},
+	}
+	bd[0] = map[string][]ItemScore{
 		"123": d,
 	}
 
@@ -371,8 +384,21 @@ func TestBatchUploadDirectModelPublished(t *testing.T) {
 
 func TestBatchUploadDirectModelNotExist(t *testing.T) {
 	bd := make([]BatchData, 1)
-	d := []string{"item1", "item2", "item3"}
-	bd[0] = map[string][]string{
+	d := []ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+		},
+	}
+	bd[0] = map[string][]ItemScore{
 		"123": d,
 	}
 

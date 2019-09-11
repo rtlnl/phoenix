@@ -1,0 +1,5 @@
+{"signalID":"11_22","recommended":[{"item":"item_1","score":"0.6"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}
+{"signalID":"22_22","recommended":[{"item":"item_1","score":"0.286"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}
+{"signalID":"33_22","recommended":[{"item":"item_1","score":"0.356"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}
+{"signalID":"44_22","recommended":[{"item":"item_1","score":"0.456"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}
+{"signalID":"55_22","recommended":[{"item":"item_1","score":"0.656"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}

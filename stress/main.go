@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,13 +44,20 @@ func makePostRequest(endpoint string, message interface{}) (int, error) {
 	return resp.StatusCode, nil
 }
 
-func writeKeyToFile(f *os.File, key string, items []string) {
+func writeKeyToFile(f *os.File, entry *SingleEntry) {
 	w := bufio.NewWriter(f)
 
-	fmt.Fprint(w, key, ";", strings.Join(items[:], ","))
+	b, _ := json.Marshal(entry)
+
+	fmt.Fprint(w, string(b))
 	fmt.Fprint(w, "\n")
 
 	w.Flush()
+}
+
+type SingleEntry struct {
+	SignalID string              `json:"signalID"`
+	Items    []map[string]string `json:"recommended"`
 }
 
 func upload() {
@@ -62,24 +68,35 @@ func upload() {
 
 	// body := make(map[string]interface{})
 
-	f, err := os.OpenFile("./items.csv", os.O_APPEND|os.O_WRONLY, 0600)
+	f, err := os.OpenFile("./data/items_test.jsonl", os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
 
 	// add data to model
-	for i := 0; i < 1600000; i++ {
+	for i := 0; i < 5; i++ {
 
 		k := uuid.New()
 		sig := k.String()
 
+		entry := SingleEntry{}
+
 		// generate random items
-		var recommendedItems []string
+		var recommendedItems []map[string]string
 		for j := 0; j < 25; j++ {
 			val := rand.Intn(max-min+1) + min
-			recommendedItems = append(recommendedItems, strconv.Itoa(val))
+			score := rand.Float64()
+
+			is := map[string]string{}
+			is["item"] = strconv.Itoa(val)
+			is["score"] = fmt.Sprintf("%f", score)
+
+			recommendedItems = append(recommendedItems, is)
 		}
+
+		entry.SignalID = sig
+		entry.Items = recommendedItems
 
 		// body["publicationPoint"] = devPublicationPoint
 		// body["campaign"] = devCampaign
@@ -92,7 +109,7 @@ func upload() {
 		// }
 
 		// store Key for stress test later
-		writeKeyToFile(f, sig, recommendedItems)
+		writeKeyToFile(f, &entry)
 
 		// if sc != http.StatusCreated {
 		// 	panic(errors.New("status code is " + strconv.Itoa(sc)))

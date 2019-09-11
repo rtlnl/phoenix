@@ -3,6 +3,7 @@ package internal
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -83,7 +84,7 @@ func loadFixtures() {
 	}
 
 	// test data
-	if err := uploadData(ac, "../fixtures/test_data.csv"); err != nil {
+	if err := uploadData(ac, "../fixtures/test_published_model_data.jsonl", "rtl_nieuws#homepage#PUBLISHED"); err != nil {
 		panic(err)
 	}
 
@@ -134,7 +135,7 @@ func uploadModel(ac *db.AerospikeClient, testDataPath string) error {
 	return nil
 }
 
-func uploadData(ac *db.AerospikeClient, testDataPath string) error {
+func uploadData(ac *db.AerospikeClient, testDataPath, modelName string) error {
 	f, err := os.OpenFile(testDataPath, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return err
@@ -143,19 +144,20 @@ func uploadData(ac *db.AerospikeClient, testDataPath string) error {
 
 	sc := bufio.NewScanner(f)
 
+	var entry singleEntry
+
 	i := 0
 	for sc.Scan() {
 		line := sc.Text() // GET the line string
 
-		// order should be: model;signal;items
-		splittedLine := strings.Split(line, ";")
-		if len(splittedLine) != 3 {
-			return errors.New("fixtures contains the wrong columns amount")
+		// marshal the object
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			return errors.New("fixtures contains the wrong type of json")
 		}
 
 		// need to break down the name of the model to fetch the actual object
 		// from aerospike
-		mn := strings.Split(splittedLine[0], "#")
+		mn := strings.Split(modelName, "#")
 
 		// TODO: this is slow! Need to find a smarter way. it works fine with small fixtures files
 		m, err := models.GetExistingModel(mn[0], mn[1], ac)
@@ -164,8 +166,7 @@ func uploadData(ac *db.AerospikeClient, testDataPath string) error {
 		}
 
 		sn := m.ComposeSetName()
-		items := strings.Split(splittedLine[2], ",")
-		if err := ac.AddOne(sn, splittedLine[1], binKey, items); err != nil {
+		if err := ac.AddOne(sn, entry.SignalID, binKey, entry.Recommended); err != nil {
 			return err
 		}
 
