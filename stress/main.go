@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rtlnl/data-personalization-api/models"
 	vegeta "github.com/tsenart/vegeta/lib"
 )
 
@@ -44,7 +45,7 @@ func makePostRequest(endpoint string, message interface{}) (int, error) {
 	return resp.StatusCode, nil
 }
 
-func writeKeyToFile(f *os.File, entry *SingleEntry) {
+func writeKeyToFile(f *os.File, entry *models.SingleEntry) {
 	w := bufio.NewWriter(f)
 
 	b, _ := json.Marshal(entry)
@@ -53,11 +54,6 @@ func writeKeyToFile(f *os.File, entry *SingleEntry) {
 	fmt.Fprint(w, "\n")
 
 	w.Flush()
-}
-
-type SingleEntry struct {
-	SignalID string              `json:"signalID"`
-	Items    []map[string]string `json:"recommended"`
 }
 
 func upload() {
@@ -80,15 +76,15 @@ func upload() {
 		k := uuid.New()
 		sig := k.String()
 
-		entry := SingleEntry{}
+		entry := models.SingleEntry{}
 
 		// generate random items
-		var recommendedItems []map[string]string
+		var recommendedItems []models.ItemScore
 		for j := 0; j < 25; j++ {
 			val := rand.Intn(max-min+1) + min
 			score := rand.Float64()
 
-			is := map[string]string{}
+			is := models.ItemScore{}
 			is["item"] = strconv.Itoa(val)
 			is["score"] = fmt.Sprintf("%f", score)
 
@@ -96,7 +92,7 @@ func upload() {
 		}
 
 		entry.SignalID = sig
-		entry.Items = recommendedItems
+		entry.Recommended = recommendedItems
 
 		// body["publicationPoint"] = devPublicationPoint
 		// body["campaign"] = devCampaign
