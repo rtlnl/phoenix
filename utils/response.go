@@ -1,14 +1,11 @@
 package utils
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/json-iterator/go"
 )
-
-// used for fast JSON marshal operations
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // RespError represents the response structu when an error occurs
 type RespError struct {
