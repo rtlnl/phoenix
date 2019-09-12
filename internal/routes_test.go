@@ -84,7 +84,7 @@ func loadFixtures() {
 	}
 
 	// test data
-	if err := uploadData(ac, "../fixtures/test_published_model_data.jsonl", "rtl_nieuws#homepage#PUBLISHED"); err != nil {
+	if err := uploadData(ac, "../fixtures/test_published_model_data.jsonl", "rtl_nieuws#homepage"); err != nil {
 		panic(err)
 	}
 
@@ -144,7 +144,7 @@ func uploadData(ac *db.AerospikeClient, testDataPath, modelName string) error {
 
 	sc := bufio.NewScanner(f)
 
-	var entry singleEntry
+	var entry models.SingleEntry
 
 	i := 0
 	for sc.Scan() {

@@ -98,12 +98,12 @@ Below you can find an example of multiple models:
 ### The Data
 
 The data is organized similarly to the Model but with a different naming convention. To make the SetName `unique` per model, we
-use a combination of `publicPoint`, `campaing` and `stage` separated by a `#`. In this way, we are able to insert all the Keys we
+use a combination of `publicPoint` and `campaing`. In this way, we are able to insert all the Keys we
 need for that particular model
 
 ```bash
 Namespace: personalization
-SetName: publicationPoint#campaign#STAGED/PUBLISHED
+SetName: publicationPoint#campaign
 Key: signalID	// for example 111_3333
 Bins: signalID => ["item1", "item2", ..., "itemN"]
 ```
@@ -112,7 +112,7 @@ Below you can find and example of data for a model
 
 ```bash
 - Data1
-	SetName = rtl_news#homepage#STAGED
+	SetName = rtl_news#homepage
 		- Key = 11_22
 		  Bins = 11_22 = ["1","2","3"]
 		- Key = 33_44
@@ -120,7 +120,7 @@ Below you can find and example of data for a model
 		- Key = 55_66
 		  Bins = 55_66 = ["7","8","9"]
 - Data2
-	SetName = rtl_news#footer#PUBLISHED
+	SetName = rtl_news#footer
 		- Key = 3333
 		  Bins = 3333 = ["a","b","c"]
 		- Key = 4444
@@ -139,6 +139,3 @@ The process of uploading the file from S3 to Aerospike is delegated to a separat
 
 Time taken to upload **1.6M unique keys** from S3 is `3m 33secs`. Check this [PR](https://github.com/rtlnl/data-personalization-api/pull/5) for more information
 
-## TODO
-
-- [ ] Add validations for `signalOrder` separator

@@ -1,5 +1,5 @@
-{"signalID":"11_22","recommended":[{"item":"item_1","score":"0.6"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}
-{"signalID":"22_22","recommended":[{"item":"item_1","score":"0.286"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}
-{"signalID":"33_22","recommended":[{"item":"item_1","score":"0.356"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}
-{"signalID":"44_22","recommended":[{"item":"item_1","score":"0.456"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}
-{"signalID":"55_22","recommended":[{"item":"item_1","score":"0.656"},{"item":"item_2","score":"0.345"},{"item":"item_n","score":"0.987"}]}
+{"signalID":"500083","recommended":[{"item":"6456","score":"0.6"},{"item":"1252","score":"0.345"},{"item":"7876","score":"0.987"}]}
+{"signalID":"1252","recommended":[{"item":"2345","score":"0.286"},{"item":"1471","score":"0.345"},{"item":"7876","score":"0.987"}]}
+{"signalID":"967","recommended":[{"item":"87608","score":"0.356"},{"item":"1252","score":"0.345"},{"item":"1429","score":"0.987"}]}
+{"signalID":"500022","recommended":[{"item":"433332","score":"0.456"},{"item":"1471","score":"0.345"},{"item":"12345","score":"0.987"}]}
+{"signalID":"1471","recommended":[{"item":"4562","score":"0.656"},{"item":"1252","score":"0.345"},{"item":"12345","score":"0.987"}]}
