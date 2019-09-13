@@ -12,24 +12,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/json-iterator/go"
 
+	"github.com/rtlnl/data-personalization-api/models"
 	"github.com/rtlnl/data-personalization-api/pkg/db"
 	"github.com/rtlnl/data-personalization-api/utils"
-
-	"github.com/gin-gonic/gin"
 )
 
+// used to fast unmarshal json strings
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
 const (
-	// The current CSV file we read contains only 2 columns: signal;items
-	columnsDataFile = 2
-	// csv delimiter character
-	csvDelimiter = ";"
-	// record delimiter that separates each recommended item
-	recordDelimiter = ","
 	// name of the key of the bins containing the recommended items
 	// Max 15 characters due to Aerospike limitation
 	binKey = "items"
@@ -163,7 +159,7 @@ type BatchRequest struct {
 }
 
 // BatchData is the object representing the content of the data parameter in the batch request
-type BatchData map[string][]string
+type BatchData map[string][]models.ItemScore
 
 // BatchResponse is the object that represents the payload of the response for the batch endpoints
 type BatchResponse struct {
@@ -216,6 +212,12 @@ func Batch(c *gin.Context) {
 		return
 	}
 
+	// truncate eventual old data
+	if err := ac.TruncateSet(m.ComposeSetName()); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
 	// upload data from S3 file
 	bucket, key := StripS3URL(br.DataLocation)
 	s := db.NewS3Client(bucket, sess)
@@ -258,7 +260,6 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model)
 			nr += len(recommendedItems)
 
 			// upload to Aerospike
-			// TODO: verify here if it works in this way
 			setName := m.ComposeSetName()
 			if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
 				return nil, err
@@ -280,12 +281,6 @@ const (
 	BulkFailed = "FAILED"
 )
 
-type recordQueue struct {
-	SetName string
-	Signal  string
-	Items   []string
-}
-
 func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.Model, batchID string) {
 	start := time.Now()
 
@@ -298,7 +293,7 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 
 	setName := m.ComposeSetName()
 	rd := bufio.NewReader(*file)
-	rs := make(chan *recordQueue)
+	rs := make(chan *models.RecordQueue)
 
 	// create sync group
 	wg := &sync.WaitGroup{}
@@ -307,8 +302,8 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 	go iterateFile(rd, setName, rs)
 
 	// consumes all the lines in parallel based on number of cpus
+	wg.Add(runtime.NumCPU())
 	for i := 0; i < runtime.NumCPU(); i++ {
-		wg.Add(1)
 		go uploadRecord(ac, batchID, rs, wg)
 	}
 
@@ -326,7 +321,7 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 	log.Printf("Uploading took %s", elapsed)
 }
 
-func iterateFile(rd *bufio.Reader, setName string, rs chan<- *recordQueue) {
+func iterateFile(rd *bufio.Reader, setName string, rs chan<- *models.RecordQueue) {
 	// close channel at the end when there are no more lines
 	defer close(rs)
 
@@ -340,25 +335,24 @@ func iterateFile(rd *bufio.Reader, setName string, rs chan<- *recordQueue) {
 		// string new-line character
 		l := strings.TrimSuffix(line, "\n")
 
-		record := strings.Split(l, csvDelimiter)
-		if len(record) != columnsDataFile {
+		// marshal the object
+		var entry models.SingleEntry
+		if err := json.Unmarshal([]byte(l), &entry); err != nil {
+			// TODO: handle failed line
 			continue
 		}
 
-		sig := record[0]
-		recommendedItems := strings.Split(record[1], recordDelimiter)
-
 		// add to channel
-		rs <- &recordQueue{SetName: setName, Signal: sig, Items: recommendedItems}
+		rs <- &models.RecordQueue{SetName: setName, Entry: entry}
 	}
 }
 
-func uploadRecord(ac *db.AerospikeClient, batchID string, rs chan *recordQueue, wg *sync.WaitGroup) {
+func uploadRecord(ac *db.AerospikeClient, batchID string, rs chan *models.RecordQueue, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// upload record to aerospike when it arrives
 	for r := range rs {
-		if err := ac.AddOne(r.SetName, r.Signal, binKey, r.Items); err != nil {
+		if err := ac.AddOne(r.SetName, r.Entry.SignalID, binKey, r.Entry.Recommended); err != nil {
 			// write to Aerospike it failed
 			if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkFailed); err != nil {
 				// if this fails than since we cannot return the request to the user

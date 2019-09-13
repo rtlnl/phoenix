@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rtlnl/data-personalization-api/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -345,8 +346,21 @@ func TestBatchUploadDirect(t *testing.T) {
 
 func TestBatchUploadDirectModelPublished(t *testing.T) {
 	bd := make([]BatchData, 1)
-	d := []string{"item1", "item2", "item3"}
-	bd[0] = map[string][]string{
+	d := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+		},
+	}
+	bd[0] = map[string][]models.ItemScore{
 		"123": d,
 	}
 
@@ -371,8 +385,21 @@ func TestBatchUploadDirectModelPublished(t *testing.T) {
 
 func TestBatchUploadDirectModelNotExist(t *testing.T) {
 	bd := make([]BatchData, 1)
-	d := []string{"item1", "item2", "item3"}
-	bd[0] = map[string][]string{
+	d := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+		},
+	}
+	bd[0] = map[string][]models.ItemScore{
 		"123": d,
 	}
 

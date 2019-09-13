@@ -11,10 +11,10 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rtlnl/data-personalization-api/models"
 	vegeta "github.com/tsenart/vegeta/lib"
 )
 
@@ -45,10 +45,12 @@ func makePostRequest(endpoint string, message interface{}) (int, error) {
 	return resp.StatusCode, nil
 }
 
-func writeKeyToFile(f *os.File, key string, items []string) {
+func writeKeyToFile(f *os.File, entry *models.SingleEntry) {
 	w := bufio.NewWriter(f)
 
-	fmt.Fprint(w, key, ";", strings.Join(items[:], ","))
+	b, _ := json.Marshal(entry)
+
+	fmt.Fprint(w, string(b))
 	fmt.Fprint(w, "\n")
 
 	w.Flush()
@@ -60,43 +62,38 @@ func upload() {
 	min := 100000
 	max := 250000
 
-	// body := make(map[string]interface{})
-
-	f, err := os.OpenFile("./items.csv", os.O_APPEND|os.O_WRONLY, 0600)
+	f, err := os.OpenFile("./data/items_test.jsonl", os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
 
 	// add data to model
-	for i := 0; i < 1600000; i++ {
+	for i := 0; i < 5; i++ {
 
 		k := uuid.New()
 		sig := k.String()
 
+		entry := models.SingleEntry{}
+
 		// generate random items
-		var recommendedItems []string
+		var recommendedItems []models.ItemScore
 		for j := 0; j < 25; j++ {
 			val := rand.Intn(max-min+1) + min
-			recommendedItems = append(recommendedItems, strconv.Itoa(val))
+			score := rand.Float64()
+
+			is := models.ItemScore{}
+			is["item"] = strconv.Itoa(val)
+			is["score"] = fmt.Sprintf("%f", score)
+
+			recommendedItems = append(recommendedItems, is)
 		}
 
-		// body["publicationPoint"] = devPublicationPoint
-		// body["campaign"] = devCampaign
-		// body["signal"] = sig
-		// body["recommendations"] = recommendedItems
-
-		// sc, err := makePostRequest("/streaming", body)
-		// if err != nil {
-		// 	panic(err)
-		// }
+		entry.SignalID = sig
+		entry.Recommended = recommendedItems
 
 		// store Key for stress test later
-		writeKeyToFile(f, sig, recommendedItems)
-
-		// if sc != http.StatusCreated {
-		// 	panic(errors.New("status code is " + strconv.Itoa(sc)))
-		// }
+		writeKeyToFile(f, &entry)
 	}
 
 	elapsed := time.Since(start)

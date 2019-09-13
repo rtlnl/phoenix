@@ -2,6 +2,9 @@ package db
 
 import (
 	"fmt"
+	"log"
+	"runtime"
+	"sync"
 
 	aero "github.com/aerospike/aerospike-client-go"
 )
@@ -149,12 +152,29 @@ func (ac *AerospikeClient) GetAllRecords(setName string) (*aero.Recordset, error
 
 // AddMultipleRecords add an x amount of records to a specific set
 func (ac *AerospikeClient) AddMultipleRecords(setName string, records *aero.Recordset) error {
-	// TODO: use channels/goroutines to improve the insert
-	for res := range records.Results() {
-		if err := ac.AddRecord(setName, res.Record.Key.Value(), res.Record.Bins); err != nil {
-			return err
-		}
+
+	recordsBuff := make(chan *aero.Result)
+
+	var wg sync.WaitGroup
+	wg.Add(runtime.NumCPU())
+
+	defer wg.Wait()
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go func(records <-chan *aero.Result) {
+			defer wg.Done()
+			for res := range records {
+				if err := ac.AddRecord(setName, res.Record.Key.Value(), res.Record.Bins); err != nil {
+					log.Print(err)
+				}
+			}
+		}(recordsBuff)
 	}
+
+	for res := range records.Results() {
+		recordsBuff <- res
+	}
+
+	close(recordsBuff)
 	return nil
 }
 

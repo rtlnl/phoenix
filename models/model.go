@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	setNameComposition = "%s#%s#%s"
+	setNameComposition = "%s#%s"
 	initVersion        = "0.1.0"
 	initStage          = STAGED
 	binKeyStage        = "stage"
@@ -112,28 +112,9 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 		return errors.New("model is already published")
 	}
 
-	snStaged := m.ComposeSetName()
-
-	// Copy data from staging to published
-	recordsStaged, err := ac.GetAllRecords(snStaged)
-	if err != nil {
-		return err
-	}
-
 	// set the published stage
 	m.Stage = PUBLISHED
 	m.Version.IncMajor()
-
-	snPublished := m.ComposeSetName()
-	if err := ac.AddMultipleRecords(snPublished, recordsStaged); err != nil {
-		return err
-	}
-
-	// delete the staged data of the model
-	// Recommendations setName => publicationPoint#campaign#STAGED
-	if err := ac.TruncateSet(snStaged); err != nil {
-		return err
-	}
 
 	// store model stage
 	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyStage, m.Stage); err != nil {
@@ -156,28 +137,9 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 		return errors.New("model is already STAGED")
 	}
 
-	snPublished := m.ComposeSetName()
-
-	// Copy data from published to staging
-	recordsPublished, err := ac.GetAllRecords(snPublished)
-	if err != nil {
-		return err
-	}
-
 	// set the staging stage
 	m.Stage = STAGED
 	m.Version.IncMinor()
-
-	snStaged := m.ComposeSetName()
-	if err := ac.AddMultipleRecords(snPublished, recordsPublished); err != nil {
-		return err
-	}
-
-	// delete the published data of the model
-	// Recommendations setName => publicationPoint#campaign#PUBLISHED
-	if err := ac.TruncateSet(snStaged); err != nil {
-		return err
-	}
 
 	// store model stage
 	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyStage, m.Stage); err != nil {
@@ -255,7 +217,7 @@ func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) erro
 
 // ComposeSetName returns a string with the formatted value of the key we store in Aerospike
 func (m *Model) ComposeSetName() string {
-	return fmt.Sprintf(setNameComposition, m.PublicationPoint, m.Campaign, m.Stage)
+	return fmt.Sprintf(setNameComposition, m.PublicationPoint, m.Campaign)
 }
 
 // ComposeSignalKey returns the actual key composition given a list of signals' values based on the model

@@ -2,6 +2,7 @@ package public
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -85,8 +86,29 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
+	// convert single entry from interface{} to []models.ItemScore
+	itemsScore := convertSingleEntry(r.Bins[binKey])
+
 	utils.Response(c, http.StatusOK, &RecommendResponse{
 		Signals:         rr.Signals,
-		Recommendations: r.Bins[binKey],
+		Recommendations: itemsScore,
 	})
+}
+
+// The objects coming from Aerospike have type []interface{}. This function converts
+// the Bins in the appropriate type for consistency
+func convertSingleEntry(bins interface{}) []models.ItemScore {
+	var itemsScore []models.ItemScore
+	newBins := bins.([]interface{})
+	for _, bin := range newBins {
+		b := bin.(map[interface{}]interface{})
+		item := make(models.ItemScore)
+		for k, v := range b {
+			it := fmt.Sprintf("%v", k)
+			score := fmt.Sprintf("%v", v)
+			item[it] = score
+		}
+		itemsScore = append(itemsScore, item)
+	}
+	return itemsScore
 }
