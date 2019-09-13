@@ -62,8 +62,6 @@ func upload() {
 	min := 100000
 	max := 250000
 
-	// body := make(map[string]interface{})
-
 	f, err := os.OpenFile("./data/items_test.jsonl", os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		log.Fatal(err)
@@ -94,22 +92,8 @@ func upload() {
 		entry.SignalID = sig
 		entry.Recommended = recommendedItems
 
-		// body["publicationPoint"] = devPublicationPoint
-		// body["campaign"] = devCampaign
-		// body["signal"] = sig
-		// body["recommendations"] = recommendedItems
-
-		// sc, err := makePostRequest("/streaming", body)
-		// if err != nil {
-		// 	panic(err)
-		// }
-
 		// store Key for stress test later
 		writeKeyToFile(f, &entry)
-
-		// if sc != http.StatusCreated {
-		// 	panic(errors.New("status code is " + strconv.Itoa(sc)))
-		// }
 	}
 
 	elapsed := time.Since(start)

@@ -98,7 +98,7 @@ Below you can find an example of multiple models:
 ### The Data
 
 The data is organized similarly to the Model but with a different naming convention. To make the SetName `unique` per model, we
-use a combination of `publicPoint` and `campaing`. In this way, we are able to insert all the Keys we
+use a combination of `publicPoint` and `campaign`. In this way, we are able to insert all the Keys we
 need for that particular model
 
 ```bash
