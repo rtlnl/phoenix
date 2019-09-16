@@ -18,6 +18,7 @@ const (
 )
 
 // RecommendRequest is the object that represents the payload of the request for the recommend endpoint
+// Signal: dictionary
 type RecommendRequest struct {
 	Signals          []Signal `json:"signals" binding:"required"`
 	PublicationPoint string   `json:"publicationPoint" binding:"required"`
@@ -39,19 +40,26 @@ var rrPool = sync.Pool{
 	New: func() interface{} { return new(RecommendRequest) },
 }
 
+// Use short variable names (1-2 chards) because the method describes what is going to happen
+// there some exceptions and in such case use the WHOLE word
+
+// SyncPool: watch video
+
 // Recommend will take care of fetching the personalized content for a specific user
 func Recommend(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient) // did you store an object somewhere?
 
 	// get a new object from the pool and then dispose it
 	rr := rrPool.Get().(*RecommendRequest)
 	defer rrPool.Put(rr)
 
+	// Does a validation
 	if err := c.BindJSON(rr); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
 
+	// Needs an improvement to avoid hitting the DB
 	m, err := models.GetExistingModel(rr.PublicationPoint, rr.Campaign, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
@@ -65,6 +73,7 @@ func Recommend(c *gin.Context) {
 	}
 
 	// compose key to retrieve recommended items
+	// checks composition and needs improvement
 	ss := make(map[string]string, len(rr.Signals))
 	for _, s := range rr.Signals {
 		for k, v := range s {

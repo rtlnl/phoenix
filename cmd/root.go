@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Here we place the common variables and then will be available for subcommands
 var (
 	addressPublicFlag       = "address-host-public"
 	dbHostPublicFlag        = "db-host-public"
@@ -18,6 +19,7 @@ var (
 )
 
 // rootCmd represents the base command when called without any subcommands
+// Descriptors form -h/--help
 var rootCmd = &cobra.Command{
 	Use:   "personalization",
 	Short: "Personalization root command for initializing APIs",
@@ -28,6 +30,10 @@ var rootCmd = &cobra.Command{
 }
 
 // Execute will start the application
+// cobra: cli
+// viper: arguments, environmental variables, read from files
+// Funcion name must start in capital letter when you what to make it visible (otherwise will be private)
+// Return always an error
 func Execute() {
 	cobra.OnInitialize(initConfig)
 	if err := rootCmd.Execute(); err != nil {

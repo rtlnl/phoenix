@@ -375,6 +375,9 @@
     },
     {
       "url": "https://personalization-prod.rtl-di.nl/internal/"
+    },
+    {
+      "url": "http://localhost:8081/"
     }
   ],
   "components": {

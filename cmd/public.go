@@ -31,16 +31,19 @@ APIs for serving the personalized content.`,
 	},
 }
 
+// always starts here
 func init() {
 	rootCmd.AddCommand(publicCmd)
 
 	f := publicCmd.Flags()
 
+	// Here is the specialization of the variables declared in root.go
 	f.String(addressPublicFlag, ":8082", "server address")
 	f.String(dbHostPublicFlag, "127.0.0.1", "database host")
 	f.String(dbNamespacePublicFlag, "personalization", "namespace of the database")
 	f.Int(dbPortPublicFlag, 3000, "database port")
 
+	// environental variables takes precedence so it is fully into the Kubernetes context
 	viper.BindEnv(addressPublicFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostPublicFlag, "DB_HOST")
 	viper.BindEnv(dbPortPublicFlag, "DB_PORT")
