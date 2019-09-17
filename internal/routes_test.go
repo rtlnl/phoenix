@@ -111,8 +111,8 @@ func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelNam
 	return func() { ac.TruncateSet(modelName) }
 }
 
-// GetAerospikeClient returns the client used for tests
-func GetAerospikeClient() (*db.AerospikeClient, func()) {
+// GetTestAerospikeClient returns the client used for tests
+func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
 	p, _ := strconv.Atoi(testDBPort)
 	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
 

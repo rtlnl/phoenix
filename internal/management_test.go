@@ -28,7 +28,7 @@ func createManagementModelRequest(publicationPoint, campaign, signalOrder string
 
 func TestGetModel(t *testing.T) {
 	// get client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	// create model
@@ -81,7 +81,7 @@ func TestGetModelNotExist(t *testing.T) {
 
 func TestCreateModelAlreadyExists(t *testing.T) {
 	// get client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	// create model
@@ -131,7 +131,7 @@ func TestCreateModelFailValidation(t *testing.T) {
 
 func TestEmptyModel(t *testing.T) {
 	// get client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	// create model
@@ -201,7 +201,7 @@ func TestEmptyModelNotExist(t *testing.T) {
 
 func TestPublishModelAlreadyPublished(t *testing.T) {
 	// get client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	// create model

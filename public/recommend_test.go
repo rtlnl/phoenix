@@ -28,7 +28,7 @@ func createRecommendRequest(publicationPoint, campaign string, signals []Signal)
 
 func TestRecommend(t *testing.T) {
 	// get client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	// create model
@@ -110,7 +110,7 @@ func TestRecommendNoModel(t *testing.T) {
 
 func TestRecommendWrongSignal(t *testing.T) {
 	// get client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	// create model
@@ -143,7 +143,7 @@ func TestRecommendWrongSignal(t *testing.T) {
 
 func TestRecommendModelStaged(t *testing.T) {
 	// get client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	// create model

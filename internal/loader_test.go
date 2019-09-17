@@ -59,7 +59,7 @@ func createBatchRequestLocation(publicationPoint, campaign string, dataLocation 
 
 func TestStreaming(t *testing.T) {
 	// get aerospike client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "articleId", false)
@@ -164,7 +164,7 @@ func TestStreamingDeleteBadPayload(t *testing.T) {
 
 func TestStreamingPublishedModel(t *testing.T) {
 	// get aerospike client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	truncate := CreateTestModel(t, ac, "rtl_nieuws", "hello", "articleId", true)
@@ -263,7 +263,7 @@ func TestStreamingDeleteModelNotExist(t *testing.T) {
 
 func TestStreamingUpdateData(t *testing.T) {
 	// get aerospike client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "articleId", false)
@@ -293,7 +293,7 @@ func TestStreamingUpdateData(t *testing.T) {
 
 func TestStreamingUpdateDataPublishedModel(t *testing.T) {
 	// get aerospike client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "articleId", true)
@@ -323,7 +323,7 @@ func TestStreamingUpdateDataPublishedModel(t *testing.T) {
 
 func TestStreamingDeleteData(t *testing.T) {
 	// get aerospike client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	truncate := CreateTestModel(t, ac, "rtl_nieuws", "burger", "articleId", false)
@@ -353,7 +353,7 @@ func TestStreamingDeleteData(t *testing.T) {
 
 func TestStreamingDeleteDataPublishedModel(t *testing.T) {
 	// get aerospike client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	truncate := CreateTestModel(t, ac, "rtl_nieuws", "banana", "articleId", true)
@@ -387,7 +387,7 @@ func TestBatchUploadDirect(t *testing.T) {
 
 func TestBatchUploadDirectModelPublished(t *testing.T) {
 	// get aerospike client
-	ac, c := GetAerospikeClient()
+	ac, c := GetTestAerospikeClient()
 	defer c()
 
 	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "articleId", true)
