@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/rtlnl/data-personalization-api/models"
 	"github.com/rtlnl/data-personalization-api/pkg/db"

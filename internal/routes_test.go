@@ -3,7 +3,6 @@ package internal
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
