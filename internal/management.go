@@ -21,7 +21,7 @@ type ManagementModelRequest struct {
 	PublicationPoint string   `json:"publicationPoint" description:"publication point name for the model" binding:"required"`
 	Campaign         string   `json:"campaign" description:"campaign name for the model" binding:"required"`
 	SignalOrder      []string `json:"signalOrder" description:"list of ordered signals" binding:"required"`
-	Concatenator     string   `json:"concatenator" binding:"required,contatenatorvalidator" valid_value:"[|,#,_,-]" description:"concatenator character for signals"`
+	Concatenator     string   `json:"concatenator" binding:"contatenatorvalidator" valid_value:"[|,#,_,-]" description:"concatenator character for signals"`
 }
 
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
@@ -37,10 +37,10 @@ func ContatenatorValidator(
 ) bool {
 	if input, ok := field.Interface().(string); ok {
 		if StringInSlice(input, ConcatenatorList) {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func StringInSlice(str string, list []string) bool {
@@ -80,17 +80,28 @@ func GetModel(c *gin.Context) {
 func CreateModel(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
+	var mm ManagementModelRequest
+
+	var key string = ""
+
+	// Check the concatenator
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("contatenatorvalidator", ContatenatorValidator)
 	}
 
-	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
+
+		if len(mm.SignalOrder) == 1 {
+			key = string(mm.SignalOrder[0])
+		} else if len(mm.SignalOrder) > 1 {
+			key = strings.Join(mm.SignalOrder, mm.Concatenator)
+		}
+
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	_, err := models.NewModel(mm.PublicationPoint, mm.Campaign, strings.Join(mm.SignalOrder, mm.Concatenator), ac)
+	_, err := models.NewModel(mm.PublicationPoint, mm.Campaign, key, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return

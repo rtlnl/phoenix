@@ -15,7 +15,10 @@ func createManagementModelRequest(publicationPoint, campaign string, signalOrder
 		PublicationPoint: publicationPoint,
 		Campaign:         campaign,
 		SignalOrder:      signalOrder,
-		Concatenator:     concatenator,
+	}
+
+	if concatenator != "" {
+		mmr.Concatenator = concatenator
 	}
 
 	rb, err := json.Marshal(mmr)
@@ -235,4 +238,84 @@ func TestPublishModelNotExist(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, code)
 	assert.Equal(t, "{\"message\":\"key pepperoni does not exist\"}", string(b))
+}
+
+func TestConcatenatorFailValidation(t *testing.T) {
+	r, err := createManagementModelRequest("salami", "pepperoni", []string{"pineappleId", "cheeseId"}, "+")
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/management/model", r)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "{\"message\":\"Key: 'ManagementModelRequest.Concatenator' Error:Field validation for 'Concatenator' failed on the 'contatenatorvalidator' tag\"}", string(b))
+}
+
+func TestConcatenatorPassValidation(t *testing.T) {
+	r, err := createManagementModelRequest("ham2", "pepperoni", []string{"pineappleId", "cheeseId"}, "_")
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/management/model", r)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"model created\"}", string(b))
+}
+
+func TestMM(t *testing.T) {
+	r, err := createManagementModelRequest("ham3", "pepperoni", []string{"pineappleId", "cheeseId"}, "")
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/management/model", r)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"model created\"}", string(b))
+}
+
+func TestMM1(t *testing.T) {
+	r, err := createManagementModelRequest("ham3", "pepperoni", []string{"pineappleId"}, "")
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/management/model", r)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"model created\"}", string(b))
 }
