@@ -11,12 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createManagementModelRequest(publicationPoint, campaign, signalOrder string, signals []string) (*bytes.Reader, error) {
+func createManagementModelRequest(publicationPoint, campaign string, signalOrder []string, concatenator string) (*bytes.Reader, error) {
 	mmr := &ManagementModelRequest{
 		PublicationPoint: publicationPoint,
 		Campaign:         campaign,
 		SignalOrder:      signalOrder,
-		Signals:          signals,
+		Concatenator:     concatenator,
 	}
 
 	rb, err := json.Marshal(mmr)
@@ -73,7 +73,7 @@ func TestGetModelNotExist(t *testing.T) {
 }
 
 func TestCreateModelAlreadyExists(t *testing.T) {
-	r, err := createManagementModelRequest("kiwi", "oranges", "grapeId", []string{"grapeId"})
+	r, err := createManagementModelRequest("kiwi", "oranges", []string{"grapeId", "bananaId"}, "_")
 	if err != nil {
 		t.Fail()
 	}
@@ -93,7 +93,7 @@ func TestCreateModelAlreadyExists(t *testing.T) {
 }
 
 func TestCreateModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "", "grapeId", nil)
+	r, err := createManagementModelRequest("", "", nil, "_")
 	if err != nil {
 		t.Fail()
 	}
@@ -115,7 +115,7 @@ func TestCreateModelFailValidation(t *testing.T) {
 }
 
 func TestEmptyModel(t *testing.T) {
-	r, err := createManagementModelRequest("banana", "pears", "appleId", []string{"appleId"})
+	r, err := createManagementModelRequest("banana", "pears", []string{"grapeId", "bananaId"}, "_")
 	if err != nil {
 		t.Fail()
 	}
@@ -135,7 +135,7 @@ func TestEmptyModel(t *testing.T) {
 }
 
 func TestEmptyModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "oranges", "", []string{""})
+	r, err := createManagementModelRequest("", "oranges", []string{""}, "_")
 	if err != nil {
 		t.Fail()
 	}
@@ -157,7 +157,7 @@ func TestEmptyModelFailValidation(t *testing.T) {
 }
 
 func TestEmptyModelNotExist(t *testing.T) {
-	r, err := createManagementModelRequest("pizza", "pepperoni", "mushrooms", []string{"ham"})
+	r, err := createManagementModelRequest("pizza", "pepperoni", []string{"ham"}, "_")
 	if err != nil {
 		t.Fail()
 	}
@@ -177,7 +177,7 @@ func TestEmptyModelNotExist(t *testing.T) {
 }
 
 func TestPublishModelAlreadyPublished(t *testing.T) {
-	r, err := createManagementModelRequest("kiwi", "oranges", "grapeId", []string{"grapeId"})
+	r, err := createManagementModelRequest("kiwi", "oranges", []string{"grapeId", "bananasId"}, "_")
 	if err != nil {
 		t.Fail()
 	}
@@ -197,7 +197,7 @@ func TestPublishModelAlreadyPublished(t *testing.T) {
 }
 
 func TestPublishModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "oranges", "", []string{"grapeId"})
+	r, err := createManagementModelRequest("", "oranges", []string{"grapeId"}, "_")
 	if err != nil {
 		t.Fail()
 	}
@@ -219,7 +219,7 @@ func TestPublishModelFailValidation(t *testing.T) {
 }
 
 func TestPublishModelNotExist(t *testing.T) {
-	r, err := createManagementModelRequest("salami", "pepperoni", "pizza", []string{"pineappleId"})
+	r, err := createManagementModelRequest("salami", "pepperoni", []string{"pineappleId"}, "_")
 	if err != nil {
 		t.Fail()
 	}
