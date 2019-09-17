@@ -5,6 +5,7 @@ import (
 	"log"
 	"runtime"
 	"sync"
+	"time"
 
 	aero "github.com/aerospike/aerospike-client-go"
 )
@@ -193,6 +194,8 @@ func createNewWritingPolicy() *aero.WritePolicy {
 	wp := aero.NewWritePolicy(0, 0)
 	wp.SendKey = true
 	wp.RecordExistsAction = aero.UPDATE
+	wp.SleepBetweenRetries = 50 * time.Millisecond
+	wp.SocketTimeout = 5000 * time.Millisecond
 
 	return wp
 }
