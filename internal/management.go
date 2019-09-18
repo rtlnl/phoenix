@@ -21,7 +21,7 @@ type ManagementModelRequest struct {
 	PublicationPoint string   `json:"publicationPoint" description:"publication point name for the model" binding:"required"`
 	Campaign         string   `json:"campaign" description:"campaign name for the model" binding:"required"`
 	SignalOrder      []string `json:"signalOrder" description:"list of ordered signals" binding:"required"`
-	Concatenator     string   `json:"concatenator" binding:"contatenatorvalidator" valid_value:"[|,#,_,-]" description:"concatenator character for signals"`
+	Concatenator     string   `json:"concatenator" binding:"-,contatenatorvalidator" valid_value:"[|,#,_,-]" description:"concatenator character for signals"`
 }
 
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
@@ -31,6 +31,7 @@ type ManagementModelResponse struct {
 
 var ConcatenatorList = []string{"|", "#", "_", "-"}
 
+// Checks if the concatenator character was found within ConcatenatorList
 func ContatenatorValidator(
 	v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value,
 	field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string,
@@ -43,6 +44,7 @@ func ContatenatorValidator(
 	return false
 }
 
+// Checks if a string was found in a slice
 func StringInSlice(str string, list []string) bool {
 	for _, v := range list {
 		if v == str {
@@ -91,6 +93,7 @@ func CreateModel(c *gin.Context) {
 
 	if err := c.BindJSON(&mm); err != nil {
 
+		// If more than one member in the slice, join them using the concatenator
 		if len(mm.SignalOrder) == 1 {
 			key = string(mm.SignalOrder[0])
 		} else if len(mm.SignalOrder) > 1 {

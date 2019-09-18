@@ -30,6 +30,14 @@ func createManagementModelRequest(publicationPoint, campaign string, signalOrder
 }
 
 func TestGetModel(t *testing.T) {
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "articleId", false)
+	defer truncate()
+
 	code, body, err := MockRequest(http.MethodGet, "/management/model?publicationPoint=rtl_nieuws&campaign=homepage", nil)
 	if err != nil {
 		t.Fail()
@@ -41,7 +49,7 @@ func TestGetModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"publicationPoint\":\"rtl_nieuws\",\"campaign\":\"homepage\",\"stage\":\"PUBLISHED\",\"version\":\"0.1.0\",\"signalType\":\"articleId\"}", string(b))
+	assert.Equal(t, "{\"publicationPoint\":\"rtl_nieuws\",\"campaign\":\"homepage\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalType\":\"articleId\"}", string(b))
 }
 
 func TestGetModelEmptyParams(t *testing.T) {
@@ -75,7 +83,15 @@ func TestGetModelNotExist(t *testing.T) {
 }
 
 func TestCreateModelAlreadyExists(t *testing.T) {
-	r, err := createManagementModelRequest("kiwi", "oranges", []string{"grapeId", "bananaId"}, "_")
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model
+	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "grapeId", false)
+	defer truncate()
+
+	r, err := createManagementModelRequest("kiwi", "oranges", []string{"grapeId"}, "")
 	if err != nil {
 		t.Fail()
 	}
@@ -117,7 +133,15 @@ func TestCreateModelFailValidation(t *testing.T) {
 }
 
 func TestEmptyModel(t *testing.T) {
-	r, err := createManagementModelRequest("banana", "pears", []string{"grapeId", "bananaId"}, "_")
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model
+	truncate := CreateTestModel(t, ac, "banana", "pears", "appleId", false)
+	defer truncate()
+
+	r, err := createManagementModelRequest("banana", "pears", []string{"appleId"}, "")
 	if err != nil {
 		t.Fail()
 	}
@@ -179,7 +203,15 @@ func TestEmptyModelNotExist(t *testing.T) {
 }
 
 func TestPublishModelAlreadyPublished(t *testing.T) {
-	r, err := createManagementModelRequest("kiwi", "oranges", []string{"grapeId", "bananasId"}, "_")
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model
+	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "appleId", true)
+	defer truncate()
+
+	r, err := createManagementModelRequest("kiwi", "oranges", []string{"appleId"}, "")
 	if err != nil {
 		t.Fail()
 	}
@@ -261,7 +293,7 @@ func TestConcatenatorFailValidation(t *testing.T) {
 }
 
 func TestConcatenatorPassValidation(t *testing.T) {
-	r, err := createManagementModelRequest("ham2", "pepperoni", []string{"pineappleId", "cheeseId"}, "_")
+	r, err := createManagementModelRequest("kiwi", "oranges", []string{"appleId", "bananasId"}, "_")
 	if err != nil {
 		t.Fail()
 	}
