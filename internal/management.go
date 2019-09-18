@@ -50,14 +50,14 @@ func StringInSlice(str string, list []string) bool {
 }
 
 // Validate structure and content
-func ManagementModelRequestStructureValidation(structLevel validator.StructLevel) {
-	request := structLevel.Current().Interface().(ManagementModelRequest)
+func ManagementModelRequestStructureValidation(sl validator.StructLevel) {
+	request := sl.Current().Interface().(ManagementModelRequest)
 
 	// Enforces the need of a separator when more than one element
 	if len(request.SignalOrder) > 1 && !StringInSlice(request.Concatenator, concatenatorList) {
-		structLevel.ReportError(request.Concatenator, "concatenator", "", "wrongConcatenator", "")
+		sl.ReportError(request.Concatenator, "concatenator", "", "wrongConcatenator", "")
 	} else if len(request.SignalOrder) == 1 && len(request.Concatenator) > 0 {
-		structLevel.ReportError(request.Concatenator, "concatenator", "", "noConcatenatorNeeded", "")
+		sl.ReportError(request.Concatenator, "concatenator", "", "noConcatenatorNeeded", "")
 	}
 }
 
@@ -75,26 +75,26 @@ func ManagementModelRequestValidation(request *ManagementModelRequest) error {
 
 // Fills up the database schema
 func GetManagementModelAttributes(request *ManagementModelRequest) ManagementModelDatabase {
-	var result ManagementModelDatabase
-
-	result.PublicationPoint = request.PublicationPoint
-	result.Campaign = request.Campaign
+	result := &ManagementModelDatabase{
+		PublicationPoint: request.PublicationPoint,
+		Campaign:         request.Campaign,
+		Signal:           string(request.SignalOrder[0]),
+	}
 
 	// If more than one member in the slice, join them using the concatenator
-	if len(request.SignalOrder) == 1 {
-		result.Signal = string(request.SignalOrder[0])
-	} else if len(request.SignalOrder) > 1 {
+	if len(request.SignalOrder) > 1 {
 		result.Signal = strings.Join(request.SignalOrder, request.Concatenator)
 	}
 
-	return result
+	return *result
 }
 
 // Customized error message for the validation
-func ValidationErrorMessage(err error) error {
-	if strings.Contains(err.Error(), "wrongConcatenator") {
+func ValidationConcatenationErrorMsg(err error) error {
+	switch {
+	case strings.Contains(err.Error(), "wrongConcatenator"):
 		err = errors.New("for two or more signalOrder, a concatenator character from this list is mandatory: [" + strings.Join(concatenatorList, ", ") + "]")
-	} else if strings.Contains(err.Error(), "noConcatenatorNeeded") {
+	case strings.Contains(err.Error(), "noConcatenatorNeeded"):
 		err = errors.New("for one signalOrder no concatenator character is required")
 	}
 
@@ -131,17 +131,16 @@ func CreateModel(c *gin.Context) {
 
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, ValidationErrorMessage(err))
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
 		return
 	}
 
 	if err := ManagementModelRequestValidation(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, ValidationErrorMessage(err))
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
 		return
 	}
 
 	mmdb := GetManagementModelAttributes(&mm)
-
 	_, err := models.NewModel(mmdb.PublicationPoint, mmdb.Campaign, mmdb.Signal, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
@@ -164,7 +163,7 @@ func PublishModel(c *gin.Context) {
 	}
 
 	if err := ManagementModelRequestValidation(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, ValidationErrorMessage(err))
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
 		return
 	}
 
@@ -195,7 +194,7 @@ func StageModel(c *gin.Context) {
 	}
 
 	if err := ManagementModelRequestValidation(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, ValidationErrorMessage(err))
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
 		return
 	}
 
@@ -226,7 +225,7 @@ func EmptyModel(c *gin.Context) {
 	}
 
 	if err := ManagementModelRequestValidation(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, ValidationErrorMessage(err))
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
 		return
 	}
 
