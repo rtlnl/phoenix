@@ -111,7 +111,7 @@ func TestCreateModelAlreadyExists(t *testing.T) {
 }
 
 func TestCreateModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "", nil, "_")
+	r, err := createManagementModelRequest("", "", nil, "")
 	if err != nil {
 		t.Fail()
 	}
@@ -161,7 +161,7 @@ func TestEmptyModel(t *testing.T) {
 }
 
 func TestEmptyModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "oranges", []string{""}, "_")
+	r, err := createManagementModelRequest("", "oranges", []string{""}, "")
 	if err != nil {
 		t.Fail()
 	}
@@ -183,7 +183,7 @@ func TestEmptyModelFailValidation(t *testing.T) {
 }
 
 func TestEmptyModelNotExist(t *testing.T) {
-	r, err := createManagementModelRequest("pizza", "pepperoni", []string{"ham"}, "_")
+	r, err := createManagementModelRequest("pizza", "pepperoni", []string{"ham"}, "")
 	if err != nil {
 		t.Fail()
 	}
@@ -231,7 +231,7 @@ func TestPublishModelAlreadyPublished(t *testing.T) {
 }
 
 func TestPublishModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "oranges", []string{"grapeId"}, "_")
+	r, err := createManagementModelRequest("", "oranges", []string{"grapeId"}, "")
 	if err != nil {
 		t.Fail()
 	}
@@ -253,7 +253,7 @@ func TestPublishModelFailValidation(t *testing.T) {
 }
 
 func TestPublishModelNotExist(t *testing.T) {
-	r, err := createManagementModelRequest("salami", "pepperoni", []string{"pineappleId"}, "_")
+	r, err := createManagementModelRequest("salami", "pepperoni", []string{"pineappleId"}, "")
 	if err != nil {
 		t.Fail()
 	}
@@ -289,11 +289,18 @@ func TestConcatenatorFailValidation(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"Key: 'ManagementModelRequest.Concatenator' Error:Field validation for 'Concatenator' failed on the 'contatenatorvalidator' tag\"}", string(b))
+	assert.Equal(t, "{\"message\":\"for two or more signalOrder, a concatenator character from this list is mandatory: ["+strings.Join(concatenatorList, ", ")+"]\"}", string(b))
 }
 
 func TestConcatenatorPassValidation(t *testing.T) {
-	r, err := createManagementModelRequest("kiwi", "oranges", []string{"appleId", "bananasId"}, "_")
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	r, err := createManagementModelRequest("melon", "oranges", []string{"appleId", "bananasId"}, "_")
+
+	defer ac.TruncateSet("melon")
+
 	if err != nil {
 		t.Fail()
 	}
@@ -312,8 +319,8 @@ func TestConcatenatorPassValidation(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"model created\"}", string(b))
 }
 
-func TestMM(t *testing.T) {
-	r, err := createManagementModelRequest("ham3", "pepperoni", []string{"pineappleId", "cheeseId"}, "")
+func TestConcatenatorMissing(t *testing.T) {
+	r, err := createManagementModelRequest("ham", "pepperoni", []string{"pineappleId", "cheeseId"}, "")
 	if err != nil {
 		t.Fail()
 	}
@@ -328,12 +335,11 @@ func TestMM(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"message\":\"model created\"}", string(b))
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "{\"message\":\"for two or more signalOrder, a concatenator character from this list is mandatory: ["+strings.Join(concatenatorList, ", ")+"]\"}", string(b))
 }
-
-func TestMM1(t *testing.T) {
-	r, err := createManagementModelRequest("ham3", "pepperoni", []string{"pineappleId"}, "")
+func TestConcatenatorUneeded(t *testing.T) {
+	r, err := createManagementModelRequest("ham", "pepperoni", []string{"pineappleId"}, "0")
 	if err != nil {
 		t.Fail()
 	}
@@ -348,6 +354,6 @@ func TestMM1(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"message\":\"model created\"}", string(b))
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "{\"message\":\"for one signalOrder no concatenator character is required\"}", string(b))
 }
