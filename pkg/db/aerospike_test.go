@@ -13,12 +13,13 @@ var (
 	testDBHost    = utils.GetEnv("DB_HOST", "127.0.0.1")
 	testDBPort    = utils.GetEnv("DB_PORT", "3000")
 	testNamespace = "test"
+	testSetName   = "testSetName"
 )
 
 func createAerospikeClient() *AerospikeClient {
 	p, _ := strconv.Atoi(testDBPort)
 	ac := NewAerospikeClient(testDBHost, testNamespace, p)
-	ac.TruncateSet(testNamespace)
+	ac.TruncateSet(testSetName)
 
 	return ac
 }
@@ -49,7 +50,12 @@ func TestClose(t *testing.T) {
 func TestSetOne(t *testing.T) {
 	ac := createAerospikeClient()
 
-	err := ac.AddOne(testNamespace, "key", "bin_key", "bin_value")
+	err := ac.AddOne(testSetName, "key", "bin_key", "bin_value")
+	if err != nil {
+		t.Errorf("TestSetOne(%v) got unexpected error", err)
+	}
+
+	err = ac.DeleteOne("key", "bin_key")
 	if err != nil {
 		t.Errorf("TestSetOne(%v) got unexpected error", err)
 	}
@@ -59,12 +65,12 @@ func TestGetOne(t *testing.T) {
 	ac := createAerospikeClient()
 
 	// key --> bin_key:bin_value
-	err := ac.AddOne(testNamespace, "key", "bin_key", "bin_value")
+	err := ac.AddOne(testSetName, "key", "bin_key", "bin_value")
 	if err != nil {
 		t.Errorf("TestGetOne(%v) got unexpected error", err)
 	}
 
-	rec, err := ac.GetOne(testNamespace, "key")
+	rec, err := ac.GetOne(testSetName, "key")
 	if err != nil {
 		t.Errorf("TestGetOne(%v) got unexpected error", err)
 	}
@@ -93,21 +99,21 @@ func TestAddMultipleRecords(t *testing.T) {
 		t.Errorf("AddMultipleRecords(%v) got unexpected error", err)
 	}
 
-	testSetName := "model_1"
+	tsn := "model_1"
 	for i := 0; i < 10; i++ {
 		k := fmt.Sprintf("key_%d", i)
 
 		bk := fmt.Sprintf("bin_key_%d", i)
 		bv := fmt.Sprintf("bin_value_%d", i)
 
-		err := ac.AddOne(testSetName, k, bk, bv)
+		err := ac.AddOne(tsn, k, bk, bv)
 		if err != nil {
 			t.Errorf("AddMultipleRecords(%v) got unexpected error", err)
 		}
 	}
 
 	// read all
-	records, err := ac.GetAllRecords(testSetName)
+	records, err := ac.GetAllRecords(tsn)
 	if err != nil {
 		t.Errorf("AddMultipleRecords(%v) got unexpected error", err)
 	}

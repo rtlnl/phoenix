@@ -27,6 +27,17 @@ func createRecommendRequest(publicationPoint, campaign string, signals []Signal)
 }
 
 func TestRecommend(t *testing.T) {
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model
+	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "articleId", true)
+	defer truncate1()
+
+	truncate2 := UploadTestData(t, ac, "testdata/test_published_model_data.jsonl", "rtl_nieuws#homepage")
+	defer truncate2()
+
 	ss := make([]Signal, 1)
 	ss[0] = Signal{
 		"articleId": "500083",
@@ -98,6 +109,14 @@ func TestRecommendNoModel(t *testing.T) {
 }
 
 func TestRecommendWrongSignal(t *testing.T) {
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model
+	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "articleId", true)
+	defer truncate1()
+
 	ss := make([]Signal, 1)
 	ss[0] = Signal{
 		"articleId_sloths": "500083",
@@ -123,12 +142,20 @@ func TestRecommendWrongSignal(t *testing.T) {
 }
 
 func TestRecommendModelStaged(t *testing.T) {
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model
+	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "banana", "articleId", false)
+	defer truncate1()
+
 	ss := make([]Signal, 1)
 	ss[0] = Signal{
 		"appleId": "500083",
 	}
 
-	rb, err := createRecommendRequest("banana", "pears", ss)
+	rb, err := createRecommendRequest("rtl_nieuws", "banana", ss)
 	if err != nil {
 		t.Fail()
 	}

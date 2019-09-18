@@ -58,6 +58,13 @@ func createBatchRequestLocation(publicationPoint, campaign string, dataLocation 
 }
 
 func TestStreaming(t *testing.T) {
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "articleId", false)
+	defer truncate()
+
 	signal := "100"
 	recommendationItems := []string{"1", "2", "3", "4"}
 
@@ -156,10 +163,17 @@ func TestStreamingDeleteBadPayload(t *testing.T) {
 }
 
 func TestStreamingPublishedModel(t *testing.T) {
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "hello", "articleId", true)
+	defer truncate()
+
 	signal := "100"
 	recommendationItems := []string{"1", "2", "3", "4"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "homepage", signal, recommendationItems)
+	rb, err := createStreamingRequest("rtl_nieuws", "hello", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -248,7 +262,14 @@ func TestStreamingDeleteModelNotExist(t *testing.T) {
 }
 
 func TestStreamingUpdateData(t *testing.T) {
-	signal := "100"
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "articleId", false)
+	defer truncate()
+
+	signal := "543"
 	recommendationItems := []string{"6", "7", "8", "9"}
 
 	rb, err := createStreamingRequest("rtl_nieuws", "fancy", signal, recommendationItems)
@@ -267,10 +288,17 @@ func TestStreamingUpdateData(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"message\":\"signal 100 updated\"}", string(b))
+	assert.Equal(t, "{\"message\":\"signal 543 updated\"}", string(b))
 }
 
 func TestStreamingUpdateDataPublishedModel(t *testing.T) {
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "articleId", true)
+	defer truncate()
+
 	signal := "100"
 	recommendationItems := []string{"6", "7", "8", "9"}
 
@@ -294,10 +322,17 @@ func TestStreamingUpdateDataPublishedModel(t *testing.T) {
 }
 
 func TestStreamingDeleteData(t *testing.T) {
-	signal := "100"
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "burger", "articleId", false)
+	defer truncate()
+
+	signal := "890"
 	recommendationItems := []string{"6", "7", "8", "9"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "fancy", signal, recommendationItems)
+	rb, err := createStreamingRequest("rtl_nieuws", "burger", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -313,14 +348,21 @@ func TestStreamingDeleteData(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"message\":\"signal 100 deleted\"}", string(b))
+	assert.Equal(t, "{\"message\":\"signal 890 deleted\"}", string(b))
 }
 
 func TestStreamingDeleteDataPublishedModel(t *testing.T) {
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "banana", "articleId", true)
+	defer truncate()
+
 	signal := "100"
 	recommendationItems := []string{"6", "7", "8", "9"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "homepage", signal, recommendationItems)
+	rb, err := createStreamingRequest("rtl_nieuws", "banana", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -344,26 +386,36 @@ func TestBatchUploadDirect(t *testing.T) {
 }
 
 func TestBatchUploadDirectModelPublished(t *testing.T) {
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "articleId", true)
+	defer truncate()
+
 	bd := make([]BatchData, 1)
 	d := []models.ItemScore{
 		{
 			"item":  "111",
 			"score": "0.6",
+			"type":  "movie",
 		},
 		{
 			"item":  "222",
 			"score": "0.4",
+			"type":  "movie",
 		},
 		{
 			"item":  "555",
 			"score": "0.16",
+			"type":  "series",
 		},
 	}
 	bd[0] = map[string][]models.ItemScore{
 		"123": d,
 	}
 
-	rb, err := createBatchRequestDirect("rtl_nieuws", "homepage", bd)
+	rb, err := createBatchRequestDirect("rtl_nieuws", "bread", bd)
 	if err != nil {
 		t.Fail()
 	}
@@ -388,14 +440,17 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 		{
 			"item":  "111",
 			"score": "0.6",
+			"type":  "movie",
 		},
 		{
 			"item":  "222",
 			"score": "0.4",
+			"type":  "movie",
 		},
 		{
 			"item":  "555",
 			"score": "0.16",
+			"type":  "series",
 		},
 	}
 	bd[0] = map[string][]models.ItemScore{
@@ -433,5 +488,5 @@ func TestStripS3URL(t *testing.T) {
 }
 
 func TestBatchUploadS3(t *testing.T) {
-
+	t.Skip()
 }

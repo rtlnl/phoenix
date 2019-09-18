@@ -3,7 +3,6 @@ package internal
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -45,9 +44,6 @@ func tearUp() {
 	router = gin.Default()
 	router.RedirectTrailingSlash = true
 
-	// Load fixtures
-	loadFixtures()
-
 	p, _ := strconv.Atoi(testDBPort)
 	router.Use(middleware.Aerospike(testDBHost, testNamespace, p))
 	router.Use(middleware.AWSSession(testRegion, testEndpoint, testDisableSSL))
@@ -72,72 +68,10 @@ func tearDown() {
 	router = nil
 }
 
-func loadFixtures() {
-	p, _ := strconv.Atoi(testDBPort)
-	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
-
-	// load fixtures here
-	// model
-	if err := uploadModel(ac, "../fixtures/test_model.csv"); err != nil {
-		panic(err)
-	}
-
-	// test data
-	if err := uploadData(ac, "../fixtures/test_published_model_data.jsonl", "rtl_nieuws#homepage"); err != nil {
-		panic(err)
-	}
-
-	ac.Close()
-}
-
-func uploadModel(ac *db.AerospikeClient, testDataPath string) error {
+func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelName string) func() {
 	f, err := os.OpenFile(testDataPath, os.O_RDONLY, os.ModePerm)
 	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	sc := bufio.NewScanner(f)
-
-	i := 0
-	for sc.Scan() {
-		line := sc.Text() // GET the line string
-
-		// skip header of csv file
-		if i <= 0 {
-			i++
-			continue
-		}
-
-		splittedLine := strings.Split(line, ";")
-		if len(splittedLine) != 4 {
-			return errors.New("fixtures contains the wrong columns amount")
-		}
-
-		// order should be: publicationPoint;campaign;signalType;stage
-		m, _ := models.NewModel(splittedLine[0], splittedLine[1], splittedLine[2], ac)
-		// model may exists already because aerospike doesn't support delete of setnames
-		if m == nil {
-			continue
-		}
-
-		// publish model
-		if models.StageType(splittedLine[3]) == models.PUBLISHED {
-			m.PublishModel(ac)
-		}
-
-		i++
-	}
-	if err := sc.Err(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func uploadData(ac *db.AerospikeClient, testDataPath, modelName string) error {
-	f, err := os.OpenFile(testDataPath, os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		return err
+		t.Fatal(err)
 	}
 	defer f.Close()
 
@@ -151,7 +85,7 @@ func uploadData(ac *db.AerospikeClient, testDataPath, modelName string) error {
 
 		// marshal the object
 		if err := json.Unmarshal([]byte(line), &entry); err != nil {
-			return errors.New("fixtures contains the wrong type of json")
+			t.Fatal("fixtures contains the wrong type of json")
 		}
 
 		// need to break down the name of the model to fetch the actual object
@@ -161,20 +95,44 @@ func uploadData(ac *db.AerospikeClient, testDataPath, modelName string) error {
 		// TODO: this is slow! Need to find a smarter way. it works fine with small fixtures files
 		m, err := models.GetExistingModel(mn[0], mn[1], ac)
 		if err != nil {
-			return err
+			t.Fatal(err)
 		}
 
 		sn := m.ComposeSetName()
 		if err := ac.AddOne(sn, entry.SignalID, binKey, entry.Recommended); err != nil {
-			return err
+			t.Fatal(err)
 		}
 
 		i++
 	}
 	if err := sc.Err(); err != nil {
-		return err
+		t.Fatal(err)
 	}
-	return nil
+	return func() { ac.TruncateSet(modelName) }
+}
+
+// GetTestAerospikeClient returns the client used for tests
+func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
+	p, _ := strconv.Atoi(testDBPort)
+	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
+
+	return ac, func() { ac.Close() }
+}
+
+// CreateTestModel returns a model and defer a truncate
+func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign, signalType string, publish bool) func() {
+	m, _ := models.NewModel(publicationPoint, campaign, signalType, ac)
+	if m == nil {
+		m, _ = models.GetExistingModel(publicationPoint, campaign, ac)
+	}
+
+	if publish {
+		if err := m.PublishModel(ac); err != nil {
+			t.FailNow()
+		}
+	}
+
+	return func() { ac.TruncateSet(publicationPoint) }
 }
 
 // MockRequest will send a request to the server. Used for testing purposes
