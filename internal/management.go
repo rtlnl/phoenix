@@ -66,11 +66,7 @@ func ManagementModelRequestValidation(request *ManagementModelRequest) error {
 	validate = validator.New()
 	validate.RegisterStructValidation(ManagementModelRequestStructureValidation, ManagementModelRequest{})
 
-	err := validate.Struct(request)
-	if err != nil {
-		return err
-	}
-	return nil
+	return validate.Struct(request)
 }
 
 // Fills up the database schema
