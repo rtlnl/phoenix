@@ -2,11 +2,11 @@ package db
 
 import (
 	"io"
-	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/rs/zerolog/log"
 )
 
 // S3Client is the object that wraps around the official aws SDK
@@ -51,7 +51,7 @@ func (c *S3Client) ExistsObject(key string) bool {
 	})
 
 	if err := req.Send(); err != nil {
-		log.Println(err)
+		log.Warn().Msg(err.Error())
 		return false
 	}
 	return true

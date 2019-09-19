@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"github.com/rtlnl/data-personalization-api/models"
 	vegeta "github.com/tsenart/vegeta/lib"
 )
@@ -28,7 +28,7 @@ const (
 func makePostRequest(endpoint string, message interface{}) (int, error) {
 	bytesRepresentation, err := json.Marshal(message)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal().Msg(err.Error())
 	}
 
 	url := devBaseURL + endpoint
@@ -64,7 +64,7 @@ func upload() {
 
 	f, err := os.OpenFile("./data/items_test.jsonl", os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Msg(err.Error())
 	}
 	defer f.Close()
 
@@ -97,7 +97,7 @@ func upload() {
 	}
 
 	elapsed := time.Since(start)
-	log.Printf("Uploading took %s", elapsed)
+	log.Info().Msgf("Uploading took %s", elapsed)
 }
 
 func stress() {

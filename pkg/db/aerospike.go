@@ -2,12 +2,12 @@ package db
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 	"sync"
 	"time"
 
 	aero "github.com/aerospike/aerospike-client-go"
+	"github.com/rs/zerolog/log"
 )
 
 // AerospikeClient is a wrapper around the official package
@@ -165,7 +165,7 @@ func (ac *AerospikeClient) AddMultipleRecords(setName string, records *aero.Reco
 			defer wg.Done()
 			for res := range records {
 				if err := ac.AddRecord(setName, res.Record.Key.Value(), res.Record.Bins); err != nil {
-					log.Print(err)
+					log.Error().Msg(err.Error())
 				}
 			}
 		}(recordsBuff)
