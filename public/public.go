@@ -38,7 +38,7 @@ func (c *Public) Run(host, dbHost, dbNamespace string, dbPort int) error {
 
 	// Routes
 	c.App.GET("/", LongVersion)
-	c.App.POST("/recommend", Recommend)
+	c.App.GET("/recommend", Recommend)
 
 	// Healthz
 	c.App.GET("/healthz", Healthz)

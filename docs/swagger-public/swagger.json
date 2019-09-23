@@ -7,20 +7,35 @@
   },
   "paths": {
     "/recommend": {
-      "post": {
+      "get": {
         "summary": "Fetch the recommended items",
         "description": "This request will allow the client to read the recommended items given the parameters in the body",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecommendRequest"
-              }
-            }
+        "parameters": [
+          {
+            "in": "query",
+            "name": "publicationPoint",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The publication point name of the model"
           },
-          "description": "Object describing the recommended items",
-          "required": true
-        },
+          {
+            "in": "query",
+            "name": "campaign",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The campaign name of the model"
+          },
+          {
+            "in": "query",
+            "name": "signalId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The signalId used to fetch the recommended items"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Items retrieved correctly",
@@ -72,60 +87,29 @@
     },
     {
       "url": "https://personalization-prod.rtl-di.nl/public/"
+    },
+    {
+      "url": "http://localhost:8082/"
     }
   ],
   "components": {
     "schemas": {
-      "RecommendRequest": {
-        "type": "object",
-        "properties": {
-          "publicationPoint": {
-            "description": "Publication Point name of the model",
-            "example": "videoland",
-            "type": "string"
-          },
-          "campaign": {
-            "description": "Campaign name of the models",
-            "example": "profile",
-            "type": "string"
-          },
-          "signals": {
-            "description": "Array of Key/Value objects representing the signal's id and value for fetching the recommendations",
-            "example": [
-              {
-                "userId": "123456"
-              },
-              {
-                "articleId": "654321"
-              }
-            ],
-            "type": "object"
-          }
-        },
-        "required": [
-          "campaign"
-        ]
-      },
       "RecommendResponse": {
         "type": "object",
         "properties": {
-          "signals": {
-            "description": "Array of Key/Values objects representing the signal's id and value",
-            "example": [
-              {
-                "userId": "123456"
-              },
-              {
-                "articleId": "654321"
-              }
-            ],
-            "type": "object"
-          },
           "recommendations": {
             "description": "Recommended items for a particular signal",
             "example": [
-              "item1",
-              "item2"
+              {
+                "item": "item_1",
+                "score": "0.876",
+                "type": "movie"
+              },
+              {
+                "item": "item_2",
+                "score": "0.345",
+                "type": "series"
+              }
             ],
             "type": "array",
             "items": {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/rtlnl/data-personalization-api/models"
@@ -14,25 +15,20 @@ import (
 )
 
 const (
-	signalSeparator = "_"
-	binKey          = "items"
+	binKey = "items"
 )
 
 // RecommendRequest is the object that represents the payload of the request for the recommend endpoint
 type RecommendRequest struct {
-	Signals          []Signal `json:"signals" binding:"required"`
-	PublicationPoint string   `json:"publicationPoint" binding:"required"`
-	Campaign         string   `json:"campaign" binding:"required"`
+	SignalID         string
+	PublicationPoint string
+	Campaign         string
 }
 
 // RecommendResponse is the object that represents the payload of the response for the recommend endpoint
 type RecommendResponse struct {
-	Signals         []Signal    `json:"signals"`
 	Recommendations interface{} `json:"recommendations"`
 }
-
-// Signal is an alias that represents the signal defintion
-type Signal map[string]string
 
 // rrPool is in charged of Pooling eventual requests in coming. This will help to reduce the alloc/s
 // and effeciently improve the garbage collection operations. rr is short for recommend-request
@@ -48,7 +44,12 @@ func Recommend(c *gin.Context) {
 	rr := rrPool.Get().(*RecommendRequest)
 	defer rrPool.Put(rr)
 
-	if err := c.BindJSON(rr); err != nil {
+	// get query parameters from URL
+	pp := c.DefaultQuery("publicationPoint", "")
+	cp := c.DefaultQuery("campaign", "")
+	sID := c.DefaultQuery("signalId", "")
+
+	if err := validateRecommendQueryParameters(rr, pp, cp, sID); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -65,22 +66,8 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// compose key to retrieve recommended items
-	ss := make(map[string]string, len(rr.Signals))
-	for _, s := range rr.Signals {
-		for k, v := range s {
-			ss[k] = v
-		}
-	}
-
-	key := m.ComposeSignalKey(ss, signalSeparator)
-	if key == "" {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("signal is not formatted correctly"))
-		return
-	}
-
 	sn := m.ComposeSetName()
-	r, err := ac.GetOne(sn, key)
+	r, err := ac.GetOne(sn, rr.SignalID)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -90,9 +77,36 @@ func Recommend(c *gin.Context) {
 	itemsScore := convertSingleEntry(r.Bins[binKey])
 
 	utils.Response(c, http.StatusOK, &RecommendResponse{
-		Signals:         rr.Signals,
 		Recommendations: itemsScore,
 	})
+}
+
+func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {
+	var mp []string
+
+	// TODO: improve this in somehow
+	if publicationPoint == "" {
+		mp = append(mp, "publicationPoint")
+	}
+
+	if campaign == "" {
+		mp = append(mp, "campaign")
+	}
+
+	if signalID == "" {
+		mp = append(mp, "signalId")
+	}
+
+	if len(mp) > 0 {
+		return fmt.Errorf("missing %s in the URL query", strings.Join(mp[:], ","))
+	}
+
+	// update values
+	rr.PublicationPoint = publicationPoint
+	rr.Campaign = campaign
+	rr.SignalID = signalID
+
+	return nil
 }
 
 // The objects coming from Aerospike have type []interface{}. This function converts
