@@ -34,7 +34,7 @@ func TestRecommend(t *testing.T) {
 	assert.Equal(t, "{\"recommendations\":[{\"item\":\"6456\",\"score\":\"0.6\"},{\"item\":\"1252\",\"score\":\"0.345\"},{\"item\":\"7876\",\"score\":\"0.987\"}]}", string(b))
 }
 
-func TestRecommendFailValidation(t *testing.T) {
+func TestRecommendFailValidation1(t *testing.T) {
 	code, body, err := MockRequest(http.MethodGet, "/recommend?campaign=homepage&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
@@ -49,6 +49,57 @@ func TestRecommendFailValidation(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, msg, "{\"message\":\"missing publicationPoint in the URL query\"}")
+}
+
+func TestRecommendFailValidation2(t *testing.T) {
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=hello&signalId=500083", nil)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	msg := string(b)
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, msg, "{\"message\":\"missing campaign in the URL query\"}")
+}
+
+func TestRecommendFailValidation3(t *testing.T) {
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=hello&campaign=homepage", nil)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	msg := string(b)
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, msg, "{\"message\":\"missing signalId in the URL query\"}")
+}
+
+func TestRecommendFailValidation4(t *testing.T) {
+	code, body, err := MockRequest(http.MethodGet, "/recommend?campaign=homepage", nil)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	msg := string(b)
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, msg, "{\"message\":\"missing publicationPoint,signalId in the URL query\"}")
 }
 
 func TestRecommendNoModel(t *testing.T) {

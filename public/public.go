@@ -12,39 +12,30 @@ type Public struct {
 	App *gin.Engine
 }
 
-// NewPublicAPI creates a new Collector object
-func NewPublicAPI() (*Public, error) {
+// NewPublicAPI creates a new object holding the Gin Server
+func NewPublicAPI(dbHost, dbNamespace string, dbPort int) (*Public, error) {
 	// Creates a router without any middleware by default
-	r := gin.New()
+	r := gin.Default()
 
-	// Global middleware
-	r.Use(gin.Logger())
+	r.RedirectTrailingSlash = true
 
-	// Recovery middleware recovers from any panics and writes a 500 if there was one.
-	r.Use(gin.Recovery())
+	// middleware to inject Redis to all the routes for caching the client
+	r.Use(middleware.Aerospike(dbHost, dbNamespace, dbPort))
+
+	// Routes
+	r.GET("/", LongVersion)
+	r.GET("/recommend", Recommend)
+	r.GET("/healthz", Healthz)
+
+	// Docs
+	r.Static("/docs", "docs/swagger-public")
 
 	return &Public{
 		App: r,
 	}, nil
 }
 
-// Run will initialize the server and will listen to the specified
-// port from the config file
-func (c *Public) Run(host, dbHost, dbNamespace string, dbPort int) error {
-	c.App.RedirectTrailingSlash = true
-
-	// middleware to inject Redis to all the routes for caching the client
-	c.App.Use(middleware.Aerospike(dbHost, dbNamespace, dbPort))
-
-	// Routes
-	c.App.GET("/", LongVersion)
-	c.App.GET("/recommend", Recommend)
-
-	// Healthz
-	c.App.GET("/healthz", Healthz)
-
-	// Docs
-	c.App.Static("/docs", "docs/swagger-public")
-
-	return c.App.Run(host)
+// ListenAndServe will start running the server
+func (p *Public) ListenAndServe(addr string) error {
+	return p.App.Run(addr)
 }
