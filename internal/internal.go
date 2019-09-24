@@ -11,41 +11,27 @@ type Internal struct {
 	App *gin.Engine
 }
 
-// NewInternalAPI creates a new Collector object
-func NewInternalAPI() (*Internal, error) {
+// NewInternalAPI creates the o object
+func NewInternalAPI(dbHost, dbNamespace, s3Region, s3Endpoint string, s3DisableSSL bool, dbPort int) (*Internal, error) {
 	// Creates a router without any middleware by default
-	r := gin.New()
+	r := gin.Default()
 
-	// Global middleware
-	r.Use(gin.Logger())
-
-	// Recovery middleware recovers from any panics and writes a 500 if there was one.
-	r.Use(gin.Recovery())
-
-	return &Internal{
-		App: r,
-	}, nil
-}
-
-// Run will initialize the server and will listen to the specified
-// port from the config file
-func (c *Internal) Run(host, dbHost, dbNamespace, s3Region, s3Endpoint string, s3DisableSSL bool, dbPort int) error {
-	c.App.RedirectTrailingSlash = true
+	r.RedirectTrailingSlash = true
 
 	// middlewares for injecting clients that are always in used. Caching is important when low latency is due
-	c.App.Use(middleware.Aerospike(dbHost, dbNamespace, dbPort))
-	c.App.Use(middleware.AWSSession(s3Region, s3Endpoint, s3DisableSSL))
+	r.Use(middleware.Aerospike(dbHost, dbNamespace, dbPort))
+	r.Use(middleware.AWSSession(s3Region, s3Endpoint, s3DisableSSL))
 
 	// Routes
-	c.App.GET("/", LongVersion)
-	c.App.POST("/streaming", CreateStreaming)
-	c.App.PUT("/streaming", UpdateStreaming)
-	c.App.DELETE("/streaming", DeleteStreaming)
-	c.App.POST("/batch", Batch)
-	c.App.GET("/batch/status/:id", BatchStatus)
+	r.GET("/", LongVersion)
+	r.POST("/streaming", CreateStreaming)
+	r.PUT("/streaming", UpdateStreaming)
+	r.DELETE("/streaming", DeleteStreaming)
+	r.POST("/batch", Batch)
+	r.GET("/batch/status/:id", BatchStatus)
 
 	// Management Routes
-	mm := c.App.Group("/management/model")
+	mm := r.Group("/management/model")
 	mm.GET("/", GetModel)
 	mm.POST("/", CreateModel)
 	mm.DELETE("/", EmptyModel)
@@ -53,10 +39,18 @@ func (c *Internal) Run(host, dbHost, dbNamespace, s3Region, s3Endpoint string, s
 	mm.POST("/stage", StageModel)
 
 	// Healthz
-	c.App.GET("/healthz", Healthz)
+	r.GET("/healthz", Healthz)
 
 	// Docs
-	c.App.Static("/docs", "docs/swagger-internal")
+	r.Static("/docs", "docs/swagger-internal")
 
-	return c.App.Run(host)
+	return &Internal{
+		App: r,
+	}, nil
+}
+
+// ListenAndServe will initialize the server and will listen to the specified
+// port from the config file
+func (i *Internal) ListenAndServe(host string) error {
+	return i.App.Run(host)
 }

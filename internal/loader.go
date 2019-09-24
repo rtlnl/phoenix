@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"runtime"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/rs/zerolog/log"
 
 	"github.com/rtlnl/data-personalization-api/models"
 	"github.com/rtlnl/data-personalization-api/pkg/db"
@@ -288,7 +288,7 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkUploading); err != nil {
 		// if this fails than since we cannot return the request to the user
 		// we need to restart the application
-		log.Panicln(err)
+		log.Panic().Msg(err.Error())
 	}
 
 	setName := m.ComposeSetName()
@@ -314,11 +314,11 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkSucceeded); err != nil {
 		// if this fails than since we cannot return the request to the user
 		// we need to restart the application
-		log.Panicln(err)
+		log.Panic().Msg(err.Error())
 	}
 
 	elapsed := time.Since(start)
-	log.Printf("Uploading took %s", elapsed)
+	log.Info().Msgf("Uploading took %s", elapsed)
 }
 
 func iterateFile(rd *bufio.Reader, setName string, rs chan<- *models.RecordQueue) {
@@ -338,7 +338,8 @@ func iterateFile(rd *bufio.Reader, setName string, rs chan<- *models.RecordQueue
 		// marshal the object
 		var entry models.SingleEntry
 		if err := json.Unmarshal([]byte(l), &entry); err != nil {
-			// TODO: handle failed line
+			// TODO: handle failed line with error channel
+			log.Warn().Msg(err.Error())
 			continue
 		}
 
@@ -357,7 +358,7 @@ func uploadRecord(ac *db.AerospikeClient, batchID string, rs chan *models.Record
 			if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkFailed); err != nil {
 				// if this fails than since we cannot return the request to the user
 				// we need to restart the application
-				log.Panicln(err)
+				log.Panic().Msg(err.Error())
 			}
 			return
 		}

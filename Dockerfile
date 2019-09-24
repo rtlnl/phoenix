@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/api
 FROM alpine:3.9
 COPY --from=builder /app /app
 
-ENV GIN_MODE=release
+# ENV GIN_MODE=release
 
 RUN apk update && \
     apk add ca-certificates && \
