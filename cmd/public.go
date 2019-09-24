@@ -20,12 +20,12 @@ APIs for serving the personalized content.`,
 		dbPort := viper.GetInt(dbPortPublicFlag)
 		dbNamespace := viper.GetString(dbNamespacePublicFlag)
 
-		p, err := public.NewPublicAPI()
+		p, err := public.NewPublicAPI(dbHost, dbNamespace, dbPort)
 		if err != nil {
 			panic(err)
 		}
 
-		if err = p.Run(addr, dbHost, dbNamespace, dbPort); err != nil {
+		if err := p.ListenAndServe(addr); err != nil {
 			panic(err)
 		}
 	},

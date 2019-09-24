@@ -27,12 +27,12 @@ var internalCmd = &cobra.Command{
 		s3Endpoint := viper.GetString(s3EndpointFlag)
 		s3DisableSSL := viper.GetBool(s3DisableSSLFlag)
 
-		i, err := internal.NewInternalAPI()
+		i, err := internal.NewInternalAPI(dbHost, dbNamespace, s3Region, s3Endpoint, s3DisableSSL, dbPort)
 		if err != nil {
 			panic(err)
 		}
 
-		if err = i.Run(addr, dbHost, dbNamespace, s3Region, s3Endpoint, s3DisableSSL, dbPort); err != nil {
+		if err = i.ListenAndServe(addr); err != nil {
 			panic(err)
 		}
 	},
