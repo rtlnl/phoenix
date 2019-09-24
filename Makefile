@@ -3,6 +3,7 @@ VERSION ?= $(shell git describe --tags --always)
 IMAGE = 451291743503.dkr.ecr.eu-west-1.amazonaws.com/data-personalization-api
 PKG = github.com/rtlnl/data-personalization-api
 PKGS = $(shell go list ./...)
+SEQ = $(shell seq 1 10)
 
 LDFLAGS = "-s -w -X github.com/rtlnl/data-personalization-api/pkg/version.Version=$(VERSION)"
 
@@ -17,7 +18,7 @@ test:
 	@go test $(PKGS)
 
 long-tests:
-	for i in $(shell seq 1 10) do @go test $(PKGS); done;
+	@for i in $(SEQ); do go test $(PKGS); done
 
 lint:
 	@for pkg in $(PKGS); do golint $$pkg ; done
