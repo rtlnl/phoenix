@@ -506,7 +506,7 @@
             }
           },
           "concatenator": {
-            "description": "Signal concatenator",
+            "description": "Signal concatenator, characters allowed are '|', '#', '_', '-'",
             "example": "_",
             "type": "string"
           }
