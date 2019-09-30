@@ -491,6 +491,12 @@
             "example": "rtl_nieuws",
             "type": "string"
           },
+
+          "campaign": {
+            "description": "Name of the campaign",
+            "example": "homepage",
+            "type": "string"
+          },
           "signals": {
             "description": "Array containing the signals name",
             "example": "[\"articleID\",\"userID\"]",
@@ -499,14 +505,9 @@
               "type": "string"
             }
           },
-          "campaign": {
-            "description": "Name of the campaign",
-            "example": "homepage",
-            "type": "string"
-          },
-          "signalOrder": {
-            "description": "Order of the signals to used for this model",
-            "example": "articleID_userID",
+          "concatenator": {
+            "description": "Signal concatenator",
+            "example": "_",
             "type": "string"
           }
         },

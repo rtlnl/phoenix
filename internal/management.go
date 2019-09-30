@@ -39,22 +39,12 @@ var (
 	validate         *validator.Validate
 )
 
-// Checks if a string was found in a slice
-func StringInSlice(str string, list []string) bool {
-	for _, v := range list {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
-
 // Validate structure and content
 func ManagementModelRequestStructureValidation(sl validator.StructLevel) {
 	request := sl.Current().Interface().(ManagementModelRequest)
 
 	// Enforces the need of a separator when more than one element
-	if len(request.SignalOrder) > 1 && !StringInSlice(request.Concatenator, concatenatorList) {
+	if len(request.SignalOrder) > 1 && !utils.StringInSlice(request.Concatenator, concatenatorList) {
 		sl.ReportError(request.Concatenator, "concatenator", "", "wrongConcatenator", "")
 	} else if len(request.SignalOrder) == 1 && len(request.Concatenator) > 0 {
 		sl.ReportError(request.Concatenator, "concatenator", "", "noConcatenatorNeeded", "")
