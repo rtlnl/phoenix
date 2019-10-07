@@ -22,13 +22,6 @@ type ManagementModelRequest struct {
 	Concatenator     string   `json:"concatenator" description:"character used as concatenator for SignalOrder {"|", "#", "_", "-"}"`
 }
 
-// ManagementModelDatabase is the object that represents the payload of the database schema
-type ManagementModelDatabase struct {
-	PublicationPoint string `json:"publicationPoint" description:"publication point name for the model" binding:"required"`
-	Campaign         string `json:"campaign" description:"campaign name for the model" binding:"required"`
-	Signal           string `json:"signal" description:"signals" binding:"required"`
-}
-
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
 type ManagementModelResponse struct {
 	Message string `json:"message" description:"summary of the action just taken"`
@@ -57,22 +50,6 @@ func ManagementModelRequestValidation(request *ManagementModelRequest) error {
 	validate.RegisterStructValidation(ManagementModelRequestStructureValidation, ManagementModelRequest{})
 
 	return validate.Struct(request)
-}
-
-// Fills up the database schema
-func GetManagementModelAttributes(request *ManagementModelRequest) ManagementModelDatabase {
-	result := &ManagementModelDatabase{
-		PublicationPoint: request.PublicationPoint,
-		Campaign:         request.Campaign,
-		Signal:           string(request.SignalOrder[0]),
-	}
-
-	// If more than one member in the slice, join them using the concatenator
-	if len(request.SignalOrder) > 1 {
-		result.Signal = strings.Join(request.SignalOrder, request.Concatenator)
-	}
-
-	return *result
 }
 
 // Customized error message for the validation
@@ -126,8 +103,7 @@ func CreateModel(c *gin.Context) {
 		return
 	}
 
-	mmdb := GetManagementModelAttributes(&mm)
-	_, err := models.NewModel(mmdb.PublicationPoint, mmdb.Campaign, mmdb.Signal, ac)
+	_, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.Concatenator, mm.SignalOrder, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return

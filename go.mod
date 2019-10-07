@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.20.20
 	github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgryski/go-gk v0.0.0-20140819190930-201884a44051 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.4.0

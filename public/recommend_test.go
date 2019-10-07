@@ -14,7 +14,7 @@ func TestRecommend(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "articleId", true)
+	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "", []string{"articleId"}, true)
 	defer truncate1()
 
 	truncate2 := UploadTestData(t, ac, "testdata/test_published_model_data.jsonl", "rtl_nieuws#homepage")
@@ -123,7 +123,7 @@ func TestRecommendWrongSignal(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "articleId", true)
+	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "", []string{"articleId"}, true)
 	defer truncate1()
 
 	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=jjkk_767", nil)
@@ -146,7 +146,7 @@ func TestRecommendModelStaged(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "banana", "articleId", false)
+	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "banana", "", []string{"articleId"}, false)
 	defer truncate1()
 
 	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=banana&signalId=500083", nil)

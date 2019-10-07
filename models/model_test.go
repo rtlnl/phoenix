@@ -21,7 +21,7 @@ func TestNewModelModelExists(t *testing.T) {
 	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
 
 	// Test object creation
-	m, err := NewModel("rtl_nieuws", "homepage", "articleId", ac)
+	m, err := NewModel("rtl_nieuws", "homepage", "", []string{"articleId"}, ac)
 
 	if err != nil {
 		assert.Equal(t, "model with publicationPoint 'rtl_nieuws' and campaign 'homepage' exists already", err.Error())

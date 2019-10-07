@@ -35,7 +35,7 @@ func TestGetModel(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "articleId", false)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "", []string{"articleId"}, false)
 	defer truncate()
 
 	code, body, err := MockRequest(http.MethodGet, "/management/model?publicationPoint=rtl_nieuws&campaign=homepage", nil)
@@ -49,7 +49,7 @@ func TestGetModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"publicationPoint\":\"rtl_nieuws\",\"campaign\":\"homepage\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalType\":\"articleId\"}", string(b))
+	assert.Equal(t, "{\"publicationPoint\":\"rtl_nieuws\",\"campaign\":\"homepage\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"articleId\"],\"concatenator\":\"\"}", string(b))
 }
 
 func TestGetModelEmptyParams(t *testing.T) {
@@ -88,7 +88,7 @@ func TestCreateModelAlreadyExists(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "grapeId", false)
+	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "", []string{"grapeId"}, false)
 	defer truncate()
 
 	r, err := createManagementModelRequest("kiwi", "oranges", "", []string{"grapeId"})
@@ -138,7 +138,7 @@ func TestEmptyModel(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "banana", "pears", "appleId", false)
+	truncate := CreateTestModel(t, ac, "banana", "pears", "", []string{"appleId"}, false)
 	defer truncate()
 
 	r, err := createManagementModelRequest("banana", "pears", "", []string{"appleId"})
@@ -208,7 +208,7 @@ func TestPublishModelAlreadyPublished(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "appleId", true)
+	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "", []string{"appleId"}, true)
 	defer truncate()
 
 	r, err := createManagementModelRequest("kiwi", "oranges", "", []string{"appleId"})

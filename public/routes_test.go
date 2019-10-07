@@ -105,8 +105,8 @@ func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
 }
 
 // CreateTestModel returns a model and defer a truncate
-func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign, signalType string, publish bool) func() {
-	m, _ := models.NewModel(publicationPoint, campaign, signalType, ac)
+func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign, concatenator string, signalType []string, publish bool) func() {
+	m, _ := models.NewModel(publicationPoint, campaign, concatenator, signalType, ac)
 	if m == nil {
 		m, _ = models.GetExistingModel(publicationPoint, campaign, ac)
 	}

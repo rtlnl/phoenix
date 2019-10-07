@@ -62,7 +62,7 @@ func TestStreaming(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "articleId", false)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "", []string{"articleId"}, false)
 	defer truncate()
 
 	signal := "100"
@@ -167,7 +167,7 @@ func TestStreamingPublishedModel(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "hello", "articleId", true)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "hello", "", []string{"articleId"}, true)
 	defer truncate()
 
 	signal := "100"
@@ -266,7 +266,7 @@ func TestStreamingUpdateData(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "articleId", false)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "", []string{"articleId"}, false)
 	defer truncate()
 
 	signal := "543"
@@ -296,7 +296,7 @@ func TestStreamingUpdateDataPublishedModel(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "articleId", true)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "", []string{"articleId"}, true)
 	defer truncate()
 
 	signal := "100"
@@ -326,7 +326,7 @@ func TestStreamingDeleteData(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "burger", "articleId", false)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "burger", "", []string{"articleId"}, false)
 	defer truncate()
 
 	signal := "890"
@@ -356,7 +356,7 @@ func TestStreamingDeleteDataPublishedModel(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "banana", "articleId", true)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "banana", "", []string{"articleId"}, true)
 	defer truncate()
 
 	signal := "100"
@@ -390,7 +390,7 @@ func TestBatchUploadDirectModelPublished(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "articleId", true)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "", []string{"articleId"}, true)
 	defer truncate()
 
 	bd := make([]BatchData, 1)
