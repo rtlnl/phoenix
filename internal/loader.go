@@ -32,7 +32,8 @@ const (
 	// name of the setName for storing all the batchIDs
 	bulkStatusSetName = "bulkStatus"
 	// name of the key to retrieve the status of the bulk upload
-	statusBinKey = "status"
+	statusBinKey      = "status"
+	failedLinesBinKey = "failedLines"
 )
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
@@ -173,8 +174,14 @@ type BatchBulkResponse struct {
 
 // DataUploaded is the object that represents the result for uplaoding the data
 type DataUploaded struct {
-	NumberOfSignals         int `description:"total count of signals that have been uploaded"`
-	NumberOfRecommendations int `description:"total count of recommendations items that have been uploaded"`
+	NumberOfUploadedLines int
+	// NumberOfSignals         int `description:"total count of signals that have been uploaded"`
+	// NumberOfRecommendations int `description:"total count of recommendations items that have been uploaded"`
+}
+
+type DataUploadedError struct {
+	NumberOfLinesFailed int
+	Lines               []Reason
 }
 
 // Batch will upload in batch a set to the database
@@ -310,6 +317,12 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 	// wait until done
 	wg.Wait()
 
+	// check if the error channel is empty/not empty
+	// build struct
+	//    number of failed lines
+	//    reason (?) <- validation
+	//    store in aerospike
+
 	// write to Aerospike it succeeded
 	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkSucceeded); err != nil {
 		// if this fails than since we cannot return the request to the user
@@ -370,6 +383,16 @@ type BatchStatusResponse struct {
 	Status string `json:"status"`
 }
 
+// Reason exaplins the reason why a line failed
+type Reason map[string]string
+
+// BatchStatusResponseError is the response paylod when the batch upload failed
+type BatchStatusResponseError struct {
+	Status              string `json:"status"`
+	NumberOfLinesFailed int
+	Line                []Reason // { "line": 100, "reason": "validation message" }
+}
+
 // BatchStatus returns the current status of the batch upload
 func BatchStatus(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
@@ -382,5 +405,23 @@ func BatchStatus(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusOK, &BatchStatusResponse{Status: r.Bins["status"].(string)})
+	status := r.Bins["status"].(string)
+
+	switch status {
+	case BulkFailed:
+		// read the failed line based on the batch id
+		// iterate the failed lines and add to []Reason array
+		l := []Reason{}
+
+		utils.Response(c, http.StatusPartialContent, &BatchStatusResponseError{
+			Status: status,
+			Line:   l,
+		})
+		return
+	case BulkUploading:
+	case BulkSucceeded:
+		utils.Response(c, http.StatusOK, &BatchStatusResponse{Status: status})
+	default:
+		utils.ResponseError(c, http.StatusInternalServerError, errors.New("wtf"))
+	}
 }
