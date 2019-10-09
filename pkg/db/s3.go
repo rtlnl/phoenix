@@ -64,6 +64,8 @@ func (c *S3Client) ExistsObject(key string) bool {
 	return true
 }
 
+// CreateS3Bucket creates a bucket
+// It returns false if the bucket exists, true otherwise
 func (c *S3Client) CreateS3Bucket(bucket *S3Bucket) (bool, error) {
 	var err error
 
@@ -82,6 +84,8 @@ func (c *S3Client) CreateS3Bucket(bucket *S3Bucket) (bool, error) {
 	return false, err
 }
 
+// DeleteS3Bucket creates a bucket
+// It returns false if the bucket exists, true otherwise
 func (c *S3Client) DeleteS3Bucket(bucket *S3Bucket) (bool, error) {
 	var err error
 
@@ -105,8 +109,28 @@ func (c *S3Client) DeleteS3Bucket(bucket *S3Bucket) (bool, error) {
 	return false, err
 }
 
-// Delete all objects within a bucket
+// Delete all objects within a bucket (this is not the most efficient way)
 func (c *S3Client) DeleteS3AllObjects(bucket *S3Bucket) error {
+
+	// tetup BatchDeleteIterator to iterate through a list of objects.
+	iter := s3manager.NewDeleteListIterator(c.Service, &s3.ListObjectsInput{
+		Bucket: aws.String(bucket.Bucket),
+	})
+
+	for iter.Next() {
+		o := iter.DeleteObject()
+		_, err := c.Service.DeleteObject(&s3.DeleteObjectInput{Bucket: o.Object.Bucket, Key: o.Object.Key})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Delete all objects within a bucket (doesn't work)
+func (c *S3Client) DeleteS3AllObjectsBatch(bucket *S3Bucket) error {
 
 	// tetup BatchDeleteIterator to iterate through a list of objects.
 	iter := s3manager.NewDeleteListIterator(c.Service, &s3.ListObjectsInput{

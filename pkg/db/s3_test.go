@@ -22,15 +22,6 @@ const (
 	s3TestACL      = "public-read-write"
 )
 
-// func TestCreateS3Bucket(t *testing.T) {
-// 	s := NewS3Client(s3TestBucket, &NewAWSSession{s3TestEndpoint, s3TestRegion})
-
-// 	s.CreateS3Bucket(&S3Bucket{
-// 		Bucket: s3TestBucket,
-// 		ACL:    s3TestACL,
-// 	})
-// }
-
 // CreateTestS3Bucket returns a bucket and defer a drop
 func CreateTestS3Bucket(t *testing.T, bucket *S3Bucket, sess *session.Session) func() {
 	s := NewS3Client(bucket, sess)
@@ -135,12 +126,26 @@ func TestExistsObjectFails(t *testing.T) {
 }
 
 func TestDeleteBucket(t *testing.T) {
-	bucket := &S3Bucket{s3TestBucket, ""}
+	bucket := &S3Bucket{Bucket: "test1"}
 	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
 
 	s := NewS3Client(bucket, sess)
-	_, err := s.DeleteS3Bucket(bucket)
+	_, err := s.CreateS3Bucket(bucket)
+	if err != nil {
+		t.Failed()
+	}
 
-	// s.Service.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(bucket.Bucket), Key: aws.String("foo/bar.txt")})
-	println(err)
+	_, err = s.Service.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(s3TestBucket),
+		Body:   bytes.NewReader([]byte("lorem ipsum dolor")),
+		Key:    aws.String("foo/bar.txt"),
+	})
+	if err != nil {
+		t.Failed()
+	}
+
+	_, err = s.DeleteS3Bucket(bucket)
+	if err != nil {
+		t.Failed()
+	}
 }
