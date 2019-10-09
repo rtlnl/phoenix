@@ -3,12 +3,12 @@ package db
 import (
 	"bytes"
 	"io"
-	"os"
 	"testing"
 
 	paws "github.com/rtlnl/data-personalization-api/pkg/aws"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/stretchr/testify/assert"
@@ -19,66 +19,41 @@ const (
 	s3TestBucket   = "test"
 	s3TestRegion   = "eu-west-1"
 	s3TestKey      = "/foo/bar.txt"
+	s3TestACL      = "public-read-write"
 )
 
-func TestMain(m *testing.M) {
-	tearUp()
-	c := m.Run()
-	tearDown()
-	os.Exit(c)
-}
+// func TestCreateS3Bucket(t *testing.T) {
+// 	s := NewS3Client(s3TestBucket, &NewAWSSession{s3TestEndpoint, s3TestRegion})
 
-func tearUp() {
-	createS3Bucket()
-}
+// 	s.CreateS3Bucket(&S3Bucket{
+// 		Bucket: s3TestBucket,
+// 		ACL:    s3TestACL,
+// 	})
+// }
 
-func tearDown() {
-	// Nothing here for now
-}
-
-func createS3Bucket() {
-	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
-	sc := NewS3Client(s3TestBucket, sess)
-
-	input := &s3.HeadBucketInput{
-		Bucket: aws.String(s3TestBucket),
-	}
-
-	uploadFile := false
-	if _, err := sc.Service.HeadBucket(input); err != nil {
-		// create bucket if not
-		sc.Service.CreateBucket(&s3.CreateBucketInput{
-			Bucket: aws.String(s3TestBucket),
-			ACL:    aws.String("public-read-write"),
-		})
-		uploadFile = true
-	}
-
-	// add files
-	if uploadFile {
-		input := &s3.PutObjectInput{
-			Body:   bytes.NewReader([]byte("some-data")),
-			Bucket: aws.String(s3TestBucket),
-			Key:    aws.String(s3TestKey),
-			ACL:    aws.String("public-read-write"),
-		}
-
-		if _, err := sc.Service.PutObject(input); err != nil {
-			panic(err)
-		}
-	}
+// CreateTestS3Bucket returns a bucket and defer a drop
+func CreateTestS3Bucket(t *testing.T, bucket *S3Bucket, sess *session.Session) func() {
+	s := NewS3Client(bucket, sess)
+	s.CreateS3Bucket(&S3Bucket{Bucket: bucket.Bucket})
+	return func() { s.DeleteS3Bucket(bucket) }
 }
 
 func TestNewS3Client(t *testing.T) {
+	bucket := &S3Bucket{Bucket: s3TestBucket}
 	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
 
-	s := NewS3Client(s3TestBucket, sess)
+	s := NewS3Client(bucket, sess)
 	assert.NotNil(t, s)
 }
 
 func TestGetObject(t *testing.T) {
+	bucket := &S3Bucket{Bucket: s3TestBucket}
 	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
-	s := NewS3Client(s3TestBucket, sess)
+
+	drop := CreateTestS3Bucket(t, bucket, sess)
+	defer drop()
+
+	s := NewS3Client(bucket, sess)
 
 	_, err := s.Service.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(s3TestBucket),
@@ -105,8 +80,13 @@ func TestGetObject(t *testing.T) {
 }
 
 func TestGetObjectFails(t *testing.T) {
+	bucket := &S3Bucket{Bucket: s3TestBucket}
 	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
-	s := NewS3Client(s3TestBucket, sess)
+
+	drop := CreateTestS3Bucket(t, bucket, sess)
+	defer drop()
+
+	s := NewS3Client(bucket, sess)
 
 	f, err := s.GetObject("foo/bar2.txt")
 	if err == nil {
@@ -117,8 +97,13 @@ func TestGetObjectFails(t *testing.T) {
 }
 
 func TestExistsObject(t *testing.T) {
+	bucket := &S3Bucket{Bucket: s3TestBucket}
 	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
-	s := NewS3Client(s3TestBucket, sess)
+
+	drop := CreateTestS3Bucket(t, bucket, sess)
+	defer drop()
+
+	s := NewS3Client(bucket, sess)
 
 	_, err := s.Service.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(s3TestBucket),
@@ -135,11 +120,27 @@ func TestExistsObject(t *testing.T) {
 }
 
 func TestExistsObjectFails(t *testing.T) {
+	bucket := &S3Bucket{Bucket: s3TestBucket}
 	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
-	s := NewS3Client(s3TestBucket, sess)
+
+	drop := CreateTestS3Bucket(t, bucket, sess)
+	defer drop()
+
+	s := NewS3Client(bucket, sess)
 
 	// Key should not exists
 	if s.ExistsObject("foo/bar2.txt") {
 		t.Failed()
 	}
+}
+
+func TestDeleteBucket(t *testing.T) {
+	bucket := &S3Bucket{s3TestBucket, ""}
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+
+	s := NewS3Client(bucket, sess)
+	_, err := s.DeleteS3Bucket(bucket)
+
+	// s.Service.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(bucket.Bucket), Key: aws.String("foo/bar.txt")})
+	println(err)
 }

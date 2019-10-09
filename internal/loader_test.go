@@ -87,6 +87,36 @@ func TestStreaming(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"signal 100 created\"}", string(b))
 }
 
+func TestStreamingBadSignal(t *testing.T) {
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "_", []string{"articleId", "userId"}, false)
+	defer truncate()
+
+	signal := "100"
+	recommendationItems := []string{"1", "2", "3", "4"}
+
+	rb, err := createStreamingRequest("rtl_nieuws", "fancy", signal, recommendationItems)
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/streaming", rb)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "{\"message\":\"the expected signal format must be articleId_userId\"}", string(b))
+}
+
 func TestStreamingBadPayload(t *testing.T) {
 	signal := ""
 	recommendationItems := []string{}
@@ -385,6 +415,106 @@ func TestBatchUploadDirect(t *testing.T) {
 
 }
 
+func TestBatchUploadDirectWithErrors(t *testing.T) {
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "_", []string{"articleId", "userId"}, false)
+	defer truncate()
+
+	bd := make([]BatchData, 1)
+	d := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
+	bd[0] = map[string][]models.ItemScore{
+		"123": d,
+		"124": d,
+	}
+
+	rb, err := createBatchRequestDirect("rtl_nieuws", "bread", bd)
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/batch", rb)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"NumberOfLines\":\"2\",\"ErrorRecords\":{\"NumberOfLinesFailed\":\"2\",\"Errors\":[{\"lines\":\"1 ,2\",\"reason\":\"wrong format, the expected signal format must be articleId_userId\"}]}}", string(b))
+}
+
+func TestBatchUploadDirectNoErrors(t *testing.T) {
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "", []string{"articleId"}, false)
+	defer truncate()
+
+	bd := make([]BatchData, 1)
+	d := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
+	bd[0] = map[string][]models.ItemScore{
+		"123": d,
+		"124": d,
+	}
+
+	rb, err := createBatchRequestDirect("rtl_nieuws", "bread", bd)
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/batch", rb)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"NumberOfLines\":\"2\",\"ErrorRecords\":{\"NumberOfLinesFailed\":\"0\",\"Errors\":null}}", string(b))
+}
+
 func TestBatchUploadDirectModelPublished(t *testing.T) {
 	// get aerospike client
 	ac, c := GetTestAerospikeClient()
@@ -488,5 +618,32 @@ func TestStripS3URL(t *testing.T) {
 }
 
 func TestBatchUploadS3(t *testing.T) {
+
 	t.Skip()
+
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "", []string{"articleId"}, false)
+	defer truncate()
+
+	rb, err := createBatchRequestLocation("rtl_nieuws", "bread", "s3://xxxxx/file.csv")
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/batch", rb)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	a := string(b)
+	assert.Equal(t, "{\"message\":\"you cannot upload data on already published models. stage it firs\"}", a)
 }

@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +35,8 @@ const (
 	bulkStatusSetName = "bulkStatus"
 	// name of the key to retrieve the status of the bulk upload
 	statusBinKey = "status"
+	// numberErrors
+	maxErrorLines = 50
 )
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
@@ -46,6 +50,25 @@ type StreamingRequest struct {
 // StreamingResponse is the object that represents the payload for the response in the streaming endpoints
 type StreamingResponse struct {
 	Message string `json:"message"`
+}
+
+// Check if it is required to check the signal format
+func requireSignalFormat(m *models.Model) bool {
+	if len(m.SignalOrder) > 1 && m.Concatenator != "" {
+		return true
+	}
+	return false
+}
+
+// Check that the signal format is correct
+func correctSignalFormat(m *models.Model, s string) bool {
+	cn := regexp.MustCompile(m.Concatenator)
+	matches := cn.FindAllStringIndex(s, -1)
+	if len(m.SignalOrder) != (len(matches) - 1) {
+		return false
+	}
+
+	return true
 }
 
 // CreateStreaming creates a new record in the selected campaign
@@ -68,6 +91,13 @@ func CreateStreaming(c *gin.Context) {
 	if m.IsPublished() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot add data on already published models. stage it first"))
 		return
+	}
+
+	if requireSignalFormat(m) {
+		if !correctSignalFormat(m, sr.Signal) {
+			utils.ResponseError(c, http.StatusBadRequest, errors.New("the expected signal format must be "+strings.Join(m.SignalOrder, m.Concatenator)))
+			return
+		}
 	}
 
 	sn := m.ComposeSetName()
@@ -163,7 +193,18 @@ type BatchData map[string][]models.ItemScore
 
 // BatchResponse is the object that represents the payload of the response for the batch endpoints
 type BatchResponse struct {
-	Message string `json:"message"`
+	NumberOfLines string `description:"total count of lines"`
+	ErrorRecords  DataUploadedError
+}
+
+// Reason explains the reason why a line failed
+type Reason map[string]string
+
+// BatchStatusResponseError is the response paylod when the batch upload failed
+type BatchStatusResponseError struct {
+	Status              string `json:"status"`
+	NumberOfLinesFailed string
+	Line                []Reason // { "line": 100, "reason": "validation message" }
 }
 
 // BatchBulkResponse is the object that represents the payload of the response when uploading from S3
@@ -171,10 +212,10 @@ type BatchBulkResponse struct {
 	BatchID string `json:"batchId"`
 }
 
-// DataUploaded is the object that represents the result for uplaoding the data
-type DataUploaded struct {
-	NumberOfSignals         int `description:"total count of signals that have been uploaded"`
-	NumberOfRecommendations int `description:"total count of recommendations items that have been uploaded"`
+// BatchStatusResponseError is the response paylod when the batch upload failed
+type DataUploadedError struct {
+	NumberOfLinesFailed string `description:"total count of lines that were not uploaded"`
+	Errors              []Reason
 }
 
 // Batch will upload in batch a set to the database
@@ -203,12 +244,12 @@ func Batch(c *gin.Context) {
 
 	// upload data from request itself
 	if len(br.Data) > 0 && br.Data != nil {
-		du, err := uploadDataDirectly(ac, br.Data, m)
-		if du == nil && err != nil {
+		de, err := uploadDataDirectly(ac, br.Data, m)
+		if err != nil {
 			utils.ResponseError(c, http.StatusInternalServerError, err)
 			return
 		}
-		utils.Response(c, http.StatusCreated, &BatchResponse{Message: "data uploaded"})
+		utils.Response(c, http.StatusCreated, de)
 		return
 	}
 
@@ -220,7 +261,7 @@ func Batch(c *gin.Context) {
 
 	// upload data from S3 file
 	bucket, key := StripS3URL(br.DataLocation)
-	s := db.NewS3Client(bucket, sess)
+	s := db.NewS3Client(&db.S3Bucket{bucket, ""}, sess)
 
 	// check if file exists
 	if s.ExistsObject(key) == false {
@@ -253,20 +294,51 @@ func StripS3URL(URL string) (string, string) {
 	return bucket, key
 }
 
-func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model) (*DataUploaded, error) {
-	var nr int
+func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model) (*BatchResponse, error) {
+	var ln, ne int = 0, 0
+	var vl bool = false
+	var rs Reason
+	var sl []string
+	var rssl []Reason
+
+	setName := m.ComposeSetName()
+
+	// check upfront if signal validation is required
+	if requireSignalFormat(m) {
+		vl = true
+	}
+
 	for _, data := range bd {
 		for sig, recommendedItems := range data {
-			nr += len(recommendedItems)
+			ln += 1
+
+			// validate if required
+			if vl {
+				if !correctSignalFormat(m, sig) {
+					ne += 1
+					rs = make(Reason)
+					rs["reason"] = "wrong format, the expected signal format must be " + strings.Join(m.SignalOrder, m.Concatenator)
+					if ln <= maxErrorLines {
+						sl = append(sl, strconv.Itoa(ln))
+					}
+					continue
+				}
+			}
 
 			// upload to Aerospike
-			setName := m.ComposeSetName()
 			if err := ac.AddOne(setName, sig, binKey, recommendedItems); err != nil {
 				return nil, err
 			}
 		}
+
+		// compose error message
+		if rs["reason"] != "" {
+			rs["lines"] = strings.Join(sl, " ,")
+			rssl = append(rssl, rs)
+		}
 	}
-	return &DataUploaded{NumberOfSignals: len(bd), NumberOfRecommendations: nr}, nil
+
+	return &BatchResponse{NumberOfLines: strconv.Itoa(ln), ErrorRecords: DataUploadedError{Errors: rssl, NumberOfLinesFailed: strconv.Itoa(ne)}}, nil
 }
 
 // BulkStatus defines the status of the batch upload from S3
@@ -294,12 +366,13 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 	setName := m.ComposeSetName()
 	rd := bufio.NewReader(*file)
 	rs := make(chan *models.RecordQueue)
+	er := make(chan string)
 
 	// create sync group
 	wg := &sync.WaitGroup{}
 
 	// fillup the channel with lines
-	go iterateFile(rd, setName, rs)
+	go iterateFile(rd, setName, m, rs, er)
 
 	// consumes all the lines in parallel based on number of cpus
 	wg.Add(runtime.NumCPU())
@@ -321,7 +394,15 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 	log.Info().Msgf("Uploading took %s", elapsed)
 }
 
-func iterateFile(rd *bufio.Reader, setName string, rs chan<- *models.RecordQueue) {
+func iterateFile(rd *bufio.Reader, setName string, m *models.Model, rs chan<- *models.RecordQueue, er chan<- string) {
+	var ln, ne int = 0, 0
+	var vl bool = false
+
+	// check upfront if signal validation is required
+	if requireSignalFormat(m) {
+		vl = true
+	}
+
 	// close channel at the end when there are no more lines
 	defer close(rs)
 
@@ -341,6 +422,18 @@ func iterateFile(rd *bufio.Reader, setName string, rs chan<- *models.RecordQueue
 			// TODO: handle failed line with error channel
 			log.Warn().Msg(err.Error())
 			continue
+		}
+
+		// validate signal format
+		ln += 1
+		if vl {
+			if !correctSignalFormat(m, entry.SignalID) {
+				ne += 1
+				if ln <= maxErrorLines {
+					er <- strconv.Itoa(ln)
+				}
+				continue
+			}
 		}
 
 		// add to channel
