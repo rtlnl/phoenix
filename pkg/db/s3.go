@@ -112,31 +112,17 @@ func (c *S3Client) DeleteS3Bucket(bucket *S3Bucket) (bool, error) {
 // Delete all objects within a bucket (this is not the most efficient way)
 func (c *S3Client) DeleteS3AllObjects(bucket *S3Bucket) error {
 
-	// tetup BatchDeleteIterator to iterate through a list of objects.
+	// setup BatchDeleteIterator to iterate through a list of objects.
 	iter := s3manager.NewDeleteListIterator(c.Service, &s3.ListObjectsInput{
 		Bucket: aws.String(bucket.Bucket),
 	})
 
 	for iter.Next() {
 		o := iter.DeleteObject()
-		_, err := c.Service.DeleteObject(&s3.DeleteObjectInput{Bucket: o.Object.Bucket, Key: o.Object.Key})
-
-		if err != nil {
+		if _, err := c.Service.DeleteObject(&s3.DeleteObjectInput{Bucket: o.Object.Bucket, Key: o.Object.Key}); err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-// Delete all objects within a bucket (doesn't work)
-func (c *S3Client) DeleteS3AllObjectsBatch(bucket *S3Bucket) error {
-
-	// tetup BatchDeleteIterator to iterate through a list of objects.
-	iter := s3manager.NewDeleteListIterator(c.Service, &s3.ListObjectsInput{
-		Bucket: aws.String(bucket.Bucket),
-	})
-
-	// traverse iterator deleting each object
-	return s3manager.NewBatchDeleteWithClient(c.Service).Delete(aws.BackgroundContext(), iter)
 }

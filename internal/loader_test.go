@@ -7,7 +7,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	paws "github.com/rtlnl/data-personalization-api/pkg/aws"
+
 	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/rtlnl/data-personalization-api/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -462,7 +466,7 @@ func TestBatchUploadDirectWithErrors(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"NumberOfLines\":\"2\",\"ErrorRecords\":{\"NumberOfLinesFailed\":\"2\",\"Errors\":[{\"lines\":\"1 ,2\",\"reason\":\"wrong format, the expected signal format must be articleId_userId\"}]}}", string(b))
+	assert.Equal(t, "{\"numberoflines\":\"2\",\"ErrorRecords\":{\"numberoflinesfailed\":\"2\",\"error\":[{\"lines\":\"1 ,2\",\"reason\":\"wrong format, the expected signal format must be articleId_userId\"}]}}", string(b))
 }
 
 func TestBatchUploadDirectNoErrors(t *testing.T) {
@@ -512,7 +516,7 @@ func TestBatchUploadDirectNoErrors(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"NumberOfLines\":\"2\",\"ErrorRecords\":{\"NumberOfLinesFailed\":\"0\",\"Errors\":null}}", string(b))
+	assert.Equal(t, "{\"numberoflines\":\"2\",\"ErrorRecords\":{\"numberoflinesfailed\":\"0\",\"error\":null}}", string(b))
 }
 
 func TestBatchUploadDirectModelPublished(t *testing.T) {
@@ -617,6 +621,21 @@ func TestStripS3URL(t *testing.T) {
 	assert.Equal(t, expectedKey, key)
 }
 
+const (
+	s3TestEndpoint = "localhost:4572"
+	s3TestBucket   = "test"
+	s3TestRegion   = "eu-west-1"
+	s3TestKey      = "/foo/bar.txt"
+	s3TestACL      = "public-read-write"
+)
+
+// CreateTestS3Bucket returns a bucket and defer a drop
+func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session) func() {
+	s := db.NewS3Client(bucket, sess)
+	s.CreateS3Bucket(&db.S3Bucket{Bucket: bucket.Bucket})
+	return func() { s.DeleteS3Bucket(bucket) }
+}
+
 func TestBatchUploadS3(t *testing.T) {
 
 	t.Skip()
@@ -628,7 +647,13 @@ func TestBatchUploadS3(t *testing.T) {
 	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "", []string{"articleId"}, false)
 	defer truncate()
 
-	rb, err := createBatchRequestLocation("rtl_nieuws", "bread", "s3://xxxxx/file.csv")
+	bucket := &db.S3Bucket{Bucket: s3TestBucket}
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+
+	drop := CreateTestS3Bucket(t, bucket, sess)
+	defer drop()
+
+	rb, err := createBatchRequestLocation("rtl_nieuws", "bread", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
 		t.Fail()
 	}

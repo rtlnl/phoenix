@@ -64,11 +64,7 @@ func requireSignalFormat(m *models.Model) bool {
 func correctSignalFormat(m *models.Model, s string) bool {
 	cn := regexp.MustCompile(m.Concatenator)
 	matches := cn.FindAllStringIndex(s, -1)
-	if len(m.SignalOrder) != (len(matches) - 1) {
-		return false
-	}
-
-	return true
+	return len(m.SignalOrder) == (len(matches) - 1)
 }
 
 // CreateStreaming creates a new record in the selected campaign
@@ -93,11 +89,9 @@ func CreateStreaming(c *gin.Context) {
 		return
 	}
 
-	if requireSignalFormat(m) {
-		if !correctSignalFormat(m, sr.Signal) {
-			utils.ResponseError(c, http.StatusBadRequest, errors.New("the expected signal format must be "+strings.Join(m.SignalOrder, m.Concatenator)))
-			return
-		}
+	if requireSignalFormat(m) && !correctSignalFormat(m, sr.Signal) {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("the expected signal format must be "+strings.Join(m.SignalOrder, m.Concatenator)))
+		return
 	}
 
 	sn := m.ComposeSetName()
@@ -193,7 +187,7 @@ type BatchData map[string][]models.ItemScore
 
 // BatchResponse is the object that represents the payload of the response for the batch endpoints
 type BatchResponse struct {
-	NumberOfLines string `description:"total count of lines"`
+	NumberOfLines string `json:"numberoflines" description:"total count of lines"`
 	ErrorRecords  DataUploadedError
 }
 
@@ -202,9 +196,9 @@ type Reason map[string]string
 
 // BatchStatusResponseError is the response paylod when the batch upload failed
 type BatchStatusResponseError struct {
-	Status              string `json:"status"`
-	NumberOfLinesFailed string
-	Line                []Reason // { "line": 100, "reason": "validation message" }
+	Status              string   `json:"status" description:"define the status of the bulk upload when importing data from a file"`
+	NumberOfLinesFailed string   `json:"numberoflinesfailed" description:"total count of failed lines"`
+	Line                []Reason `json:"line" description:"shows the line error and the reason, i.e. {\"line\": 100, \"reason\": \"validation message\"}"`
 }
 
 // BatchBulkResponse is the object that represents the payload of the response when uploading from S3
@@ -214,8 +208,8 @@ type BatchBulkResponse struct {
 
 // BatchStatusResponseError is the response paylod when the batch upload failed
 type DataUploadedError struct {
-	NumberOfLinesFailed string `description:"total count of lines that were not uploaded"`
-	Errors              []Reason
+	NumberOfLinesFailed string   `json:"numberoflinesfailed" description:"total count of lines that were not uploaded"`
+	Errors              []Reason `json:"error" description:"errors found"`
 }
 
 // Batch will upload in batch a set to the database
@@ -310,19 +304,17 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model)
 
 	for _, data := range bd {
 		for sig, recommendedItems := range data {
-			ln += 1
+			ln++
 
 			// validate if required
-			if vl {
-				if !correctSignalFormat(m, sig) {
-					ne += 1
-					rs = make(Reason)
-					rs["reason"] = "wrong format, the expected signal format must be " + strings.Join(m.SignalOrder, m.Concatenator)
-					if ln <= maxErrorLines {
-						sl = append(sl, strconv.Itoa(ln))
-					}
-					continue
+			if vl && !correctSignalFormat(m, sig) {
+				ne++
+				rs = make(Reason)
+				rs["reason"] = "wrong format, the expected signal format must be " + strings.Join(m.SignalOrder, m.Concatenator)
+				if ln <= maxErrorLines {
+					sl = append(sl, strconv.Itoa(ln))
 				}
+				continue
 			}
 
 			// upload to Aerospike
