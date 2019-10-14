@@ -1,7 +1,10 @@
 package db
 
 import (
+	"bytes"
 	"io"
+	"net/http"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -125,4 +128,35 @@ func (c *S3Client) DeleteS3AllObjects(bucket *S3Bucket) error {
 	}
 
 	return nil
+}
+
+// Upload a file to S3
+func (c *S3Client) UploadS3File(fileDir string, bucket *S3Bucket) error {
+
+	// Open the file for use
+	file, err := os.Open(fileDir)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Get file size and read the file content into a buffer
+	fileInfo, _ := file.Stat()
+	var size int64 = fileInfo.Size()
+	buffer := make([]byte, size)
+	file.Read(buffer)
+
+	// Config settings: this is where you choose the bucket, filename, content-type etc.
+	// of the file you're uploading.
+	_, err = c.Service.PutObject(&s3.PutObjectInput{
+		Bucket:               aws.String(bucket.Bucket),
+		Key:                  aws.String(fileDir),
+		ACL:                  aws.String("private"),
+		Body:                 bytes.NewReader(buffer),
+		ContentLength:        aws.Int64(size),
+		ContentType:          aws.String(http.DetectContentType(buffer)),
+		ContentDisposition:   aws.String("attachment"),
+		ServerSideEncryption: aws.String("AES256"),
+	})
+	return err
 }

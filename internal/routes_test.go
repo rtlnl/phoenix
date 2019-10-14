@@ -55,6 +55,7 @@ func tearUp() {
 	router.DELETE("/streaming", DeleteStreaming)
 
 	router.POST("/batch", Batch)
+	router.GET("/batch/status/:id", BatchStatus)
 
 	// Management Routes
 	mm := router.Group("/management/model")

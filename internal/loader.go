@@ -397,6 +397,7 @@ func iterateFile(rd *bufio.Reader, setName string, m *models.Model, rs chan<- *m
 
 	// close channel at the end when there are no more lines
 	defer close(rs)
+	defer close(er)
 
 	eof := false
 	for !eof {
@@ -417,19 +418,23 @@ func iterateFile(rd *bufio.Reader, setName string, m *models.Model, rs chan<- *m
 		}
 
 		// validate signal format
-		ln += 1
+		ln++
 		if vl {
 			if !correctSignalFormat(m, entry.SignalID) {
-				ne += 1
-				if ln <= maxErrorLines {
+				ne++
+				if ne == maxErrorLines {
+					break
+				} else {
 					er <- strconv.Itoa(ln)
 				}
-				continue
+			} else {
+				// add to channel
+				rs <- &models.RecordQueue{SetName: setName, Entry: entry}
 			}
+		} else {
+			// add to channel
+			rs <- &models.RecordQueue{SetName: setName, Entry: entry}
 		}
-
-		// add to channel
-		rs <- &models.RecordQueue{SetName: setName, Entry: entry}
 	}
 }
 

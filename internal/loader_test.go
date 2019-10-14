@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	paws "github.com/rtlnl/data-personalization-api/pkg/aws"
@@ -621,14 +622,6 @@ func TestStripS3URL(t *testing.T) {
 	assert.Equal(t, expectedKey, key)
 }
 
-const (
-	s3TestEndpoint = "localhost:4572"
-	s3TestBucket   = "test"
-	s3TestRegion   = "eu-west-1"
-	s3TestKey      = "/foo/bar.txt"
-	s3TestACL      = "public-read-write"
-)
-
 // CreateTestS3Bucket returns a bucket and defer a drop
 func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session) func() {
 	s := db.NewS3Client(bucket, sess)
@@ -637,8 +630,26 @@ func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session
 }
 
 func TestBatchUploadS3(t *testing.T) {
+	var (
+		s3TestEndpoint string = "localhost:4572"
+		s3TestBucket   string = "test1"
+		s3TestRegion   string = "eu-west-1"
+		fileTest       string = "testdata/test_bulk_1key.jsonl"
+		s3TestKey      string = "/" + fileTest
+	)
 
-	t.Skip()
+	var (
+		srsCode int = 0
+		n       int = 5
+		sleep   int = 2
+	)
+
+	var srsBody *bytes.Buffer
+	var srs BatchStatusResponse
+
+	bucket := &db.S3Bucket{Bucket: s3TestBucket}
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	s := db.NewS3Client(bucket, sess)
 
 	// get aerospike client
 	ac, c := GetTestAerospikeClient()
@@ -647,28 +658,135 @@ func TestBatchUploadS3(t *testing.T) {
 	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "", []string{"articleId"}, false)
 	defer truncate()
 
-	bucket := &db.S3Bucket{Bucket: s3TestBucket}
-	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
-
 	drop := CreateTestS3Bucket(t, bucket, sess)
 	defer drop()
+
+	if err := s.UploadS3File(fileTest, bucket); err != nil {
+		t.Fail()
+	}
 
 	rb, err := createBatchRequestLocation("rtl_nieuws", "bread", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/batch", rb)
+	_, brsBody, err := MockRequest(http.MethodPost, "/batch", rb)
 	if err != nil {
 		t.Fail()
 	}
 
-	b, err := ioutil.ReadAll(body)
+	var brs BatchBulkResponse
+	if err := json.Unmarshal(brsBody.Bytes(), &brs); err != nil {
+		t.Fail()
+	}
+
+	// do checks
+	for i := 0; i < n; i++ {
+		srsCode, srsBody, err = MockRequest(http.MethodGet, "/batch/status/"+brs.BatchID, nil)
+		if err != nil {
+			t.Fail()
+		}
+
+		if err := json.Unmarshal(srsBody.Bytes(), &srs); err != nil {
+			t.Fail()
+		}
+
+		// cannot use case because the break
+		if srs.Status == "SUCCEEDED" {
+			break
+		} else if srs.Status == "FAILED" {
+			t.Fail()
+		} else {
+
+			// UPLOADING: wait sleep seconds and failt if it took more than 5 iterations
+			time.Sleep(time.Duration(sleep) * time.Second)
+			if i == n {
+				t.Fail()
+			}
+		}
+	}
+
+	assert.Equal(t, http.StatusOK, srsCode)
+	assert.Equal(t, "SUCCEEDED", srs.Status)
+}
+
+func TestBadBatchUploadS3(t *testing.T) {
+	var (
+		s3TestEndpoint string = "localhost:4572"
+		s3TestBucket   string = "test1"
+		s3TestRegion   string = "eu-west-1"
+		fileTest       string = "testdata/test_bulk_1key.jsonl"
+		s3TestKey      string = "/" + fileTest
+	)
+
+	var (
+		srsCode int = 0
+		n       int = 5
+		sleep   int = 2
+	)
+
+	var srsBody *bytes.Buffer
+	var srs BatchStatusResponse
+
+	bucket := &db.S3Bucket{Bucket: s3TestBucket}
+	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
+	s := db.NewS3Client(bucket, sess)
+
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "_", []string{"articleId", "userId"}, false)
+	defer truncate()
+
+	drop := CreateTestS3Bucket(t, bucket, sess)
+	defer drop()
+
+	if err := s.UploadS3File(fileTest, bucket); err != nil {
+		t.Fail()
+	}
+
+	rb, err := createBatchRequestLocation("rtl_nieuws", "bread", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusBadRequest, code)
-	a := string(b)
-	assert.Equal(t, "{\"message\":\"you cannot upload data on already published models. stage it firs\"}", a)
+	_, brsBody, err := MockRequest(http.MethodPost, "/batch", rb)
+	if err != nil {
+		t.Fail()
+	}
+
+	var brs BatchBulkResponse
+	if err := json.Unmarshal(brsBody.Bytes(), &brs); err != nil {
+		t.Fail()
+	}
+
+	// do checks
+	for i := 0; i < n; i++ {
+		srsCode, srsBody, err = MockRequest(http.MethodGet, "/batch/status/"+brs.BatchID, nil)
+		if err != nil {
+			t.Fail()
+		}
+
+		if err := json.Unmarshal(srsBody.Bytes(), &srs); err != nil {
+			t.Fail()
+		}
+
+		// cannot use case because the break
+		if srs.Status == "SUCCEEDED" {
+			break
+		} else if srs.Status == "FAILED" {
+			t.Fail()
+		} else {
+
+			// UPLOADING: wait sleep seconds and failt if it took more than 5 iterations
+			time.Sleep(time.Duration(sleep) * time.Second)
+			if i == n {
+				t.Fail()
+			}
+		}
+	}
+
+	assert.Equal(t, http.StatusOK, srsCode)
+	assert.Equal(t, "SUCCEEDED", srs.Status)
 }
