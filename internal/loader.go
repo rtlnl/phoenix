@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
@@ -375,6 +376,8 @@ func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.M
 	// wait until done
 	wg.Wait()
 
+	spew.Dump(er)
+
 	// write to Aerospike it succeeded
 	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkSucceeded); err != nil {
 		// if this fails than since we cannot return the request to the user
@@ -396,6 +399,7 @@ func iterateFile(rd *bufio.Reader, setName string, m *models.Model, rs chan<- *m
 	}
 
 	// close channel at the end when there are no more lines
+	// or we reached the max number of errors
 	defer close(rs)
 	defer close(er)
 
@@ -419,18 +423,13 @@ func iterateFile(rd *bufio.Reader, setName string, m *models.Model, rs chan<- *m
 
 		// validate signal format
 		ln++
-		if vl {
-			if !correctSignalFormat(m, entry.SignalID) {
-				ne++
-				if ne == maxErrorLines {
-					break
-				} else {
-					er <- strconv.Itoa(ln)
-				}
-			} else {
-				// add to channel
-				rs <- &models.RecordQueue{SetName: setName, Entry: entry}
+		if vl && !correctSignalFormat(m, entry.SignalID) {
+			ne++
+			if ne != maxErrorLines {
+				er <- strconv.Itoa(ln)
+				continue
 			}
+			break
 		} else {
 			// add to channel
 			rs <- &models.RecordQueue{SetName: setName, Entry: entry}

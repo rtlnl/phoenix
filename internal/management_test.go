@@ -296,11 +296,9 @@ func TestConcatenatorPassValidation(t *testing.T) {
 	// get client
 	ac, c := GetTestAerospikeClient()
 	defer c()
-
-	r, err := createManagementModelRequest("melon", "oranges", "_", []string{"appleId", "bananasId"})
-
 	defer ac.TruncateSet("melon")
 
+	r, err := createManagementModelRequest("melon", "oranges", "_", []string{"appleId", "bananasId"})
 	if err != nil {
 		t.Fail()
 	}
