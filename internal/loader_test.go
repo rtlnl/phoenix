@@ -631,7 +631,6 @@ func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session
 }
 
 func TestBatchUploadS3(t *testing.T) {
-	t.SkipNow()
 	var (
 		s3TestEndpoint string = "localhost:4572"
 		s3TestBucket   string = "test1"
@@ -702,7 +701,6 @@ func TestBatchUploadS3(t *testing.T) {
 }
 
 func TestBadBatchUploadS3(t *testing.T) {
-	t.SkipNow()
 	var (
 		s3TestEndpoint string = "localhost:4572"
 		s3TestBucket   string = "test1"
