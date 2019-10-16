@@ -54,10 +54,9 @@ func NewModel(publicationPoint, campaign, concatenator string, signalOrder []str
 		return nil, err
 	}
 
-	// does model exists already
-	if m, _ := ac.GetOne(publicationPoint, campaign); m != nil {
-		msg := fmt.Sprintf("model with publicationPoint '%s' and campaign '%s' exists already", publicationPoint, campaign)
-		return nil, errors.New(msg)
+	// does model exists already then return it to the client
+	if m, err := GetExistingModel(publicationPoint, campaign, ac); m != nil {
+		return m, err
 	}
 
 	// fill up bins

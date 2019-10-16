@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/davecgh/go-spew/spew"
 	paws "github.com/rtlnl/data-personalization-api/pkg/aws"
 
 	"github.com/rtlnl/data-personalization-api/models"
@@ -97,13 +98,13 @@ func TestStreamingBadSignal(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "_", []string{"articleId", "userId"}, false)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy2", "_", []string{"articleId", "userId"}, false)
 	defer truncate()
 
 	signal := "100"
 	recommendationItems := []string{"1", "2", "3", "4"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "fancy", signal, recommendationItems)
+	rb, err := createStreamingRequest("rtl_nieuws", "fancy2", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -630,6 +631,7 @@ func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session
 }
 
 func TestBatchUploadS3(t *testing.T) {
+	t.SkipNow()
 	var (
 		s3TestEndpoint string = "localhost:4572"
 		s3TestBucket   string = "test1"
@@ -701,7 +703,6 @@ func TestBatchUploadS3(t *testing.T) {
 
 func TestBadBatchUploadS3(t *testing.T) {
 	t.SkipNow()
-
 	var (
 		s3TestEndpoint string = "localhost:4572"
 		s3TestBucket   string = "test1"
@@ -760,13 +761,38 @@ func TestBadBatchUploadS3(t *testing.T) {
 	}
 
 	switch srs.Status {
-	case BulkSucceeded:
+	case BulkPartialUpload:
 		assert.Equal(t, http.StatusOK, srsCode)
-		assert.Equal(t, BulkSucceeded, srs.Status)
+		assert.Equal(t, BulkPartialUpload, srs.Status)
+		spew.Dump(srs.Errors)
 		return
+	case BulkSucceeded:
 	case BulkUploading:
 	case BulkFailed:
 	default:
 		t.Fail()
 	}
+}
+
+func TestCorrectSignalFormat(t *testing.T) {
+	// get aerospike client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	truncate := CreateTestModel(t, ac, "test", "fancy", "_", []string{"articleId", "userId"}, false)
+	defer truncate()
+
+	m, _ := models.GetExistingModel("test", "fancy", ac)
+
+	assert.Equal(t, true, correctSignalFormat(m, "11_22"))
+
+	assert.Equal(t, false, correctSignalFormat(m, "11_33_33_33"))
+	assert.Equal(t, false, correctSignalFormat(m, "11"))
+	assert.Equal(t, false, correctSignalFormat(m, "11_"))
+	assert.Equal(t, false, correctSignalFormat(m, "_11_"))
+	assert.Equal(t, false, correctSignalFormat(m, "_11"))
+	assert.Equal(t, false, correctSignalFormat(m, "_"))
+	assert.Equal(t, false, correctSignalFormat(m, "11____"))
+	assert.Equal(t, false, correctSignalFormat(m, "____11"))
+	assert.Equal(t, false, correctSignalFormat(m, ""))
 }

@@ -106,8 +106,8 @@ func TestCreateModelAlreadyExists(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusUnprocessableEntity, code)
-	assert.Equal(t, "{\"message\":\"model with publicationPoint 'kiwi' and campaign 'oranges' exists already\"}", string(b))
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"model\":{\"publicationPoint\":\"kiwi\",\"campaign\":\"oranges\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"grapeId\"],\"concatenator\":\"\"},\"message\":\"model created\"}", string(b))
 }
 
 func TestCreateModelFailValidation(t *testing.T) {
@@ -157,7 +157,7 @@ func TestEmptyModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"message\":\"model empty\"}", string(b))
+	assert.Equal(t, "{\"model\":{\"publicationPoint\":\"banana\",\"campaign\":\"pears\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"appleId\"],\"concatenator\":\"\"},\"message\":\"model empty\"}", string(b))
 }
 
 func TestEmptyModelFailValidation(t *testing.T) {
@@ -293,11 +293,6 @@ func TestConcatenatorFailValidation(t *testing.T) {
 }
 
 func TestConcatenatorPassValidation(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-	defer ac.TruncateSet("melon")
-
 	r, err := createManagementModelRequest("melon", "oranges", "_", []string{"appleId", "bananasId"})
 	if err != nil {
 		t.Fail()
@@ -314,7 +309,7 @@ func TestConcatenatorPassValidation(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"message\":\"model created\"}", string(b))
+	assert.Equal(t, "{\"model\":{\"publicationPoint\":\"melon\",\"campaign\":\"oranges\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"appleId\",\"bananasId\"],\"concatenator\":\"_\"},\"message\":\"model created\"}", string(b))
 }
 
 func TestConcatenatorMissing(t *testing.T) {

@@ -24,7 +24,8 @@ type ManagementModelRequest struct {
 
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
 type ManagementModelResponse struct {
-	Message string `json:"message" description:"summary of the action just taken"`
+	Model   *models.Model `json:"model" description:"model object that is being returned to the client"`
+	Message string        `json:"message" description:"summary of the action just taken"`
 }
 
 var (
@@ -32,7 +33,7 @@ var (
 	validate         *validator.Validate
 )
 
-// Validate structure and content
+// ManagementModelRequestStructureValidation validates structure and content
 func ManagementModelRequestStructureValidation(sl validator.StructLevel) {
 	request := sl.Current().Interface().(ManagementModelRequest)
 
@@ -44,7 +45,7 @@ func ManagementModelRequestStructureValidation(sl validator.StructLevel) {
 	}
 }
 
-// Validate that there are no errors in the ManagementModelRequest interface
+// ManagementModelRequestValidation validates that there are no errors in the ManagementModelRequest interface
 func ManagementModelRequestValidation(request *ManagementModelRequest) error {
 	validate = validator.New()
 	validate.RegisterStructValidation(ManagementModelRequestStructureValidation, ManagementModelRequest{})
@@ -52,7 +53,7 @@ func ManagementModelRequestValidation(request *ManagementModelRequest) error {
 	return validate.Struct(request)
 }
 
-// Customized error message for the validation
+// ValidationConcatenationErrorMsg customized error message for the validation
 func ValidationConcatenationErrorMsg(err error) error {
 	switch {
 	case strings.Contains(err.Error(), "wrongConcatenator"):
@@ -103,13 +104,14 @@ func CreateModel(c *gin.Context) {
 		return
 	}
 
-	_, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.Concatenator, mm.SignalOrder, ac)
+	m, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.Concatenator, mm.SignalOrder, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return
 	}
 
 	utils.Response(c, http.StatusCreated, &ManagementModelResponse{
+		Model:   m,
 		Message: "model created",
 	})
 }
@@ -141,6 +143,7 @@ func PublishModel(c *gin.Context) {
 	}
 
 	utils.Response(c, http.StatusOK, &ManagementModelResponse{
+		Model:   m,
 		Message: "model published",
 	})
 }
@@ -172,6 +175,7 @@ func StageModel(c *gin.Context) {
 	}
 
 	utils.Response(c, http.StatusOK, &ManagementModelResponse{
+		Model:   m,
 		Message: "model staged",
 	})
 }
@@ -204,6 +208,7 @@ func EmptyModel(c *gin.Context) {
 	}
 
 	utils.Response(c, http.StatusOK, &ManagementModelResponse{
+		Model:   m,
 		Message: "model empty",
 	})
 }
