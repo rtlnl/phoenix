@@ -3,10 +3,10 @@ package models
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/Masterminds/semver"
 	"github.com/rtlnl/data-personalization-api/pkg/db"
+	"github.com/rtlnl/data-personalization-api/utils"
 )
 
 const (
@@ -15,7 +15,8 @@ const (
 	initStage          = STAGED
 	binKeyStage        = "stage"
 	binKeyVersion      = "version"
-	binKeySignalType   = "signal_type"
+	binKeySignalOrder  = "signal_order"
+	binKeyConcatenator = ""
 )
 
 // StageType defines if the model is available for the recommendations or not
@@ -34,7 +35,8 @@ type Model struct {
 	Campaign         string          `json:"campaign" description:"name of the campaign that will be used"`
 	Stage            StageType       `json:"stage" description:"defines if the data is available to the clients or not"`
 	Version          *semver.Version `json:"version" description:"internal version of the model. Should follow this pattern Major.Minor"`
-	SignalType       string          `json:"signalType" description:"definition of the internal signal for composing the key"`
+	SignalOrder      []string        `json:"signalOrder" description:"list of ordered signals"`
+	Concatenator     string          `json:"concatenator" description:"character used as concatenator for SignalOrder {"|", "#", "_", "-"}"`
 }
 
 // NewModel is invoked when a new model is created in the database.
@@ -45,24 +47,24 @@ type Model struct {
 // key     --> campaign
 // bins    --> Version = 0.1
 //             Stage = STAGED
-//             SignalType = signalType
-func NewModel(publicationPoint, campaign, signalType string, ac *db.AerospikeClient) (*Model, error) {
+//             SignalOrder = signalOrder
+func NewModel(publicationPoint, campaign, concatenator string, signalOrder []string, ac *db.AerospikeClient) (*Model, error) {
 	v, err := semver.NewVersion(initVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	// does model exists already
-	if m, _ := ac.GetOne(publicationPoint, campaign); m != nil {
-		msg := fmt.Sprintf("model with publicationPoint '%s' and campaign '%s' exists already", publicationPoint, campaign)
-		return nil, errors.New(msg)
+	// does model exists already then return it to the client
+	if m, err := GetExistingModel(publicationPoint, campaign, ac); m != nil {
+		return m, err
 	}
 
 	// fill up bins
 	bins := make(map[string]interface{})
 	bins["version"] = v.String()
 	bins["stage"] = initStage
-	bins["signal_type"] = signalType
+	bins["signal_order"] = signalOrder
+	bins["concatenator"] = concatenator
 
 	// create model and fill up metadata
 	for k, v := range bins {
@@ -74,9 +76,10 @@ func NewModel(publicationPoint, campaign, signalType string, ac *db.AerospikeCli
 	return &Model{
 		PublicationPoint: publicationPoint,
 		Campaign:         campaign,
-		SignalType:       signalType,
+		SignalOrder:      signalOrder,
 		Stage:            initStage,
 		Version:          v,
+		Concatenator:     concatenator,
 	}, nil
 }
 
@@ -99,9 +102,10 @@ func GetExistingModel(publicationPoint, campaign string, ac *db.AerospikeClient)
 	return &Model{
 		PublicationPoint: publicationPoint,
 		Campaign:         campaign,
-		SignalType:       m.Bins["signal_type"].(string),
+		SignalOrder:      utils.ConvertInterfaceToList(m.Bins["signal_order"]),
 		Stage:            StageType(stg),
 		Version:          v,
+		Concatenator:     m.Bins["concatenator"].(string),
 	}, nil
 }
 
@@ -183,11 +187,11 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 	return nil
 }
 
-// UpdateSignalType triggers a change in the way the signals are stored
-// NOTE: only STAGED models can have a different type of signalType
+// UpdateSignalOrder triggers a change in the way the signals are stored
+// NOTE: only STAGED models can have a different type of signalOrder
 //       This triggers a deletion of the data because there can be inconsistencies
 // Version: the patch value is bumped up
-func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) error {
+func (m *Model) UpdateSignalOrder(signalOrder []string, ac *db.AerospikeClient) error {
 	if m.IsPublished() {
 		return errors.New("cannot change signal when model is published")
 	}
@@ -199,11 +203,11 @@ func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) erro
 	}
 
 	// change signalType
-	m.SignalType = signalType
+	m.SignalOrder = signalOrder
 	m.Version.IncPatch()
 
-	// store model signaltype
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeySignalType, m.SignalType); err != nil {
+	// store model signalOrder
+	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeySignalOrder, m.SignalOrder); err != nil {
 		return err
 	}
 
@@ -218,24 +222,6 @@ func (m *Model) UpdateSignalType(signalType string, ac *db.AerospikeClient) erro
 // ComposeSetName returns a string with the formatted value of the key we store in Aerospike
 func (m *Model) ComposeSetName() string {
 	return fmt.Sprintf(setNameComposition, m.PublicationPoint, m.Campaign)
-}
-
-// ComposeSignalKey returns the actual key composition given a list of signals' values based on the model
-func (m *Model) ComposeSignalKey(signals map[string]string, separator string) string {
-	signalsList := strings.Split(m.SignalType, separator)
-
-	// split and compose key
-	var kb strings.Builder
-	for _, sKey := range signalsList {
-		sVal := signals[sKey]
-
-		kb.WriteString(sVal)
-		kb.WriteString("#")
-	}
-
-	// remove last occurrence of #
-	key := strings.TrimSuffix(kb.String(), "#")
-	return key
 }
 
 // IsStaged determines if the model is in STAGED mode

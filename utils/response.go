@@ -1,9 +1,6 @@
 package utils
 
 import (
-	"encoding/json"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,15 +19,5 @@ func ResponseError(c *gin.Context, status int, err error) {
 
 // Response will return a response for the payload passed as argument
 func Response(c *gin.Context, code int, payload interface{}) {
-	b, err := json.Marshal(payload)
-	if err != nil {
-		ResponseError(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	r := string(b)
-
-	// set the header to format the response to json
-	c.Header("Content-Type", "application/json; charset=utf-8")
-	c.String(code, r)
+	c.JSON(code, payload)
 }

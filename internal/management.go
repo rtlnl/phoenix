@@ -3,10 +3,13 @@ package internal
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/rtlnl/data-personalization-api/models"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/go-playground/validator.v9"
+
 	"github.com/rtlnl/data-personalization-api/pkg/db"
 	"github.com/rtlnl/data-personalization-api/utils"
 )
@@ -15,13 +18,50 @@ import (
 type ManagementModelRequest struct {
 	PublicationPoint string   `json:"publicationPoint" description:"publication point name for the model" binding:"required"`
 	Campaign         string   `json:"campaign" description:"campaign name for the model" binding:"required"`
-	Signals          []string `json:"signals" description:"list of signals name" binding:"required"`
-	SignalOrder      string   `json:"signalOrder" description:"signal order definition" binding:"required"`
+	SignalOrder      []string `json:"signalOrder" description:"list of ordered signals" binding:"required"`
+	Concatenator     string   `json:"concatenator" description:"character used as concatenator for SignalOrder {'|', '#', '_', '-'}"`
 }
 
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
 type ManagementModelResponse struct {
-	Message string `json:"message" description:"summary of the action just taken"`
+	Model   *models.Model `json:"model" description:"model object that is being returned to the client"`
+	Message string        `json:"message" description:"summary of the action just taken"`
+}
+
+var (
+	concatenatorList = []string{"|", "#", "_", "-"}
+	validate         *validator.Validate
+)
+
+// ManagementModelRequestStructureValidation validates structure and content
+func ManagementModelRequestStructureValidation(sl validator.StructLevel) {
+	request := sl.Current().Interface().(ManagementModelRequest)
+
+	// Enforces the need of a separator when more than one element
+	if len(request.SignalOrder) > 1 && !utils.StringInSlice(request.Concatenator, concatenatorList) {
+		sl.ReportError(request.Concatenator, "concatenator", "", "wrongConcatenator", "")
+	} else if len(request.SignalOrder) == 1 && len(request.Concatenator) > 0 {
+		sl.ReportError(request.Concatenator, "concatenator", "", "noConcatenatorNeeded", "")
+	}
+}
+
+// ManagementModelRequestValidation validates that there are no errors in the ManagementModelRequest interface
+func ManagementModelRequestValidation(request *ManagementModelRequest) error {
+	validate = validator.New()
+	validate.RegisterStructValidation(ManagementModelRequestStructureValidation, ManagementModelRequest{})
+
+	return validate.Struct(request)
+}
+
+// ValidationConcatenationErrorMsg customized error message for the validation
+func ValidationConcatenationErrorMsg(err error) error {
+	switch {
+	case strings.Contains(err.Error(), "wrongConcatenator"):
+		err = errors.New("for two or more signalOrder, a concatenator character from this list is mandatory: [" + strings.Join(concatenatorList, ", ") + "]")
+	case strings.Contains(err.Error(), "noConcatenatorNeeded"):
+		err = errors.New("for one signalOrder no concatenator character is required")
+	}
+	return err
 }
 
 // GetModel returns the model's information from the given parameters in input
@@ -54,17 +94,23 @@ func CreateModel(c *gin.Context) {
 
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
 		return
 	}
 
-	_, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.SignalOrder, ac)
+	if err := ManagementModelRequestValidation(&mm); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
+		return
+	}
+
+	m, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.Concatenator, mm.SignalOrder, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return
 	}
 
 	utils.Response(c, http.StatusCreated, &ManagementModelResponse{
+		Model:   m,
 		Message: "model created",
 	})
 }
@@ -76,6 +122,11 @@ func PublishModel(c *gin.Context) {
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := ManagementModelRequestValidation(&mm); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
 		return
 	}
 
@@ -91,6 +142,7 @@ func PublishModel(c *gin.Context) {
 	}
 
 	utils.Response(c, http.StatusOK, &ManagementModelResponse{
+		Model:   m,
 		Message: "model published",
 	})
 }
@@ -102,6 +154,11 @@ func StageModel(c *gin.Context) {
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := ManagementModelRequestValidation(&mm); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
 		return
 	}
 
@@ -117,6 +174,7 @@ func StageModel(c *gin.Context) {
 	}
 
 	utils.Response(c, http.StatusOK, &ManagementModelResponse{
+		Model:   m,
 		Message: "model staged",
 	})
 }
@@ -128,6 +186,11 @@ func EmptyModel(c *gin.Context) {
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := ManagementModelRequestValidation(&mm); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
 		return
 	}
 
@@ -144,6 +207,7 @@ func EmptyModel(c *gin.Context) {
 	}
 
 	utils.Response(c, http.StatusOK, &ManagementModelResponse{
+		Model:   m,
 		Message: "model empty",
 	})
 }
