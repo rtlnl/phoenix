@@ -1,4 +1,4 @@
-# Data Personalization APIs
+# Phoenix project
 
 The Project is divided in two main parts:
 
