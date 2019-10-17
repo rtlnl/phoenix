@@ -612,17 +612,6 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"model with publicationPoint pasta and campaign pizza not found\"}", string(b))
 }
 
-func TestStripS3URL(t *testing.T) {
-	l := "s3://test-bucket/foo/bar/hello.csv"
-	expectedBucket := "test-bucket"
-	expectedKey := "foo/bar/hello.csv"
-
-	bucket, key := StripS3URL(l)
-
-	assert.Equal(t, expectedBucket, bucket)
-	assert.Equal(t, expectedKey, key)
-}
-
 // CreateTestS3Bucket returns a bucket and defer a drop
 func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session) func() {
 	s := db.NewS3Client(bucket, sess)
@@ -782,15 +771,15 @@ func TestCorrectSignalFormat(t *testing.T) {
 
 	m, _ := models.GetExistingModel("test", "fancy", ac)
 
-	assert.Equal(t, true, correctSignalFormat(m, "11_22"))
+	assert.Equal(t, true, m.CorrectSignalFormat("11_22"))
 
-	assert.Equal(t, false, correctSignalFormat(m, "11_33_33_33"))
-	assert.Equal(t, false, correctSignalFormat(m, "11"))
-	assert.Equal(t, false, correctSignalFormat(m, "11_"))
-	assert.Equal(t, false, correctSignalFormat(m, "_11_"))
-	assert.Equal(t, false, correctSignalFormat(m, "_11"))
-	assert.Equal(t, false, correctSignalFormat(m, "_"))
-	assert.Equal(t, false, correctSignalFormat(m, "11____"))
-	assert.Equal(t, false, correctSignalFormat(m, "____11"))
-	assert.Equal(t, false, correctSignalFormat(m, ""))
+	assert.Equal(t, false, m.CorrectSignalFormat("11_33_33_33"))
+	assert.Equal(t, false, m.CorrectSignalFormat("11"))
+	assert.Equal(t, false, m.CorrectSignalFormat("11_"))
+	assert.Equal(t, false, m.CorrectSignalFormat("_11_"))
+	assert.Equal(t, false, m.CorrectSignalFormat("_11"))
+	assert.Equal(t, false, m.CorrectSignalFormat("_"))
+	assert.Equal(t, false, m.CorrectSignalFormat("11____"))
+	assert.Equal(t, false, m.CorrectSignalFormat("____11"))
+	assert.Equal(t, false, m.CorrectSignalFormat(""))
 }
