@@ -20,6 +20,7 @@ type S3Client struct {
 	Bucket  string
 }
 
+// S3Bucket holds the information of the bucket
 type S3Bucket struct {
 	Bucket string
 	ACL    string
@@ -34,8 +35,6 @@ func NewS3Client(bucket *S3Bucket, sess *session.Session) *S3Client {
 }
 
 // GetObject returns the specified object-key from the selected bucket
-// TODO: We need to be smarted here! Currently we download the whole file.
-// Better if we manage to separate it in different chunks
 func (c *S3Client) GetObject(key string) (*io.ReadCloser, error) {
 	o, err := c.Service.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(c.Bucket),

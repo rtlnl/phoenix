@@ -19,7 +19,7 @@ type ManagementModelRequest struct {
 	PublicationPoint string   `json:"publicationPoint" description:"publication point name for the model" binding:"required"`
 	Campaign         string   `json:"campaign" description:"campaign name for the model" binding:"required"`
 	SignalOrder      []string `json:"signalOrder" description:"list of ordered signals" binding:"required"`
-	Concatenator     string   `json:"concatenator" description:"character used as concatenator for SignalOrder {"|", "#", "_", "-"}"`
+	Concatenator     string   `json:"concatenator" description:"character used as concatenator for SignalOrder {'|', '#', '_', '-'}"`
 }
 
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
@@ -61,7 +61,6 @@ func ValidationConcatenationErrorMsg(err error) error {
 	case strings.Contains(err.Error(), "noConcatenatorNeeded"):
 		err = errors.New("for one signalOrder no concatenator character is required")
 	}
-
 	return err
 }
 

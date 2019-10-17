@@ -5,8 +5,8 @@ package models
 type ItemScore map[string]string
 
 // LineError contains the line number as key and the error message as string
-// Example: {1:"error signal format",2:"error bananas too small"}
-type LineError map[int]string
+// Example: {"1":"error signal format",2:"error bananas too small"}
+type LineError map[string]string
 
 // RecordQueue is the object used to upload the data when coming from S3 with channels
 type RecordQueue struct {

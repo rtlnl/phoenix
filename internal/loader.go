@@ -194,14 +194,11 @@ type BatchResponse struct {
 	ErrorRecords  DataUploadedError
 }
 
-// Reason explains the reason why a line failed
-type Reason map[string]string
-
 // BatchStatusResponseError is the response paylod when the batch upload failed
 type BatchStatusResponseError struct {
-	Status              string   `json:"status" description:"define the status of the bulk upload when importing data from a file"`
-	NumberOfLinesFailed string   `json:"numberoflinesfailed" description:"total count of failed lines"`
-	Line                []Reason `json:"line" description:"shows the line error and the reason, i.e. {\"line\": 100, \"reason\": \"validation message\"}"`
+	Status              string             `json:"status" description:"define the status of the bulk upload when importing data from a file"`
+	NumberOfLinesFailed string             `json:"numberoflinesfailed" description:"total count of failed lines"`
+	Line                []models.LineError `json:"line" description:"shows the line error and the reason, i.e. {'100', 'reason': 'validation message'}"`
 }
 
 // BatchBulkResponse is the object that represents the payload of the response when uploading from S3
@@ -211,8 +208,8 @@ type BatchBulkResponse struct {
 
 // DataUploadedError is the response payload when the batch upload failed
 type DataUploadedError struct {
-	NumberOfLinesFailed string   `json:"numberoflinesfailed" description:"total count of lines that were not uploaded"`
-	Errors              []Reason `json:"error" description:"errors found"`
+	NumberOfLinesFailed string             `json:"numberoflinesfailed" description:"total count of lines that were not uploaded"`
+	Errors              []models.LineError `json:"error" description:"errors found"`
 }
 
 // Batch will upload in batch a set to the database
@@ -258,7 +255,7 @@ func Batch(c *gin.Context) {
 
 	// upload data from S3 file
 	bucket, key := StripS3URL(br.DataLocation)
-	s := db.NewS3Client(&db.S3Bucket{bucket, ""}, sess)
+	s := db.NewS3Client(&db.S3Bucket{Bucket: bucket, ACL: ""}, sess)
 
 	// check if file exists
 	if s.ExistsObject(key) == false {
@@ -294,9 +291,7 @@ func StripS3URL(URL string) (string, string) {
 func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model) (*BatchResponse, error) {
 	var ln, ne int = 0, 0
 	var vl bool = false
-	var rs Reason
-	var sl []string
-	var rssl []Reason
+	var lineErrors []models.LineError
 
 	setName := m.ComposeSetName()
 
@@ -312,10 +307,9 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model)
 			// validate if required
 			if vl && !correctSignalFormat(m, sig) {
 				ne++
-				rs = make(Reason)
-				rs["reason"] = "wrong format, the expected signal format must be " + strings.Join(m.SignalOrder, m.Concatenator)
 				if ln <= maxErrorLines {
-					sl = append(sl, strconv.Itoa(ln))
+					msg := fmt.Sprintf("wrong format, the expected signal format must be %s", strings.Join(m.SignalOrder, m.Concatenator))
+					lineErrors = append(lineErrors, models.LineError{strconv.Itoa(ln): msg})
 				}
 				continue
 			}
@@ -325,15 +319,15 @@ func uploadDataDirectly(ac *db.AerospikeClient, bd []BatchData, m *models.Model)
 				return nil, err
 			}
 		}
-
-		// compose error message
-		if rs["reason"] != "" {
-			rs["lines"] = strings.Join(sl, " ,")
-			rssl = append(rssl, rs)
-		}
 	}
 
-	return &BatchResponse{NumberOfLines: strconv.Itoa(ln), ErrorRecords: DataUploadedError{Errors: rssl, NumberOfLinesFailed: strconv.Itoa(ne)}}, nil
+	return &BatchResponse{
+		NumberOfLines: strconv.Itoa(ln),
+		ErrorRecords: DataUploadedError{
+			Errors:              lineErrors,
+			NumberOfLinesFailed: strconv.Itoa(ne),
+		},
+	}, nil
 }
 
 // BulkStatus defines the status of the batch upload from S3
@@ -350,51 +344,60 @@ const (
 	BulkFailed = "FAILED"
 )
 
+var (
+	// MaxNumberOfWorkers is the max number of concurrent goroutines for uploading data
+	MaxNumberOfWorkers = runtime.NumCPU()
+)
+
 func uploadDataFromFile(ac *db.AerospikeClient, file *io.ReadCloser, m *models.Model, batchID string) {
 	start := time.Now()
 
 	// write to Aerospike it's uploading
 	if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkUploading); err != nil {
-		// if this fails than since we cannot return the request to the user
-		// we need to restart the application
 		log.Panic().Msg(err.Error())
 	}
 
 	setName := m.ComposeSetName()
 	rd := bufio.NewReader(*file)
 	rs := make(chan *models.RecordQueue)
-	le := make(chan models.LineError, maxErrorLines)
+	le := make(chan models.LineError)
 
 	// create sync group
 	wg := &sync.WaitGroup{}
 
 	// fillup the channel with lines
-	go iterateFile(rd, setName, m, rs, le)
-	// iterateFile(rd, setName, m, rs, le)
+	go func() {
+		iterateFile(rd, setName, m, rs, le)
+		close(rs)
+		close(le)
+	}()
+
+	// store eventual errors
+	go func() {
+		if storeErrors(ac, batchID, le) > 0 {
+			// write to Aerospike it partially uploded the data
+			if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkPartialUpload); err != nil {
+				log.Panic().Msg(err.Error())
+			}
+		} else {
+			// write to Aerospike it succeeded
+			if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkSucceeded); err != nil {
+				log.Panic().Msg(err.Error())
+			}
+		}
+	}()
 
 	// consumes all the lines in parallel based on number of cpus
-	wg.Add(runtime.NumCPU())
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go uploadRecord(ac, batchID, rs, wg)
-		// uploadRecord(ac, batchID, rs, wg)
+	wg.Add(MaxNumberOfWorkers)
+	for i := 0; i < MaxNumberOfWorkers; i++ {
+		go func() {
+			uploadRecord(ac, batchID, rs)
+			wg.Done()
+		}()
 	}
 
 	// wait until done
 	wg.Wait()
-
-	// store eventual errors
-	if len(le) > 0 {
-		storeErrors(ac, batchID, le)
-		// write to Aerospike it partially uploded the data
-		if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkPartialUpload); err != nil {
-			log.Panic().Msg(err.Error())
-		}
-	} else {
-		// write to Aerospike it succeeded
-		if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkSucceeded); err != nil {
-			log.Panic().Msg(err.Error())
-		}
-	}
 
 	elapsed := time.Since(start)
 	log.Info().Msgf("Uploading took %s", elapsed)
@@ -409,11 +412,6 @@ func iterateFile(rd *bufio.Reader, setName string, m *models.Model, rs chan<- *m
 		vl = true
 	}
 
-	// close channel at the end when there are no more lines
-	// or we reached the max number of errors
-	defer close(rs)
-	defer close(le)
-
 	eof := false
 	for !eof {
 		line, err := rd.ReadString('\n')
@@ -427,15 +425,20 @@ func iterateFile(rd *bufio.Reader, setName string, m *models.Model, rs chan<- *m
 		// marshal the object
 		var entry models.SingleEntry
 		if err := json.Unmarshal([]byte(l), &entry); err != nil {
-			// TODO: handle failed line with error channel
-			log.Warn().Msg(err.Error())
+			le <- models.LineError{
+				"lineRaw": line,
+				"message": err.Error(),
+			}
 			continue
 		}
 
 		// validate signal format
 		ln++
 		if vl && !correctSignalFormat(m, entry.SignalID) {
-			le <- models.LineError{ln: "signal not formatted correctly"}
+			le <- models.LineError{
+				"line":    strconv.Itoa(ln),
+				"message": "signal not formatted correctly",
+			}
 			continue
 		}
 
@@ -444,12 +447,9 @@ func iterateFile(rd *bufio.Reader, setName string, m *models.Model, rs chan<- *m
 	}
 }
 
-func uploadRecord(ac *db.AerospikeClient, batchID string, rs chan *models.RecordQueue, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func uploadRecord(ac *db.AerospikeClient, batchID string, rs chan *models.RecordQueue) {
 	// upload record to aerospike when it arrives
 	for r := range rs {
-		fmt.Println(r)
 		if err := ac.AddOne(r.SetName, r.Entry.SignalID, binKey, r.Entry.Recommended); err != nil {
 			// write to Aerospike it failed
 			if err := ac.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkFailed); err != nil {
@@ -462,7 +462,7 @@ func uploadRecord(ac *db.AerospikeClient, batchID string, rs chan *models.Record
 	}
 }
 
-func storeErrors(ac *db.AerospikeClient, batchID string, le chan models.LineError) {
+func storeErrors(ac *db.AerospikeClient, batchID string, le chan models.LineError) int {
 	allErrors := []models.LineError{}
 	i := 0
 	for lineError := range le {
@@ -477,6 +477,7 @@ func storeErrors(ac *db.AerospikeClient, batchID string, le chan models.LineErro
 	if err := ac.AddOne(bulkStatusSetName, batchID, lineBinError, allErrors); err != nil {
 		log.Panic().Msg(err.Error())
 	}
+	return i
 }
 
 // BatchStatusResponse is the response payload for getting the status of the bulk upload from S3
@@ -519,7 +520,7 @@ func convertLineError(bins interface{}) []models.LineError {
 		b := bin.(map[interface{}]interface{})
 		le := make(models.LineError)
 		for k, v := range b {
-			it := k.(int)
+			it := fmt.Sprintf("%v", k)
 			score := fmt.Sprintf("%v", v)
 			le[it] = score
 		}

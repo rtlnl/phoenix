@@ -468,7 +468,7 @@ func TestBatchUploadDirectWithErrors(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"numberoflines\":\"2\",\"ErrorRecords\":{\"numberoflinesfailed\":\"2\",\"error\":[{\"lines\":\"1 ,2\",\"reason\":\"wrong format, the expected signal format must be articleId_userId\"}]}}", string(b))
+	assert.Equal(t, "{\"numberoflines\":\"2\",\"ErrorRecords\":{\"numberoflinesfailed\":\"2\",\"error\":[{\"1\":\"wrong format, the expected signal format must be articleId_userId\"},{\"2\":\"wrong format, the expected signal format must be articleId_userId\"}]}}", string(b))
 }
 
 func TestBatchUploadDirectNoErrors(t *testing.T) {
