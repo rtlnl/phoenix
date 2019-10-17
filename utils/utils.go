@@ -1,6 +1,10 @@
 package utils
 
-import "os"
+import (
+	"fmt"
+	"os"
+	"strings"
+)
 
 // GetEnv will set an env variable with a default if the variable is not
 // found in the system. Used for testing purposes
@@ -11,7 +15,7 @@ func GetEnv(key, fallback string) string {
 	return fallback
 }
 
-// Checks if a string is found in a slice
+// StringInSlice checks if a string is found in a slice
 func StringInSlice(str string, list []string) bool {
 	for _, v := range list {
 		if v == str {
@@ -21,8 +25,8 @@ func StringInSlice(str string, list []string) bool {
 	return false
 }
 
-// The objects coming from Aerospike have type []interface{}. This function converts
-// the Bins in the appropriate type for consistency
+// ConvertInterfaceToList converts the objects coming from Aerospike have type []interface{}.
+// This function converts the Bins in the appropriate type for consistency
 func ConvertInterfaceToList(bins interface{}) []string {
 	var list []string
 	newBins := bins.([]interface{})
@@ -30,4 +34,12 @@ func ConvertInterfaceToList(bins interface{}) []string {
 		list = append(list, bin.(string))
 	}
 	return list
+}
+
+// StripS3URL returns the bucket and the key from a s3 url location
+func StripS3URL(URL string) (string, string) {
+	bucketTmp := strings.Replace(URL, "s3://", "", -1)
+	bucket := bucketTmp[:strings.IndexByte(bucketTmp, '/')]
+	key := strings.TrimPrefix(URL, fmt.Sprintf("s3://%s/", bucket))
+	return bucket, key
 }

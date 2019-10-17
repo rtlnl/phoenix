@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/Masterminds/semver"
 	"github.com/rtlnl/data-personalization-api/pkg/db"
@@ -232,4 +233,21 @@ func (m *Model) IsStaged() bool {
 // IsPublished determines if the model is in PUBLISHED mode
 func (m *Model) IsPublished() bool {
 	return m.Stage == PUBLISHED
+}
+
+// RequireSignalFormat checks if it is required to check the signal format
+func (m *Model) RequireSignalFormat() bool {
+	if len(m.SignalOrder) > 1 && m.Concatenator != "" {
+		return true
+	}
+	return false
+}
+
+// CorrectSignalFormat checks that the signal format is correct
+func (m *Model) CorrectSignalFormat(s string) bool {
+	res := strings.FieldsFunc(s, func(c rune) bool {
+		r := []rune(m.Concatenator)
+		return c == r[0]
+	})
+	return len(m.SignalOrder) == len(res)
 }
