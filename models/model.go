@@ -37,7 +37,7 @@ type Model struct {
 	Stage            StageType       `json:"stage" description:"defines if the data is available to the clients or not"`
 	Version          *semver.Version `json:"version" description:"internal version of the model. Should follow this pattern Major.Minor"`
 	SignalOrder      []string        `json:"signalOrder" description:"list of ordered signals"`
-	Concatenator     string          `json:"concatenator" description:"character used as concatenator for SignalOrder {"|", "#", "_", "-"}"`
+	Concatenator     string          `json:"concatenator" description:"character used as concatenator for SignalOrder {'|','#','_','-'}"`
 }
 
 // NewModel is invoked when a new model is created in the database.
