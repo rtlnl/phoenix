@@ -62,6 +62,7 @@ func tearUp() {
 	mm.POST("", CreateModel)
 	mm.DELETE("", EmptyModel)
 	mm.POST("/publish", PublishModel)
+	mm.POST("/stage", StageModel)
 }
 
 func tearDown() {

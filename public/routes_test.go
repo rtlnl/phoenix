@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -117,7 +118,10 @@ func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, cam
 		}
 	}
 
-	return func() { ac.TruncateSet(publicationPoint) }
+	return func() {
+		sn := fmt.Sprintf("%s#%s", publicationPoint, campaign)
+		ac.TruncateSet(sn)
+	}
 }
 
 // MockRequest will send a request to the server. Used for testing purposes

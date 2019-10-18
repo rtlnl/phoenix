@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/davecgh/go-spew/spew"
 	paws "github.com/rtlnl/data-personalization-api/pkg/aws"
 
 	"github.com/rtlnl/data-personalization-api/models"
@@ -623,7 +622,6 @@ func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session
 }
 
 func TestBatchUploadS3(t *testing.T) {
-	t.SkipNow()
 	var (
 		s3TestEndpoint string = "localhost:4572"
 		s3TestBucket   string = "test1"
@@ -647,25 +645,21 @@ func TestBatchUploadS3(t *testing.T) {
 	defer drop()
 
 	if err := s.UploadS3File(fileTest, bucket); err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
 	rb, err := createBatchRequestLocation("rtl_nieuws", "bread", "collaborative", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
 	_, brsBody, err := MockRequest(http.MethodPost, "/batch", rb)
 	if err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
 	var brs BatchBulkResponse
 	if err := json.Unmarshal(brsBody.Bytes(), &brs); err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
@@ -678,12 +672,10 @@ func TestBatchUploadS3(t *testing.T) {
 	var srs BatchStatusResponse
 	srsCode, srsBody, err := MockRequest(http.MethodGet, "/batch/status/"+brs.BatchID, nil)
 	if err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
 	if err := json.Unmarshal(srsBody.Bytes(), &srs); err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
@@ -695,13 +687,11 @@ func TestBatchUploadS3(t *testing.T) {
 	case BulkUploading:
 	case BulkFailed:
 	default:
-		spew.Dump("here in the switch")
 		t.Fail()
 	}
 }
 
 func TestBadBatchUploadS3(t *testing.T) {
-	t.SkipNow()
 	var (
 		s3TestEndpoint string = "localhost:4572"
 		s3TestBucket   string = "test1"
@@ -725,25 +715,21 @@ func TestBadBatchUploadS3(t *testing.T) {
 	defer drop()
 
 	if err := s.UploadS3File(fileTest, bucket); err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
 	rb, err := createBatchRequestLocation("rtl_nieuws", "bread", "collaborative", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
 	_, brsBody, err := MockRequest(http.MethodPost, "/batch", rb)
 	if err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
 	var brs BatchBulkResponse
 	if err := json.Unmarshal(brsBody.Bytes(), &brs); err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
@@ -756,12 +742,10 @@ func TestBadBatchUploadS3(t *testing.T) {
 	var srs BatchStatusResponse
 	srsCode, srsBody, err := MockRequest(http.MethodGet, "/batch/status/"+brs.BatchID, nil)
 	if err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
 	if err := json.Unmarshal(srsBody.Bytes(), &srs); err != nil {
-		spew.Dump(err)
 		t.Fail()
 	}
 
@@ -774,7 +758,6 @@ func TestBadBatchUploadS3(t *testing.T) {
 	case BulkUploading:
 	case BulkFailed:
 	default:
-		spew.Dump("here in this awesome switch")
 		t.Fail()
 	}
 }

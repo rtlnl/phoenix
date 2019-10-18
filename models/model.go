@@ -121,7 +121,7 @@ func GetExistingModel(publicationPoint, campaign, name string, ac *db.AerospikeC
 // Version: the major value is bumped up
 func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 	if m.IsPublished() {
-		return errors.New("model is already published")
+		return errors.New("model is already PUBLISHED")
 	}
 
 	// set the published stage

@@ -228,7 +228,7 @@ func TestPublishModelAlreadyPublished(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"model is already published\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model is already PUBLISHED\"}", string(b))
 }
 
 func TestPublishModelFailValidation(t *testing.T) {
@@ -271,6 +271,54 @@ func TestPublishModelNotExist(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, code)
 	assert.Equal(t, "{\"message\":\"key collaborative does not exist\"}", string(b))
+}
+
+func TestStageModelNotExist(t *testing.T) {
+	r, err := createManagementModelRequest("salami", "pepperoni", "collaborative", "", []string{"pineappleId"})
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/management/model/stage", r)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusNotFound, code)
+	assert.Equal(t, "{\"message\":\"key collaborative does not exist\"}", string(b))
+}
+
+func TestStageModelAlreadyStaged(t *testing.T) {
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model
+	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "grapes", "", []string{"appleId"}, false)
+	defer truncate()
+
+	r, err := createManagementModelRequest("kiwi", "oranges", "grapes", "", []string{"appleId"})
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/management/model/stage", r)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "{\"message\":\"model is already STAGED\"}", string(b))
 }
 
 func TestConcatenatorFailValidation(t *testing.T) {
