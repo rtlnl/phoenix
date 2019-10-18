@@ -18,6 +18,7 @@ import (
 type ManagementModelRequest struct {
 	PublicationPoint string   `json:"publicationPoint" description:"publication point name for the model" binding:"required"`
 	Campaign         string   `json:"campaign" description:"campaign name for the model" binding:"required"`
+	Name             string   `json:"name" description:"name of the model" binding:"required"`
 	SignalOrder      []string `json:"signalOrder" description:"list of ordered signals" binding:"required"`
 	Concatenator     string   `json:"concatenator" description:"character used as concatenator for SignalOrder {'|', '#', '_', '-'}"`
 }
@@ -71,15 +72,16 @@ func GetModel(c *gin.Context) {
 	// read from params in url
 	pp := c.Query("publicationPoint")
 	cm := c.Query("campaign")
+	mn := c.Query("name")
 
 	// if either is empty then
-	if pp == "" || cm == "" {
+	if pp == "" || cm == "" || mn == "" {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("missing parameters in url for searching the model"))
 		return
 	}
 
 	// fetch model
-	m, err := models.GetExistingModel(pp, cm, ac)
+	m, err := models.GetExistingModel(pp, cm, mn, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -103,7 +105,7 @@ func CreateModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.Concatenator, mm.SignalOrder, ac)
+	m, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.Concatenator, mm.Name, mm.SignalOrder, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return
@@ -130,7 +132,7 @@ func PublishModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, ac)
+	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, mm.Name, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -162,7 +164,7 @@ func StageModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, ac)
+	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, mm.Name, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -194,7 +196,7 @@ func EmptyModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, ac)
+	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, mm.Name, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return

@@ -11,13 +11,15 @@ import (
 )
 
 const (
-	setNameComposition = "%s#%s"
-	initVersion        = "0.1.0"
-	initStage          = STAGED
-	binKeyStage        = "stage"
-	binKeyVersion      = "version"
-	binKeySignalOrder  = "signal_order"
-	binKeyConcatenator = ""
+	setNameMetadataComposition = "%s#%s"    // used for retrieving the metadata of the model
+	setNameModelComposition    = "%s#%s#%s" // used for retrieving the model's data
+	initVersion                = "0.1.0"
+	initStage                  = STAGED
+	binKeyStage                = "stage"
+	binKeyVersion              = "version"
+	binKeySignalOrder          = "signal_order"
+	binKeyModelName            = "name"
+	binKeyConcatenator         = "concatenator"
 )
 
 // StageType defines if the model is available for the recommendations or not
@@ -34,6 +36,7 @@ const (
 type Model struct {
 	PublicationPoint string          `json:"publicationPoint" description:"name of the table where the data will live"`
 	Campaign         string          `json:"campaign" description:"name of the campaign that will be used"`
+	Name             string          `json:"name" description:"name of the model that will be used"`
 	Stage            StageType       `json:"stage" description:"defines if the data is available to the clients or not"`
 	Version          *semver.Version `json:"version" description:"internal version of the model. Should follow this pattern Major.Minor"`
 	SignalOrder      []string        `json:"signalOrder" description:"list of ordered signals"`
@@ -44,32 +47,33 @@ type Model struct {
 // Every new model starts with STAGED type and Version 0.1
 //
 // Definition of the table in Aerospike for models
-// setName --> publicationPoint
-// key     --> campaign
+// setName --> PublicationPoint#Campaign
+// key     --> Name
 // bins    --> Version = 0.1
 //             Stage = STAGED
 //             SignalOrder = signalOrder
-func NewModel(publicationPoint, campaign, concatenator string, signalOrder []string, ac *db.AerospikeClient) (*Model, error) {
+func NewModel(publicationPoint, campaign, name, concatenator string, signalOrder []string, ac *db.AerospikeClient) (*Model, error) {
 	v, err := semver.NewVersion(initVersion)
 	if err != nil {
 		return nil, err
 	}
 
 	// does model exists already then return it to the client
-	if m, err := GetExistingModel(publicationPoint, campaign, ac); m != nil {
+	if m, err := GetExistingModel(publicationPoint, campaign, name, ac); m != nil {
 		return m, err
 	}
 
 	// fill up bins
 	bins := make(map[string]interface{})
-	bins["version"] = v.String()
-	bins["stage"] = initStage
-	bins["signal_order"] = signalOrder
-	bins["concatenator"] = concatenator
+	bins[binKeyVersion] = v.String()
+	bins[binKeyStage] = initStage
+	bins[binKeySignalOrder] = signalOrder
+	bins[binKeyConcatenator] = concatenator
 
 	// create model and fill up metadata
+	metadataSetName := fmt.Sprintf(setNameMetadataComposition, publicationPoint, campaign)
 	for k, v := range bins {
-		if err := ac.AddOne(publicationPoint, campaign, k, v); err != nil {
+		if err := ac.AddOne(metadataSetName, name, k, v); err != nil {
 			return nil, err
 		}
 	}
@@ -77,6 +81,7 @@ func NewModel(publicationPoint, campaign, concatenator string, signalOrder []str
 	return &Model{
 		PublicationPoint: publicationPoint,
 		Campaign:         campaign,
+		Name:             name,
 		SignalOrder:      signalOrder,
 		Stage:            initStage,
 		Version:          v,
@@ -85,28 +90,30 @@ func NewModel(publicationPoint, campaign, concatenator string, signalOrder []str
 }
 
 // GetExistingModel returns an already existing model to the caller
-func GetExistingModel(publicationPoint, campaign string, ac *db.AerospikeClient) (*Model, error) {
-	m, err := ac.GetOne(publicationPoint, campaign)
+func GetExistingModel(publicationPoint, campaign, name string, ac *db.AerospikeClient) (*Model, error) {
+	metadataSetName := fmt.Sprintf(setNameMetadataComposition, publicationPoint, campaign)
+	m, err := ac.GetOne(metadataSetName, name)
 	if err != nil {
 		return nil, err
 	}
 
 	// convert version back
-	v, err := semver.NewVersion(m.Bins["version"].(string))
+	v, err := semver.NewVersion(m.Bins[binKeyVersion].(string))
 	if err != nil {
 		return nil, err
 	}
 
 	// read string and convert to enum
-	stg := m.Bins["stage"].(string)
+	stg := m.Bins[binKeyStage].(string)
 
 	return &Model{
 		PublicationPoint: publicationPoint,
 		Campaign:         campaign,
-		SignalOrder:      utils.ConvertInterfaceToList(m.Bins["signal_order"]),
+		Name:             name,
+		SignalOrder:      utils.ConvertInterfaceToList(m.Bins[binKeySignalOrder]),
 		Stage:            StageType(stg),
 		Version:          v,
-		Concatenator:     m.Bins["concatenator"].(string),
+		Concatenator:     m.Bins[binKeyConcatenator].(string),
 	}, nil
 }
 
@@ -122,12 +129,13 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 	m.Version.IncMajor()
 
 	// store model stage
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyStage, m.Stage); err != nil {
+	metadataSetName := fmt.Sprintf(setNameMetadataComposition, m.PublicationPoint, m.Campaign)
+	if err := ac.AddOne(metadataSetName, m.Name, binKeyStage, m.Stage); err != nil {
 		return err
 	}
 
 	// store new version
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyVersion, m.Version.String()); err != nil {
+	if err := ac.AddOne(metadataSetName, m.Name, binKeyVersion, m.Version.String()); err != nil {
 		return err
 	}
 
@@ -147,12 +155,13 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 	m.Version.IncMinor()
 
 	// store model stage
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyStage, m.Stage); err != nil {
+	metadataSetName := fmt.Sprintf(setNameMetadataComposition, m.PublicationPoint, m.Campaign)
+	if err := ac.AddOne(metadataSetName, m.Name, binKeyStage, m.Stage); err != nil {
 		return err
 	}
 
 	// store new version
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyVersion, m.Version.String()); err != nil {
+	if err := ac.AddOne(metadataSetName, m.Name, binKeyVersion, m.Version.String()); err != nil {
 		return err
 	}
 
@@ -166,10 +175,10 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 		return errors.New("you cannot delete a model that is PUBLISHED. Change the stage to STAGED first")
 	}
 
-	sn := m.ComposeSetName()
+	modelSetName := m.ComposeSetName()
 	// delete the published data of the model
-	// Recommendations setName => publicationPoint#campaign#STAGED
-	if err := ac.TruncateSet(sn); err != nil {
+	// Recommendations setName => publicationPoint#campaign#name
+	if err := ac.TruncateSet(modelSetName); err != nil {
 		return err
 	}
 
@@ -181,7 +190,8 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 	m.Version = v
 
 	// store new version
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyVersion, m.Version.String()); err != nil {
+	metadataSetName := fmt.Sprintf(setNameMetadataComposition, m.PublicationPoint, m.Campaign)
+	if err := ac.AddOne(metadataSetName, m.Name, binKeyVersion, m.Version.String()); err != nil {
 		return err
 	}
 
@@ -198,8 +208,8 @@ func (m *Model) UpdateSignalOrder(signalOrder []string, ac *db.AerospikeClient) 
 	}
 
 	// truncate data
-	setName := m.ComposeSetName()
-	if err := ac.TruncateSet(setName); err != nil {
+	modelSetName := m.ComposeSetName()
+	if err := ac.TruncateSet(modelSetName); err != nil {
 		return err
 	}
 
@@ -208,12 +218,13 @@ func (m *Model) UpdateSignalOrder(signalOrder []string, ac *db.AerospikeClient) 
 	m.Version.IncPatch()
 
 	// store model signalOrder
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeySignalOrder, m.SignalOrder); err != nil {
+	metadataSetName := fmt.Sprintf(setNameMetadataComposition, m.PublicationPoint, m.Campaign)
+	if err := ac.AddOne(metadataSetName, m.Name, binKeySignalOrder, m.SignalOrder); err != nil {
 		return err
 	}
 
 	// store new version
-	if err := ac.AddOne(m.PublicationPoint, m.Campaign, binKeyVersion, m.Version.String()); err != nil {
+	if err := ac.AddOne(metadataSetName, m.Name, binKeyVersion, m.Version.String()); err != nil {
 		return err
 	}
 
@@ -222,7 +233,7 @@ func (m *Model) UpdateSignalOrder(signalOrder []string, ac *db.AerospikeClient) 
 
 // ComposeSetName returns a string with the formatted value of the key we store in Aerospike
 func (m *Model) ComposeSetName() string {
-	return fmt.Sprintf(setNameComposition, m.PublicationPoint, m.Campaign)
+	return fmt.Sprintf(setNameModelComposition, m.PublicationPoint, m.Campaign, m.Name)
 }
 
 // IsStaged determines if the model is in STAGED mode
