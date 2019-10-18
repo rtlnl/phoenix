@@ -38,6 +38,7 @@ type StreamingRequest struct {
 	Signal           string   `json:"signal" binding:"required"`
 	PublicationPoint string   `json:"publicationPoint" binding:"required"`
 	Campaign         string   `json:"campaign" binding:"required"`
+	ModelName        string   `json:"modelName" binding:"required"`
 	Recommendations  []string `json:"recommendations" binding:"required"`
 }
 
@@ -56,7 +57,7 @@ func CreateStreaming(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
+	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, sr.ModelName, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -94,7 +95,7 @@ func UpdateStreaming(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
+	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, sr.ModelName, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -129,7 +130,7 @@ func DeleteStreaming(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, ac)
+	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, sr.ModelName, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -155,8 +156,9 @@ func DeleteStreaming(c *gin.Context) {
 // BatchRequest is the object that represents the payload of the request for the batch endpoints
 // Conditions: Data takes precedence in case also DataLocation is specified
 type BatchRequest struct {
-	PublicationPoint string      `json:"publicationPoint"`
-	Campaign         string      `json:"campaign"`
+	PublicationPoint string      `json:"publicationPoint" binding:"required"`
+	Campaign         string      `json:"campaign" binding:"required"`
+	ModelName        string      `json:"modelName" binding:"required"`
 	Data             []BatchData `json:"data" description:"used for uploading some information directly from the request"`
 	DataLocation     string      `json:"dataLocation" description:"used for specifying where the data lives in S3"`
 }
@@ -200,7 +202,7 @@ func Batch(c *gin.Context) {
 	}
 
 	// retrieve the model
-	m, err := models.GetExistingModel(br.PublicationPoint, br.Campaign, ac)
+	m, err := models.GetExistingModel(br.PublicationPoint, br.Campaign, br.ModelName, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model with publicationPoint %s and campaign %s not found", br.PublicationPoint, br.Campaign))
 		return

@@ -1,14 +1,13 @@
 package internal
 
 import (
-	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -63,53 +62,11 @@ func tearUp() {
 	mm.POST("", CreateModel)
 	mm.DELETE("", EmptyModel)
 	mm.POST("/publish", PublishModel)
+	mm.POST("/stage", StageModel)
 }
 
 func tearDown() {
 	router = nil
-}
-
-func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelName string) func() {
-	f, err := os.OpenFile(testDataPath, os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-
-	sc := bufio.NewScanner(f)
-
-	var entry models.SingleEntry
-
-	i := 0
-	for sc.Scan() {
-		line := sc.Text() // GET the line string
-
-		// marshal the object
-		if err := json.Unmarshal([]byte(line), &entry); err != nil {
-			t.Fatal("fixtures contains the wrong type of json")
-		}
-
-		// need to break down the name of the model to fetch the actual object
-		// from aerospike
-		mn := strings.Split(modelName, "#")
-
-		// TODO: this is slow! Need to find a smarter way. it works fine with small fixtures files
-		m, err := models.GetExistingModel(mn[0], mn[1], ac)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		sn := m.ComposeSetName()
-		if err := ac.AddOne(sn, entry.SignalID, binKey, entry.Recommended); err != nil {
-			t.Fatal(err)
-		}
-
-		i++
-	}
-	if err := sc.Err(); err != nil {
-		t.Fatal(err)
-	}
-	return func() { ac.TruncateSet(modelName) }
 }
 
 // GetTestAerospikeClient returns the client used for tests
@@ -121,10 +78,10 @@ func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
 }
 
 // CreateTestModel returns a model and defer a truncate
-func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign, concatenator string, signalType []string, publish bool) func() {
-	m, _ := models.NewModel(publicationPoint, campaign, concatenator, signalType, ac)
+func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign, name, concatenator string, signalType []string, publish bool) func() {
+	m, _ := models.NewModel(publicationPoint, campaign, name, concatenator, signalType, ac)
 	if m == nil {
-		m, _ = models.GetExistingModel(publicationPoint, campaign, ac)
+		m, _ = models.GetExistingModel(publicationPoint, campaign, name, ac)
 	}
 
 	if publish {
@@ -133,7 +90,10 @@ func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, cam
 		}
 	}
 
-	return func() { ac.TruncateSet(publicationPoint) }
+	return func() {
+		sn := fmt.Sprintf("%s#%s", publicationPoint, campaign)
+		ac.TruncateSet(sn)
+	}
 }
 
 // MockRequest will send a request to the server. Used for testing purposes

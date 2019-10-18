@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -78,7 +79,7 @@ func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelNam
 		mn := strings.Split(modelName, "#")
 
 		// TODO: this is slow! Need to find a smarter way. it works fine with small fixtures files
-		m, err := models.GetExistingModel(mn[0], mn[1], ac)
+		m, err := models.GetExistingModel(mn[0], mn[1], mn[2], ac)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -105,10 +106,10 @@ func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
 }
 
 // CreateTestModel returns a model and defer a truncate
-func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign, concatenator string, signalType []string, publish bool) func() {
-	m, _ := models.NewModel(publicationPoint, campaign, concatenator, signalType, ac)
+func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign, modelName, concatenator string, signalType []string, publish bool) func() {
+	m, _ := models.NewModel(publicationPoint, campaign, modelName, concatenator, signalType, ac)
 	if m == nil {
-		m, _ = models.GetExistingModel(publicationPoint, campaign, ac)
+		m, _ = models.GetExistingModel(publicationPoint, campaign, modelName, ac)
 	}
 
 	if publish {
@@ -117,7 +118,10 @@ func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, cam
 		}
 	}
 
-	return func() { ac.TruncateSet(publicationPoint) }
+	return func() {
+		sn := fmt.Sprintf("%s#%s", publicationPoint, campaign)
+		ac.TruncateSet(sn)
+	}
 }
 
 // MockRequest will send a request to the server. Used for testing purposes

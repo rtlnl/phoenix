@@ -10,10 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createManagementModelRequest(publicationPoint, campaign, concatenator string, signalOrder []string) (*bytes.Reader, error) {
+func createManagementModelRequest(publicationPoint, campaign, name, concatenator string, signalOrder []string) (*bytes.Reader, error) {
 	mmr := &ManagementModelRequest{
 		PublicationPoint: publicationPoint,
 		Campaign:         campaign,
+		Name:             name,
 		SignalOrder:      signalOrder,
 	}
 
@@ -35,10 +36,10 @@ func TestGetModel(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "", []string{"articleId"}, false)
+	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "collaborative", "", []string{"articleId"}, false)
 	defer truncate()
 
-	code, body, err := MockRequest(http.MethodGet, "/management/model?publicationPoint=rtl_nieuws&campaign=homepage", nil)
+	code, body, err := MockRequest(http.MethodGet, "/management/model?publicationPoint=rtl_nieuws&campaign=homepage&name=collaborative", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -49,7 +50,7 @@ func TestGetModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"publicationPoint\":\"rtl_nieuws\",\"campaign\":\"homepage\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"articleId\"],\"concatenator\":\"\"}", string(b))
+	assert.Equal(t, "{\"publicationPoint\":\"rtl_nieuws\",\"campaign\":\"homepage\",\"name\":\"collaborative\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"articleId\"],\"concatenator\":\"\"}", string(b))
 }
 
 func TestGetModelEmptyParams(t *testing.T) {
@@ -68,7 +69,7 @@ func TestGetModelEmptyParams(t *testing.T) {
 }
 
 func TestGetModelNotExist(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/management/model?publicationPoint=rtl_nieuws&campaign=panini", nil)
+	code, body, err := MockRequest(http.MethodGet, "/management/model?publicationPoint=rtl_nieuws&campaign=panini&name=collaborative", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -79,7 +80,7 @@ func TestGetModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key panini does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"key collaborative does not exist\"}", string(b))
 }
 
 func TestCreateModelAlreadyExists(t *testing.T) {
@@ -88,10 +89,10 @@ func TestCreateModelAlreadyExists(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "", []string{"grapeId"}, false)
+	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "collaborative", "", []string{"grapeId"}, false)
 	defer truncate()
 
-	r, err := createManagementModelRequest("kiwi", "oranges", "", []string{"grapeId"})
+	r, err := createManagementModelRequest("kiwi", "oranges", "collaborative", "", []string{"grapeId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -107,11 +108,11 @@ func TestCreateModelAlreadyExists(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"model\":{\"publicationPoint\":\"kiwi\",\"campaign\":\"oranges\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"grapeId\"],\"concatenator\":\"\"},\"message\":\"model created\"}", string(b))
+	assert.Equal(t, "{\"model\":{\"publicationPoint\":\"kiwi\",\"campaign\":\"oranges\",\"name\":\"\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"grapeId\"],\"concatenator\":\"collaborative\"},\"message\":\"model created\"}", string(b))
 }
 
 func TestCreateModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "", "", nil)
+	r, err := createManagementModelRequest("", "", "", "", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -138,10 +139,10 @@ func TestEmptyModel(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "banana", "pears", "", []string{"appleId"}, false)
+	truncate := CreateTestModel(t, ac, "banana", "pears", "collaborative", "", []string{"appleId"}, false)
 	defer truncate()
 
-	r, err := createManagementModelRequest("banana", "pears", "", []string{"appleId"})
+	r, err := createManagementModelRequest("banana", "pears", "collaborative", "", []string{"appleId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -157,11 +158,11 @@ func TestEmptyModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"model\":{\"publicationPoint\":\"banana\",\"campaign\":\"pears\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"appleId\"],\"concatenator\":\"\"},\"message\":\"model empty\"}", string(b))
+	assert.Equal(t, "{\"model\":{\"publicationPoint\":\"banana\",\"campaign\":\"pears\",\"name\":\"collaborative\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"appleId\"],\"concatenator\":\"\"},\"message\":\"model empty\"}", string(b))
 }
 
 func TestEmptyModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "oranges", "", []string{""})
+	r, err := createManagementModelRequest("", "oranges", "collaborative", "", []string{""})
 	if err != nil {
 		t.Fail()
 	}
@@ -183,7 +184,7 @@ func TestEmptyModelFailValidation(t *testing.T) {
 }
 
 func TestEmptyModelNotExist(t *testing.T) {
-	r, err := createManagementModelRequest("pizza", "pepperoni", "", []string{"ham"})
+	r, err := createManagementModelRequest("pizza", "pepperoni", "collaborative", "", []string{"ham"})
 	if err != nil {
 		t.Fail()
 	}
@@ -199,7 +200,7 @@ func TestEmptyModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key pepperoni does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"key collaborative does not exist\"}", string(b))
 }
 
 func TestPublishModelAlreadyPublished(t *testing.T) {
@@ -208,10 +209,10 @@ func TestPublishModelAlreadyPublished(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "", []string{"appleId"}, true)
+	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "pears", "", []string{"appleId"}, true)
 	defer truncate()
 
-	r, err := createManagementModelRequest("kiwi", "oranges", "", []string{"appleId"})
+	r, err := createManagementModelRequest("kiwi", "oranges", "pears", "", []string{"appleId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -227,11 +228,11 @@ func TestPublishModelAlreadyPublished(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"model is already published\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model is already PUBLISHED\"}", string(b))
 }
 
 func TestPublishModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "oranges", "", []string{"grapeId"})
+	r, err := createManagementModelRequest("", "oranges", "collaborative", "", []string{"grapeId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -253,7 +254,7 @@ func TestPublishModelFailValidation(t *testing.T) {
 }
 
 func TestPublishModelNotExist(t *testing.T) {
-	r, err := createManagementModelRequest("salami", "pepperoni", "", []string{"pineappleId"})
+	r, err := createManagementModelRequest("salami", "pepperoni", "collaborative", "", []string{"pineappleId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -269,11 +270,59 @@ func TestPublishModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key pepperoni does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"key collaborative does not exist\"}", string(b))
+}
+
+func TestStageModelNotExist(t *testing.T) {
+	r, err := createManagementModelRequest("salami", "pepperoni", "collaborative", "", []string{"pineappleId"})
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/management/model/stage", r)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusNotFound, code)
+	assert.Equal(t, "{\"message\":\"key collaborative does not exist\"}", string(b))
+}
+
+func TestStageModelAlreadyStaged(t *testing.T) {
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model
+	truncate := CreateTestModel(t, ac, "kiwi", "oranges", "grapes", "", []string{"appleId"}, false)
+	defer truncate()
+
+	r, err := createManagementModelRequest("kiwi", "oranges", "grapes", "", []string{"appleId"})
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/management/model/stage", r)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "{\"message\":\"model is already STAGED\"}", string(b))
 }
 
 func TestConcatenatorFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("salami", "pepperoni", "+", []string{"pineappleId", "cheeseId"})
+	r, err := createManagementModelRequest("salami", "pepperoni", "collaborative", "+", []string{"pineappleId", "cheeseId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -293,7 +342,7 @@ func TestConcatenatorFailValidation(t *testing.T) {
 }
 
 func TestConcatenatorPassValidation(t *testing.T) {
-	r, err := createManagementModelRequest("melon", "oranges", "_", []string{"appleId", "bananasId"})
+	r, err := createManagementModelRequest("melon", "oranges", "collaborative", "_", []string{"appleId", "bananasId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -309,11 +358,11 @@ func TestConcatenatorPassValidation(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"model\":{\"publicationPoint\":\"melon\",\"campaign\":\"oranges\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"appleId\",\"bananasId\"],\"concatenator\":\"_\"},\"message\":\"model created\"}", string(b))
+	assert.Equal(t, "{\"model\":{\"publicationPoint\":\"melon\",\"campaign\":\"oranges\",\"name\":\"_\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"appleId\",\"bananasId\"],\"concatenator\":\"collaborative\"},\"message\":\"model created\"}", string(b))
 }
 
 func TestConcatenatorMissing(t *testing.T) {
-	r, err := createManagementModelRequest("ham", "pepperoni", "", []string{"pineappleId", "cheeseId"})
+	r, err := createManagementModelRequest("ham", "pepperoni", "collaborative", "", []string{"pineappleId", "cheeseId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -332,7 +381,7 @@ func TestConcatenatorMissing(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"for two or more signalOrder, a concatenator character from this list is mandatory: ["+strings.Join(concatenatorList, ", ")+"]\"}", string(b))
 }
 func TestConcatenatorUneeded(t *testing.T) {
-	r, err := createManagementModelRequest("ham", "pepperoni", "0", []string{"pineappleId"})
+	r, err := createManagementModelRequest("ham", "pepperoni", "collaborative", "0", []string{"pineappleId"})
 	if err != nil {
 		t.Fail()
 	}
