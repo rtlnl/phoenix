@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/rtlnl/data-personalization-api/utils"
+	"github.com/rtlnl/phoenix/utils"
 	"github.com/stretchr/testify/assert"
 )
 

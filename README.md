@@ -137,5 +137,5 @@ The APIs gives the possibility to read a file from S3 and upload it to Aerospike
 
 The process of uploading the file from S3 to Aerospike is delegated to a separate `go routine`. The client should store the `batchID` that is returned from the initial request `(POST /batch)` and ask for the status with `GET /batch/status/:id`.
 
-Time taken to upload **1.6M unique keys** from S3 is `3m 33secs`. Check this [PR](https://github.com/rtlnl/data-personalization-api/pull/5) for more information
+Time taken to upload **1.6M unique keys** from S3 is `3m 33secs`. Check this [PR](https://github.com/rtlnl/phoenix/pull/5) for more information
 

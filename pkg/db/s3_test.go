@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	paws "github.com/rtlnl/data-personalization-api/pkg/aws"
+	paws "github.com/rtlnl/phoenix/pkg/aws"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"

@@ -2,7 +2,7 @@ package internal
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/data-personalization-api/middleware"
+	"github.com/rtlnl/phoenix/middleware"
 )
 
 // Internal is the struct that will retain the server for ingesting the

@@ -7,11 +7,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/rs/zerolog/log"
+	"github.com/rtlnl/phoenix/models"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/data-personalization-api/pkg/db"
-	"github.com/rtlnl/data-personalization-api/utils"
+	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/pkg/tucson"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 const (
@@ -66,6 +68,13 @@ func Recommend(c *gin.Context) {
 	if m.IsStaged() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("model is staged. Clients cannot access staged models"))
 		return
+	}
+
+	// call Tucson here
+	tc, exists := c.Get("TucsonClient")
+	if exists {
+		modelName, _ := tc.(*tucson.Client).GetModel(pp, cp)
+		log.Info().Msgf("model name %s", modelName)
 	}
 
 	sn := m.ComposeSetName()

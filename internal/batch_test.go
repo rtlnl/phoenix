@@ -3,7 +3,7 @@ package internal
 import (
 	"testing"
 
-	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/rtlnl/phoenix/models"
 	"github.com/stretchr/testify/assert"
 )
 

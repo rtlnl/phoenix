@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/rtlnl/phoenix/models"
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v9"
 
-	"github.com/rtlnl/data-personalization-api/pkg/db"
-	"github.com/rtlnl/data-personalization-api/utils"
+	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 // ManagementModelRequest is the object that represents the payload of the request for the /management/model endpoints
