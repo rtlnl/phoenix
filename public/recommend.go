@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rs/zerolog/log"
 	"github.com/rtlnl/phoenix/models"
 
 	"github.com/gin-gonic/gin"
@@ -22,15 +21,15 @@ const (
 
 // RecommendRequest is the object that represents the payload of the request for the recommend endpoint
 type RecommendRequest struct {
-	SignalID         string
-	PublicationPoint string
-	Campaign         string
-	ModelName        string
+	SignalID         string `json:"signalId" binding:"required" description:""`
+	PublicationPoint string `json:"publicationPoint" binding:"required" description:""`
+	Campaign         string `json:"campaign" binding:"required" description:""`
+	ModelName        string `json:"model" description:""`
 }
 
 // RecommendResponse is the object that represents the payload of the response for the recommend endpoint
 type RecommendResponse struct {
-	Recommendations interface{} `json:"recommendations"`
+	Recommendations interface{} `json:"recommendations" description:""`
 }
 
 // rrPool is in charged of Pooling eventual requests in coming. This will help to reduce the alloc/s
@@ -50,14 +49,17 @@ func Recommend(c *gin.Context) {
 	// get query parameters from URL
 	pp := c.DefaultQuery("publicationPoint", "")
 	cp := c.DefaultQuery("campaign", "")
-	mn := c.DefaultQuery("model", "")
 	sID := c.DefaultQuery("signalId", "")
 
-	if err := validateRecommendQueryParameters(rr, pp, cp, mn, sID); err != nil {
+	if err := validateRecommendQueryParameters(rr, pp, cp, sID); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
 
+	// get model name either from Tucson or URL
+	rr.ModelName = getModelName(c, pp, cp)
+
+	// get model from Aerospike
 	m, err := models.GetExistingModel(rr.PublicationPoint, rr.Campaign, rr.ModelName, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
@@ -68,13 +70,6 @@ func Recommend(c *gin.Context) {
 	if m.IsStaged() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("model is staged. Clients cannot access staged models"))
 		return
-	}
-
-	// call Tucson here
-	tc, exists := c.Get("TucsonClient")
-	if exists {
-		modelName, _ := tc.(*tucson.Client).GetModel(pp, cp)
-		log.Info().Msgf("model name %s", modelName)
 	}
 
 	sn := m.ComposeSetName()
@@ -92,7 +87,20 @@ func Recommend(c *gin.Context) {
 	})
 }
 
-func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, modelName, signalID string) error {
+func getModelName(c *gin.Context, publicationPoint, campaign string) string {
+	// Check if we have Tucson
+	tc, exists := c.Get("TucsonClient")
+	if exists {
+		// get model name from tucson
+		mn, _ := tc.(*tucson.Client).GetModel(publicationPoint, campaign)
+		return mn
+	}
+
+	// check if it's in the URL
+	return c.DefaultQuery("model", "")
+}
+
+func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {
 	var mp []string
 
 	// TODO: improve this in somehow
@@ -102,10 +110,6 @@ func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, ca
 
 	if campaign == "" {
 		mp = append(mp, "campaign")
-	}
-
-	if modelName == "" {
-		mp = append(mp, "model")
 	}
 
 	if signalID == "" {
@@ -119,7 +123,6 @@ func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, ca
 	// update values
 	rr.PublicationPoint = publicationPoint
 	rr.Campaign = campaign
-	rr.ModelName = modelName
 	rr.SignalID = signalID
 
 	return nil

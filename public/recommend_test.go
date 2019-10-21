@@ -99,24 +99,7 @@ func TestRecommendFailValidation4(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing publicationPoint,model,signalId in the URL query\"}")
-}
-
-func TestRecommendFailValidation5(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=videoland&campaign=homepage&signalId=1234", nil)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	msg := string(b)
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing model in the URL query\"}")
+	assert.Equal(t, "{\"message\":\"missing publicationPoint,signalId in the URL query\"}", msg)
 }
 
 func TestRecommendNoModel(t *testing.T) {

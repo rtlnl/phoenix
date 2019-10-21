@@ -18,7 +18,7 @@ import (
 type ManagementModelRequest struct {
 	PublicationPoint string   `json:"publicationPoint" description:"publication point name for the model" binding:"required"`
 	Campaign         string   `json:"campaign" description:"campaign name for the model" binding:"required"`
-	Name             string   `json:"name" description:"name of the model" binding:"required"`
+	Name             string   `json:"name" description:"name of the model"`
 	SignalOrder      []string `json:"signalOrder" description:"list of ordered signals" binding:"required"`
 	Concatenator     string   `json:"concatenator" description:"character used as concatenator for SignalOrder {'|', '#', '_', '-'}"`
 }
@@ -75,7 +75,7 @@ func GetModel(c *gin.Context) {
 	mn := c.Query("name")
 
 	// if either is empty then
-	if pp == "" || cm == "" || mn == "" {
+	if pp == "" || cm == "" {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("missing parameters in url for searching the model"))
 		return
 	}

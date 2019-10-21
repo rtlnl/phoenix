@@ -15,6 +15,7 @@ const (
 	setNameModelComposition    = "%s#%s#%s" // used for retrieving the model's data
 	initVersion                = "0.1.0"
 	initStage                  = STAGED
+	initModel                  = "default"
 	binKeyStage                = "stage"
 	binKeyVersion              = "version"
 	binKeySignalOrder          = "signal_order"
@@ -109,7 +110,7 @@ func GetExistingModel(publicationPoint, campaign, name string, ac *db.AerospikeC
 	return &Model{
 		PublicationPoint: publicationPoint,
 		Campaign:         campaign,
-		Name:             name,
+		Name:             utils.GetDefault(name, initModel),
 		SignalOrder:      utils.ConvertInterfaceToList(m.Bins[binKeySignalOrder]),
 		Stage:            StageType(stg),
 		Version:          v,

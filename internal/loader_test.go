@@ -772,15 +772,54 @@ func TestCorrectSignalFormat(t *testing.T) {
 
 	m, _ := models.GetExistingModel("test", "fancy", "collaborative", ac)
 
-	assert.Equal(t, true, m.CorrectSignalFormat("11_22"))
-
-	assert.Equal(t, false, m.CorrectSignalFormat("11_33_33_33"))
-	assert.Equal(t, false, m.CorrectSignalFormat("11"))
-	assert.Equal(t, false, m.CorrectSignalFormat("11_"))
-	assert.Equal(t, false, m.CorrectSignalFormat("_11_"))
-	assert.Equal(t, false, m.CorrectSignalFormat("_11"))
-	assert.Equal(t, false, m.CorrectSignalFormat("_"))
-	assert.Equal(t, false, m.CorrectSignalFormat("11____"))
-	assert.Equal(t, false, m.CorrectSignalFormat("____11"))
-	assert.Equal(t, false, m.CorrectSignalFormat(""))
+	tests := map[string]struct {
+		input    string
+		expected bool
+	}{
+		"correct": {
+			input:    "11_22",
+			expected: true,
+		},
+		"not correct 1": {
+			input:    "11_33_33_33",
+			expected: false,
+		},
+		"not correct 2": {
+			input:    "11",
+			expected: false,
+		},
+		"not correct 3": {
+			input:    "11_",
+			expected: false,
+		},
+		"not correct 4": {
+			input:    "_11_",
+			expected: false,
+		},
+		"not correct 5": {
+			input:    "_11",
+			expected: false,
+		},
+		"not correct 6": {
+			input:    "_",
+			expected: false,
+		},
+		"not correct 7": {
+			input:    "11____",
+			expected: false,
+		},
+		"not correct 8": {
+			input:    "____11",
+			expected: false,
+		},
+		"not correct 9": {
+			input:    "",
+			expected: false,
+		},
+	}
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		o := m.CorrectSignalFormat(test.input)
+		assert.Equal(t, test.expected, o)
+	}
 }

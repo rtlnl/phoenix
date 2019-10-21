@@ -25,7 +25,7 @@ func NewClient(address string) *Client {
 	}
 }
 
-// Ping tests theserver connection
+// Ping tests the server connection
 func (c *Client) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

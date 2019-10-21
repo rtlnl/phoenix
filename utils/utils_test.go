@@ -31,3 +31,33 @@ func TestConvertInterfaceToList(t *testing.T) {
 
 	assert.ElementsMatch(t, ls, ConvertInterfaceToList(l))
 }
+
+func TestGetDefault(t *testing.T) {
+	tests := map[string]struct {
+		input    string
+		output   string
+		expected string
+	}{
+		"get value": {
+			input:    "hello",
+			output:   "default",
+			expected: "hello",
+		},
+		"get default": {
+			input:    "",
+			output:   "default",
+			expected: "default",
+		},
+		"get default empty": {
+			input:    "",
+			output:   "",
+			expected: "",
+		},
+	}
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		o := GetDefault(test.input, test.output)
+
+		assert.Equal(t, test.expected, o)
+	}
+}
