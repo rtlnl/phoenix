@@ -35,11 +35,9 @@ const (
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
 type StreamingRequest struct {
-	Signal           string   `json:"signal" binding:"required"`
-	PublicationPoint string   `json:"publicationPoint" binding:"required"`
-	Campaign         string   `json:"campaign" binding:"required"`
-	ModelName        string   `json:"modelName" binding:"required"`
-	Recommendations  []string `json:"recommendations" binding:"required"`
+	Signal          string   `json:"signal" binding:"required"`
+	ModelName       string   `json:"modelName" binding:"required"`
+	Recommendations []string `json:"recommendations" binding:"required"`
 }
 
 // StreamingResponse is the object that represents the payload for the response in the streaming endpoints
@@ -57,9 +55,9 @@ func CreateStreaming(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, sr.ModelName, ac)
+	m, err := models.GetExistingModel(sr.ModelName, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", sr.ModelName))
 		return
 	}
 
@@ -70,12 +68,11 @@ func CreateStreaming(c *gin.Context) {
 	}
 
 	if m.RequireSignalFormat() && !m.CorrectSignalFormat(sr.Signal) {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("the expected signal format must be "+strings.Join(m.SignalOrder, m.Concatenator)))
+		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("the expected signal format must be %s", strings.Join(m.SignalOrder, m.Concatenator)))
 		return
 	}
 
-	sn := m.ComposeSetName()
-	if err := ac.AddOne(sn, sr.Signal, binKey, sr.Recommendations); err != nil {
+	if err := ac.AddOne(sr.ModelName, sr.Signal, binKey, sr.Recommendations); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -95,9 +92,9 @@ func UpdateStreaming(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, sr.ModelName, ac)
+	m, err := models.GetExistingModel(sr.ModelName, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", sr.ModelName))
 		return
 	}
 
@@ -107,10 +104,8 @@ func UpdateStreaming(c *gin.Context) {
 		return
 	}
 
-	sn := m.ComposeSetName()
-
 	// The AddOne method does an UPSERT
-	if err := ac.AddOne(sn, sr.Signal, binKey, sr.Recommendations); err != nil {
+	if err := ac.AddOne(sr.ModelName, sr.Signal, binKey, sr.Recommendations); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 
@@ -130,9 +125,9 @@ func DeleteStreaming(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(sr.PublicationPoint, sr.Campaign, sr.ModelName, ac)
+	m, err := models.GetExistingModel(sr.ModelName, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", sr.ModelName))
 		return
 	}
 
@@ -142,8 +137,7 @@ func DeleteStreaming(c *gin.Context) {
 		return
 	}
 
-	sn := m.ComposeSetName()
-	if err := ac.DeleteOne(sn, sr.Signal); err != nil {
+	if err := ac.DeleteOne(sr.ModelName, sr.Signal); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -156,11 +150,9 @@ func DeleteStreaming(c *gin.Context) {
 // BatchRequest is the object that represents the payload of the request for the batch endpoints
 // Conditions: Data takes precedence in case also DataLocation is specified
 type BatchRequest struct {
-	PublicationPoint string      `json:"publicationPoint" binding:"required"`
-	Campaign         string      `json:"campaign" binding:"required"`
-	ModelName        string      `json:"modelName" binding:"required"`
-	Data             []BatchData `json:"data" description:"used for uploading some information directly from the request"`
-	DataLocation     string      `json:"dataLocation" description:"used for specifying where the data lives in S3"`
+	ModelName    string      `json:"modelName" binding:"required"`
+	Data         []BatchData `json:"data" description:"used for uploading some information directly from the request"`
+	DataLocation string      `json:"dataLocation" description:"used for specifying where the data lives in S3"`
 }
 
 // BatchData is the object representing the content of the data parameter in the batch request
@@ -202,9 +194,9 @@ func Batch(c *gin.Context) {
 	}
 
 	// retrieve the model
-	m, err := models.GetExistingModel(br.PublicationPoint, br.Campaign, br.ModelName, ac)
+	m, err := models.GetExistingModel(br.ModelName, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model with publicationPoint %s and campaign %s not found", br.PublicationPoint, br.Campaign))
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", br.ModelName))
 		return
 	}
 
@@ -227,7 +219,7 @@ func Batch(c *gin.Context) {
 	}
 
 	// truncate eventual old data
-	if err := ac.TruncateSet(m.ComposeSetName()); err != nil {
+	if err := ac.TruncateSet(br.ModelName); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -238,7 +230,7 @@ func Batch(c *gin.Context) {
 
 	// check if file exists
 	if s.ExistsObject(key) == false {
-		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("key %s does not exists in S3", br.DataLocation))
+		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("key %s not founds in S3", br.DataLocation))
 		return
 	}
 	// download the file

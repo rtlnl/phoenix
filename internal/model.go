@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -16,11 +17,9 @@ import (
 
 // ManagementModelRequest is the object that represents the payload of the request for the /management/model endpoints
 type ManagementModelRequest struct {
-	PublicationPoint string   `json:"publicationPoint" description:"publication point name for the model" binding:"required"`
-	Campaign         string   `json:"campaign" description:"campaign name for the model" binding:"required"`
-	Name             string   `json:"name" description:"name of the model" binding:"required"`
-	SignalOrder      []string `json:"signalOrder" description:"list of ordered signals" binding:"required"`
-	Concatenator     string   `json:"concatenator" description:"character used as concatenator for SignalOrder {'|', '#', '_', '-'}"`
+	Name         string   `json:"name" description:"name of the model" binding:"required"`
+	SignalOrder  []string `json:"signalOrder" description:"list of ordered signals" binding:"required"`
+	Concatenator string   `json:"concatenator" description:"character used as concatenator for SignalOrder {'|', '#', '_', '-'}"`
 }
 
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
@@ -70,20 +69,18 @@ func GetModel(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
 	// read from params in url
-	pp := c.Query("publicationPoint")
-	cm := c.Query("campaign")
 	mn := c.Query("name")
 
 	// if either is empty then
-	if pp == "" || cm == "" || mn == "" {
+	if mn == "" {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("missing parameters in url for searching the model"))
 		return
 	}
 
 	// fetch model
-	m, err := models.GetExistingModel(pp, cm, mn, ac)
+	m, err := models.GetExistingModel(mn, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mn))
 		return
 	}
 
@@ -105,7 +102,7 @@ func CreateModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.NewModel(mm.PublicationPoint, mm.Campaign, mm.Concatenator, mm.Name, mm.SignalOrder, ac)
+	m, err := models.NewModel(mm.Name, mm.Concatenator, mm.SignalOrder, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return
@@ -132,9 +129,9 @@ func PublishModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, mm.Name, ac)
+	m, err := models.GetExistingModel(mm.Name, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mm.Name))
 		return
 	}
 
@@ -164,9 +161,9 @@ func StageModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, mm.Name, ac)
+	m, err := models.GetExistingModel(mm.Name, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mm.Name))
 		return
 	}
 
@@ -196,9 +193,9 @@ func EmptyModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(mm.PublicationPoint, mm.Campaign, mm.Name, ac)
+	m, err := models.GetExistingModel(mm.Name, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mm.Name))
 		return
 	}
 

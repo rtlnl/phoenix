@@ -4,13 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -61,8 +59,12 @@ func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelNam
 	}
 	defer f.Close()
 
-	sc := bufio.NewScanner(f)
+	m, err := models.GetExistingModel(modelName, ac)
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	sc := bufio.NewScanner(f)
 	var entry models.SingleEntry
 
 	i := 0
@@ -74,21 +76,9 @@ func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelNam
 			t.Fatal("fixtures contains the wrong type of json")
 		}
 
-		// need to break down the name of the model to fetch the actual object
-		// from aerospike
-		mn := strings.Split(modelName, "#")
-
-		// TODO: this is slow! Need to find a smarter way. it works fine with small fixtures files
-		m, err := models.GetExistingModel(mn[0], mn[1], mn[2], ac)
-		if err != nil {
+		if err := ac.AddOne(m.Name, entry.SignalID, binKey, entry.Recommended); err != nil {
 			t.Fatal(err)
 		}
-
-		sn := m.ComposeSetName()
-		if err := ac.AddOne(sn, entry.SignalID, binKey, entry.Recommended); err != nil {
-			t.Fatal(err)
-		}
-
 		i++
 	}
 	if err := sc.Err(); err != nil {
@@ -106,10 +96,10 @@ func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
 }
 
 // CreateTestModel returns a model and defer a truncate
-func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign, modelName, concatenator string, signalType []string, publish bool) func() {
-	m, _ := models.NewModel(publicationPoint, campaign, modelName, concatenator, signalType, ac)
+func CreateTestModel(t *testing.T, ac *db.AerospikeClient, modelName, concatenator string, signalType []string, publish bool) func() {
+	m, _ := models.NewModel(modelName, concatenator, signalType, ac)
 	if m == nil {
-		m, _ = models.GetExistingModel(publicationPoint, campaign, modelName, ac)
+		m, _ = models.GetExistingModel(modelName, ac)
 	}
 
 	if publish {
@@ -119,8 +109,19 @@ func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, cam
 	}
 
 	return func() {
-		sn := fmt.Sprintf("%s#%s", publicationPoint, campaign)
-		ac.TruncateSet(sn)
+		ac.TruncateSet(modelName)
+	}
+}
+
+// CreateTestContainer returns a container and defer a truncate
+func CreateTestContainer(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign string, modelsName []string) func() {
+	c, _ := models.NewContainer(publicationPoint, campaign, modelsName, ac)
+	if c == nil {
+		c, _ = models.GetExistingContainer(publicationPoint, campaign, ac)
+	}
+
+	return func() {
+		ac.TruncateSet(publicationPoint)
 	}
 }
 

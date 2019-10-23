@@ -57,7 +57,6 @@ func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string)
 		log.Panic().Msg(err.Error())
 	}
 
-	setName := bo.Model.ComposeSetName()
 	rd := bufio.NewReader(*file)
 	rs := make(chan *models.RecordQueue)
 	le := make(chan models.LineError)
@@ -67,7 +66,7 @@ func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string)
 
 	// fillup the channel with lines
 	go func() {
-		bo.IterateFile(rd, setName, rs, le)
+		bo.IterateFile(rd, bo.Model.Name, rs, le)
 		close(rs)
 		close(le)
 	}()
@@ -109,8 +108,6 @@ func (bo *BatchOperator) UploadDataDirectly(bd []BatchData) (string, DataUploade
 	var vl bool = false
 	var lineErrors []models.LineError
 
-	setName := bo.Model.ComposeSetName()
-
 	// check upfront if signal validation is required
 	if bo.Model.RequireSignalFormat() {
 		vl = true
@@ -131,7 +128,7 @@ func (bo *BatchOperator) UploadDataDirectly(bd []BatchData) (string, DataUploade
 			}
 
 			// upload to Aerospike
-			if err := bo.AeroClient.AddOne(setName, sig, binKey, recommendedItems); err != nil {
+			if err := bo.AeroClient.AddOne(bo.Model.Name, sig, binKey, recommendedItems); err != nil {
 				return "", DataUploadedError{}, err
 			}
 		}

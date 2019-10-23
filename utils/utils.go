@@ -43,3 +43,14 @@ func StripS3URL(URL string) (string, string) {
 	key := strings.TrimPrefix(URL, fmt.Sprintf("s3://%s/", bucket))
 	return bucket, key
 }
+
+// RemoveEmptyValueInSlice returns a slice without empty strings
+func RemoveEmptyValueInSlice(s []string) []string {
+	var r []string
+	for _, str := range s {
+		if str != "" {
+			r = append(r, str)
+		}
+	}
+	return r
+}
