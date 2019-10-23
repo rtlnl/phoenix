@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
-	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/rtlnl/phoenix/models"
 	vegeta "github.com/tsenart/vegeta/lib"
 )
 

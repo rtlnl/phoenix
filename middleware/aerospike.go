@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/data-personalization-api/pkg/db"
+	"github.com/rtlnl/phoenix/pkg/db"
 )
 
 // Aerospike is a middleware to inject the Aerospike client for accessing the database

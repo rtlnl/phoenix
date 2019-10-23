@@ -1,4 +1,4 @@
-module github.com/rtlnl/data-personalization-api
+module github.com/rtlnl/phoenix
 
 go 1.12
 

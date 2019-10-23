@@ -1,11 +1,11 @@
 VERSION ?= $(shell git describe --tags --always)
 
-IMAGE = 451291743503.dkr.ecr.eu-west-1.amazonaws.com/data-personalization-api
-PKG = github.com/rtlnl/data-personalization-api
+IMAGE = 451291743503.dkr.ecr.eu-west-1.amazonaws.com/phoenix
+PKG = github.com/rtlnl/phoenix
 PKGS = $(shell go list ./...)
 SEQ = $(shell seq 1 10)
 
-LDFLAGS = "-s -w -X github.com/rtlnl/data-personalization-api/pkg/version.Version=$(VERSION)"
+LDFLAGS = "-s -w -X github.com/rtlnl/phoenix/pkg/version.Version=$(VERSION)"
 
 OS ?= linux
 ARCH ?= amd64

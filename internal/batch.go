@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/rtlnl/data-personalization-api/models"
-	"github.com/rtlnl/data-personalization-api/pkg/db"
+	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/db"
 )
 
 // BulkStatus defines the status of the batch upload from S3

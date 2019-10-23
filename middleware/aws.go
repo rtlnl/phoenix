@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/data-personalization-api/pkg/aws"
+	"github.com/rtlnl/phoenix/pkg/aws"
 )
 
 // AWSSession is a middleware to inject the AWSSession client for accessing the aws services

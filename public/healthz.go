@@ -3,7 +3,7 @@ package public
 import (
 	"net/http"
 
-	"github.com/rtlnl/data-personalization-api/utils"
+	"github.com/rtlnl/phoenix/utils"
 
 	"github.com/gin-gonic/gin"
 )

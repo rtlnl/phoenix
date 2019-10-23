@@ -7,11 +7,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/rtlnl/phoenix/models"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/data-personalization-api/pkg/db"
-	"github.com/rtlnl/data-personalization-api/utils"
+	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 const (

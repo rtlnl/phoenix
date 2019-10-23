@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/data-personalization-api/utils"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 // Version is the current version of the APIs

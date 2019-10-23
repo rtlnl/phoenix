@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/rtlnl/data-personalization-api/pkg/db"
-	"github.com/rtlnl/data-personalization-api/utils"
+	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 var (

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/rtlnl/data-personalization-api/cmd"
+	"github.com/rtlnl/phoenix/cmd"
 )
 
 func main() {

@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	paws "github.com/rtlnl/data-personalization-api/pkg/aws"
+	paws "github.com/rtlnl/phoenix/pkg/aws"
 
-	"github.com/rtlnl/data-personalization-api/models"
-	"github.com/rtlnl/data-personalization-api/pkg/db"
+	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 
