@@ -1,7 +1,7 @@
 package public
 
 import (
-	"github.com/rtlnl/data-personalization-api/middleware"
+	"github.com/rtlnl/phoenix/middleware"
 
 	"github.com/gin-gonic/gin"
 )

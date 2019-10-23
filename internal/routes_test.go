@@ -2,7 +2,6 @@ package internal
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,10 +10,10 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/data-personalization-api/middleware"
-	"github.com/rtlnl/data-personalization-api/models"
-	"github.com/rtlnl/data-personalization-api/pkg/db"
-	"github.com/rtlnl/data-personalization-api/utils"
+	"github.com/rtlnl/phoenix/middleware"
+	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 var (
@@ -57,10 +56,20 @@ func tearUp() {
 	router.GET("/batch/status/:id", BatchStatus)
 
 	// Management Routes
-	mm := router.Group("/management/model")
-	mm.GET("", GetModel)
-	mm.POST("", CreateModel)
-	mm.DELETE("", EmptyModel)
+	mg := router.Group("/management")
+
+	// Container routes
+	mc := mg.Group("/containers")
+	mc.GET("/", GetContainer)
+	mc.POST("/", CreateContainer)
+	mc.DELETE("/", EmptyContainer)
+	mc.PUT("/link-model", LinkModel)
+
+	// Model routes
+	mm := mg.Group("/models")
+	mm.GET("/", GetModel)
+	mm.POST("/", CreateModel)
+	mm.DELETE("/", EmptyModel)
 	mm.POST("/publish", PublishModel)
 	mm.POST("/stage", StageModel)
 }
@@ -78,10 +87,10 @@ func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
 }
 
 // CreateTestModel returns a model and defer a truncate
-func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign, name, concatenator string, signalType []string, publish bool) func() {
-	m, _ := models.NewModel(publicationPoint, campaign, name, concatenator, signalType, ac)
+func CreateTestModel(t *testing.T, ac *db.AerospikeClient, name, concatenator string, signalType []string, publish bool) func() {
+	m, _ := models.NewModel(name, concatenator, signalType, ac)
 	if m == nil {
-		m, _ = models.GetExistingModel(publicationPoint, campaign, name, ac)
+		m, _ = models.GetExistingModel(name, ac)
 	}
 
 	if publish {
@@ -91,8 +100,19 @@ func CreateTestModel(t *testing.T, ac *db.AerospikeClient, publicationPoint, cam
 	}
 
 	return func() {
-		sn := fmt.Sprintf("%s#%s", publicationPoint, campaign)
-		ac.TruncateSet(sn)
+		ac.TruncateSet(name)
+	}
+}
+
+// CreateTestContainer returns a container and defer a truncate
+func CreateTestContainer(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign string, modelsName []string) func() {
+	c, _ := models.NewContainer(publicationPoint, campaign, modelsName, ac)
+	if c == nil {
+		c, _ = models.GetExistingContainer(publicationPoint, campaign, ac)
+	}
+
+	return func() {
+		ac.TruncateSet(publicationPoint)
 	}
 }
 

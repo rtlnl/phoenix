@@ -10,7 +10,7 @@ resources:
     type: git
     icon: github-circle
     source:
-      uri: git@github.com:rtlnl/data-personalization-api.git
+      uri: git@github.com:rtlnl/phoenix.git
       branch: master
       private_key: ((github_private_key))
 
@@ -19,7 +19,7 @@ resources:
     source:
       aws_access_key_id: ((ecr_access_key_id))
       aws_secret_access_key: ((ecr_secret_access_key))
-      repository: ((ecr_repository))/data-personalization-api
+      repository: ((ecr_repository))/phoenix
       tag: prod
 
   - name: code-analysis
@@ -27,7 +27,7 @@ resources:
     source:
       host_url: https://sonarqube-controlplane.rtl-di.nl/
       login: ((personalization_api_sonarqube_auth_token))
-      project_key: data-personalization-api
+      project_key: phoenix
       branch_name: master
 
 jobs:
@@ -43,14 +43,14 @@ jobs:
             source: { repository: golang, tag: 1.12 }
           inputs:
             - name: git-repo
-              path: /go/src/github.com/rtlnl/data-personalization-api
+              path: /go/src/github.com/rtlnl/phoenix
           run:
             path: /bin/sh
             # TODO: find a way to have aerospike and localstack in concourse
             args:
               - -c
               - |
-                SRCPATH=$PWD/go/src/github.com/rtlnl/data-personalization-api
+                SRCPATH=$PWD/go/src/github.com/rtlnl/phoenix
                 GOPATH=$PWD/go
                 cd $SRCPATH
                 export GO111MODULE=on

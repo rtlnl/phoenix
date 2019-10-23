@@ -13,14 +13,18 @@ func TestRecommend(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
+	// create container
+	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
+	defer truncateContainer()
+
 	// create model
-	truncate1 := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "collaborative", "", []string{"articleId"}, true)
-	defer truncate1()
+	truncateModel := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, true)
+	defer truncateModel()
 
-	truncate2 := UploadTestData(t, ac, "testdata/test_published_model_data.jsonl", "rtl_nieuws#homepage#collaborative")
-	defer truncate2()
+	truncateTestData := UploadTestData(t, ac, "testdata/test_published_model_data.jsonl", "collaborative")
+	defer truncateTestData()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=collaborative&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -35,7 +39,7 @@ func TestRecommend(t *testing.T) {
 }
 
 func TestRecommendFailValidation1(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?campaign=homepage&model=collaborative&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/recommend?campaign=homepage&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -52,7 +56,7 @@ func TestRecommendFailValidation1(t *testing.T) {
 }
 
 func TestRecommendFailValidation2(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=hello&model=collaborative&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=hello&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -69,7 +73,7 @@ func TestRecommendFailValidation2(t *testing.T) {
 }
 
 func TestRecommendFailValidation3(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=hello&campaign=homepage&model=collaborative", nil)
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=hello&campaign=homepage", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -99,24 +103,7 @@ func TestRecommendFailValidation4(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing publicationPoint,model,signalId in the URL query\"}")
-}
-
-func TestRecommendFailValidation5(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=videoland&campaign=homepage&signalId=1234", nil)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	msg := string(b)
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing model in the URL query\"}")
+	assert.Equal(t, msg, "{\"message\":\"missing publicationPoint,signalId in the URL query\"}")
 }
 
 func TestRecommendNoModel(t *testing.T) {
@@ -131,7 +118,7 @@ func TestRecommendNoModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key banana does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"key hello does not exist\"}", string(b))
 }
 
 func TestRecommendWrongSignal(t *testing.T) {
@@ -139,11 +126,15 @@ func TestRecommendWrongSignal(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	// create model
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "pizza", "", []string{"articleId"}, true)
-	defer truncate()
+	// create container
+	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "homepage", []string{"pizza"})
+	defer truncateContainer()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=pizza&signalId=jjkk_767", nil)
+	// create model
+	truncateModel := CreateTestModel(t, ac, "pizza", "", []string{"articleId"}, true)
+	defer truncateModel()
+
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=jjkk_767", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -162,11 +153,15 @@ func TestRecommendModelStaged(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	// create model
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "banana", "pear", "", []string{"articleId"}, false)
-	defer truncate()
+	// create container
+	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "banana", []string{"pear"})
+	defer truncateContainer()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=banana&model=pear&signalId=500083", nil)
+	// create model
+	truncateModel := CreateTestModel(t, ac, "pear", "", []string{"articleId"}, false)
+	defer truncateModel()
+
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=banana&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -183,7 +178,23 @@ func TestRecommendModelStaged(t *testing.T) {
 func BenchmarkRecommend(b *testing.B) {
 	b.StopTimer()
 
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create container
+	truncateContainer := CreateTestContainer(nil, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
+	defer truncateContainer()
+
+	// create model
+	truncateModel := CreateTestModel(nil, ac, "collaborative", "", []string{"articleId"}, false)
+	defer truncateModel()
+
+	// upload data to model
+	truncateTestData := UploadTestData(nil, ac, "testdata/test_published_model_data.jsonl", "collaborative")
+	defer truncateTestData()
+
 	for i := 0; i < b.N; i++ {
-		MockRequestBenchmark(b, http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=collaborative&signalId=500083", nil)
+		MockRequestBenchmark(b, http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=500083", nil)
 	}
 }

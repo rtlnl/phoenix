@@ -7,11 +7,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rtlnl/data-personalization-api/models"
+	"github.com/rtlnl/phoenix/models"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/data-personalization-api/pkg/db"
-	"github.com/rtlnl/data-personalization-api/utils"
+	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 const (
@@ -20,10 +20,9 @@ const (
 
 // RecommendRequest is the object that represents the payload of the request for the recommend endpoint
 type RecommendRequest struct {
-	SignalID         string
-	PublicationPoint string
-	Campaign         string
-	ModelName        string
+	SignalID         string `json:"signalId"`
+	PublicationPoint string `json:"publicationPoint"`
+	Campaign         string `json:"campaign"`
 }
 
 // RecommendResponse is the object that represents the payload of the response for the recommend endpoint
@@ -48,15 +47,28 @@ func Recommend(c *gin.Context) {
 	// get query parameters from URL
 	pp := c.DefaultQuery("publicationPoint", "")
 	cp := c.DefaultQuery("campaign", "")
-	mn := c.DefaultQuery("model", "")
 	sID := c.DefaultQuery("signalId", "")
 
-	if err := validateRecommendQueryParameters(rr, pp, cp, mn, sID); err != nil {
+	if err := validateRecommendQueryParameters(rr, pp, cp, sID); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	m, err := models.GetExistingModel(rr.PublicationPoint, rr.Campaign, rr.ModelName, ac)
+	container, err := models.GetExistingContainer(rr.PublicationPoint, rr.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
+		return
+	}
+
+	// call Tucson here
+	// ...
+	// check if the container has the model that is being requested for
+	// the combination of publicationPoint/campaign
+	// ...
+	// TODO: change this!
+	modelName := container.Models[0]
+
+	m, err := models.GetExistingModel(modelName, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -68,8 +80,7 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	sn := m.ComposeSetName()
-	r, err := ac.GetOne(sn, rr.SignalID)
+	r, err := ac.GetOne(modelName, rr.SignalID)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -83,7 +94,7 @@ func Recommend(c *gin.Context) {
 	})
 }
 
-func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, modelName, signalID string) error {
+func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {
 	var mp []string
 
 	// TODO: improve this in somehow
@@ -93,10 +104,6 @@ func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, ca
 
 	if campaign == "" {
 		mp = append(mp, "campaign")
-	}
-
-	if modelName == "" {
-		mp = append(mp, "model")
 	}
 
 	if signalID == "" {
@@ -110,7 +117,6 @@ func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, ca
 	// update values
 	rr.PublicationPoint = publicationPoint
 	rr.Campaign = campaign
-	rr.ModelName = modelName
 	rr.SignalID = signalID
 
 	return nil

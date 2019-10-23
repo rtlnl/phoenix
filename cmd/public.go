@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/rtlnl/data-personalization-api/public"
+	"github.com/rtlnl/phoenix/public"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
