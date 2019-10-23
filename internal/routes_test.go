@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rtlnl/phoenix/middleware"
@@ -76,6 +77,10 @@ func tearUp() {
 
 func tearDown() {
 	router = nil
+
+	ac, _ := GetTestAerospikeClient()
+	ac.TruncateNamespace("test")
+	time.Sleep(2 * time.Second)
 }
 
 // GetTestAerospikeClient returns the client used for tests
@@ -101,6 +106,7 @@ func CreateTestModel(t *testing.T, ac *db.AerospikeClient, name, concatenator st
 
 	return func() {
 		ac.TruncateSet(name)
+		time.Sleep(2 * time.Second)
 	}
 }
 
@@ -113,6 +119,7 @@ func CreateTestContainer(t *testing.T, ac *db.AerospikeClient, publicationPoint,
 
 	return func() {
 		ac.TruncateSet(publicationPoint)
+		time.Sleep(2 * time.Second)
 	}
 }
 

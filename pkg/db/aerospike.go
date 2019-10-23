@@ -146,6 +146,11 @@ func (ac *AerospikeClient) TruncateSet(setName string) error {
 	return ac.Client.Truncate(ac.writingPolicy, ac.Namespace, setName, nil)
 }
 
+// TruncateNamespace will remove everything in the namespace. DO NOT USE THIS IMPROPERLY!
+func (ac *AerospikeClient) TruncateNamespace(namespace string) error {
+	return ac.Client.Truncate(ac.writingPolicy, ac.Namespace, "", nil)
+}
+
 // GetAllRecords returns all the records of a specific set
 func (ac *AerospikeClient) GetAllRecords(setName string) (*aero.Recordset, error) {
 	return ac.Client.ScanAll(ac.scanPolicy, ac.Namespace, setName)

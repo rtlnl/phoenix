@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -50,6 +51,10 @@ func tearUp() {
 
 func tearDown() {
 	router = nil
+
+	ac, _ := GetTestAerospikeClient()
+	ac.TruncateNamespace("test")
+	time.Sleep(2 * time.Second)
 }
 
 func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelName string) func() {
@@ -84,7 +89,10 @@ func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelNam
 	if err := sc.Err(); err != nil {
 		t.Fatal(err)
 	}
-	return func() { ac.TruncateSet(modelName) }
+	return func() {
+		ac.TruncateSet(modelName)
+		time.Sleep(2 * time.Second)
+	}
 }
 
 // GetTestAerospikeClient returns the client used for tests
@@ -110,6 +118,7 @@ func CreateTestModel(t *testing.T, ac *db.AerospikeClient, modelName, concatenat
 
 	return func() {
 		ac.TruncateSet(modelName)
+		time.Sleep(2 * time.Second)
 	}
 }
 
@@ -122,6 +131,7 @@ func CreateTestContainer(t *testing.T, ac *db.AerospikeClient, publicationPoint,
 
 	return func() {
 		ac.TruncateSet(publicationPoint)
+		time.Sleep(2 * time.Second)
 	}
 }
 
