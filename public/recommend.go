@@ -50,6 +50,7 @@ func Recommend(c *gin.Context) {
 	cp := c.DefaultQuery("campaign", "")
 	sID := c.DefaultQuery("signalId", "")
 
+	// validate recommendation parameters
 	if err := validateRecommendQueryParameters(rr, pp, cp, sID); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
@@ -62,15 +63,12 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// call Tucson here
-	// ...
-	// check if the container has the model that is being requested for
-	// the combination of publicationPoint/campaign
-	// ...
-	// TODO: change this!
 	// get model name either from Tucson or URL
-	// modelName = getModelName(c, pp, cp)
-	modelName := container.Models[0]
+	modelName, err := getModelName(c, container)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
+		return
+	}
 
 	// get model from aerospike
 	m, err := models.GetExistingModel(modelName, ac)
@@ -79,12 +77,13 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// If the model is staged, the clients cannot access it
+	// if the model is staged, the clients cannot access it
 	if m.IsStaged() {
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("model is staged. Clients cannot access staged models"))
 		return
 	}
 
+	// get the recommended values
 	r, err := ac.GetOne(modelName, rr.SignalID)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
@@ -99,17 +98,29 @@ func Recommend(c *gin.Context) {
 	})
 }
 
-func getModelName(c *gin.Context, publicationPoint, campaign string) string {
-	// Check if we have Tucson
-	tc, exists := c.Get("TucsonClient")
-	if exists {
+func getModelName(c *gin.Context, container *models.Container) (string, error) {
+	// check if it's in the URL
+	modelName := c.DefaultQuery("model", "")
+
+	// Check if we have Tucson connected
+	if tc, exists := c.Get("TucsonClient"); exists {
 		// get model name from tucson
-		mn, _ := tc.(*tucson.Client).GetModel(publicationPoint, campaign)
-		return mn
+		if modelName, _ = tc.(*tucson.Client).GetModel(container.PublicationPoint, container.Campaign); modelName == "" {
+			return "", errors.New("model is empty")
+		}
+		return modelName, nil
 	}
 
-	// check if it's in the URL
-	return c.DefaultQuery("model", "")
+	// model is empty
+	if modelName == "" {
+		return "", errors.New("model is empty")
+	}
+
+	// check if there are models available in the container
+	if len(container.Models) > 0 && utils.StringInSlice(modelName, container.Models) {
+		return modelName, nil
+	}
+	return "", fmt.Errorf("model %s not available in publicationPoint %s and campaign %s", modelName, container.PublicationPoint, container.Campaign)
 }
 
 func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {

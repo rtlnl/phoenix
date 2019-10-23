@@ -24,7 +24,7 @@ func TestRecommend(t *testing.T) {
 	truncateTestData := UploadTestData(t, ac, "testdata/test_published_model_data.jsonl", "collaborative")
 	defer truncateTestData()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=collaborative&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -134,7 +134,7 @@ func TestRecommendWrongSignal(t *testing.T) {
 	truncateModel := CreateTestModel(t, ac, "pizza", "", []string{"articleId"}, true)
 	defer truncateModel()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=jjkk_767", nil)
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=pizza&signalId=jjkk_767", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -161,7 +161,7 @@ func TestRecommendModelStaged(t *testing.T) {
 	truncateModel := CreateTestModel(t, ac, "pear", "", []string{"articleId"}, false)
 	defer truncateModel()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=banana&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=banana&model=pear&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
