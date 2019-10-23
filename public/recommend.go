@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/pkg/tucson"
 	"github.com/rtlnl/phoenix/utils"
 )
@@ -40,6 +41,7 @@ var rrPool = sync.Pool{
 // Recommend will take care of fetching the personalized content for a specific user
 func Recommend(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	lt := c.MustGet("RecommendationLog").(logs.RecommendationLog)
 
 	// get a new object from the pool and then dispose it
 	rr := rrPool.Get().(*RecommendRequest)
@@ -92,6 +94,16 @@ func Recommend(c *gin.Context) {
 
 	// convert single entry from interface{} to []models.ItemScore
 	itemsScore := convertSingleEntry(r.Bins[binKey])
+
+	// write logs in a separate thread for not blocking the server
+	go func() {
+		lt.Write(logs.RowLog{
+			PublicationPoint: rr.PublicationPoint,
+			Campaign:         rr.Campaign,
+			SignalID:         rr.SignalID,
+			ItemScores:       itemsScore,
+		})
+	}()
 
 	utils.Response(c, http.StatusOK, &RecommendResponse{
 		Recommendations: itemsScore,

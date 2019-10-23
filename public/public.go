@@ -2,6 +2,7 @@ package public
 
 import (
 	"github.com/rtlnl/phoenix/middleware"
+	"github.com/rtlnl/phoenix/pkg/logs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +14,7 @@ type Public struct {
 }
 
 // NewPublicAPI creates a new object holding the Gin Server
-func NewPublicAPI(dbHost, dbNamespace string, dbPort int, tucsonAddress string) (*Public, error) {
+func NewPublicAPI(dbHost, dbNamespace string, dbPort int, tucsonAddress string, lt logs.RecommendationLog) (*Public, error) {
 	// Creates a router without any middleware by default
 	r := gin.Default()
 
@@ -21,6 +22,7 @@ func NewPublicAPI(dbHost, dbNamespace string, dbPort int, tucsonAddress string) 
 
 	// middleware to inject Redis to all the routes for caching the client
 	r.Use(middleware.Aerospike(dbHost, dbNamespace, dbPort))
+	r.Use(middleware.RecommendationLogs(lt))
 
 	// only if we pass the flag in the CLI we inject the client
 	if tucsonAddress != "" {
