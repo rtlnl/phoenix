@@ -15,6 +15,14 @@ func GetEnv(key, fallback string) string {
 	return fallback
 }
 
+// GetDefault returns def if the parameter val is empty
+func GetDefault(val, def string) string {
+	if val != "" {
+		return val
+	}
+	return def
+}
+
 // StringInSlice checks if a string is found in a slice
 func StringInSlice(str string, list []string) bool {
 	for _, v := range list {

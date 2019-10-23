@@ -103,7 +103,7 @@ func TestRecommendFailValidation4(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing publicationPoint,signalId in the URL query\"}")
+	assert.Equal(t, "{\"message\":\"missing publicationPoint,signalId in the URL query\"}", msg)
 }
 
 func TestRecommendNoModel(t *testing.T) {

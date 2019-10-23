@@ -7,6 +7,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	tucsonGRPCAddressFlag = "tucson-address"
+)
+
 // publicCmd represents the public command
 var publicCmd = &cobra.Command{
 	Use:   "public",
@@ -19,8 +23,9 @@ APIs for serving the personalized content.`,
 		dbHost := viper.GetString(dbHostPublicFlag)
 		dbPort := viper.GetInt(dbPortPublicFlag)
 		dbNamespace := viper.GetString(dbNamespacePublicFlag)
+		tucsonAddress := viper.GetString(tucsonGRPCAddressFlag)
 
-		p, err := public.NewPublicAPI(dbHost, dbNamespace, dbPort)
+		p, err := public.NewPublicAPI(dbHost, dbNamespace, dbPort, tucsonAddress)
 		if err != nil {
 			panic(err)
 		}
@@ -41,10 +46,14 @@ func init() {
 	f.String(dbNamespacePublicFlag, "personalization", "namespace of the database")
 	f.Int(dbPortPublicFlag, 3000, "database port")
 
+	// optional parameter
+	f.String(tucsonGRPCAddressFlag, "", "tucson api gRPC server address")
+
 	viper.BindEnv(addressPublicFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostPublicFlag, "DB_HOST")
 	viper.BindEnv(dbPortPublicFlag, "DB_PORT")
 	viper.BindEnv(dbNamespacePublicFlag, "DB_NAMESPACE")
+	viper.BindEnv(tucsonGRPCAddressFlag, "TUCSON_ADDRESS")
 
 	viper.BindPFlags(f)
 }

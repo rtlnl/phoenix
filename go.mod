@@ -14,7 +14,7 @@ require (
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
-	github.com/golang/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/influxdata/tdigest v0.0.0-20181121200506-bf2b5ad3c0a9 // indirect
 	github.com/json-iterator/go v1.1.7
@@ -37,6 +37,7 @@ require (
 	golang.org/x/sys v0.0.0-20190919044723-0c1ff786ef13 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/tools v0.0.0-20190919031856-7460b8e10b7e // indirect
+	google.golang.org/grpc v1.21.0
 	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/go-playground/validator.v9 v9.29.1
 )

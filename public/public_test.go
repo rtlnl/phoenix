@@ -9,7 +9,7 @@ import (
 
 func TestNewPublicAPI(t *testing.T) {
 	port, _ := strconv.Atoi(testDBPort)
-	p, err := NewPublicAPI(testDBHost, testNamespace, port)
+	p, err := NewPublicAPI(testDBHost, testNamespace, port, "")
 	if err != nil {
 		t.Fail()
 	}

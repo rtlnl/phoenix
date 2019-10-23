@@ -255,14 +255,13 @@ func TestLinkModel(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	r, err := createManagementContainerRequest("rtl_z", "sport", []string{"hello", "world"})
+	r, err := createManagementContainerRequest("channel", "dart", []string{"hello", "world"})
 	if err != nil {
 		t.Fail()
 	}
 
 	// create container
-	truncate := CreateTestContainer(t, ac, "rtl_z", "sport", []string{""})
-	defer truncate()
+	CreateTestContainer(t, ac, "channel", "dart", []string{""})
 
 	code, body, err := MockRequest(http.MethodPut, "/management/containers/link-model", r)
 	if err != nil {
@@ -275,5 +274,8 @@ func TestLinkModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"rtl_z\",\"campaign\":\"sport\",\"models\":[\"hello\",\"world\"],\"createdAt\":null},\"message\":\"model linked to container\"}", string(b))
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"channel\",\"campaign\":\"dart\",\"models\":[\"hello\",\"world\"],\"createdAt\":null},\"message\":\"model linked to container\"}", string(b))
+
+	// force truncate
+	ac.TruncateSet("channel")
 }

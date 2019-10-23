@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/pkg/tucson"
 	"github.com/rtlnl/phoenix/utils"
 )
 
@@ -27,7 +28,7 @@ type RecommendRequest struct {
 
 // RecommendResponse is the object that represents the payload of the response for the recommend endpoint
 type RecommendResponse struct {
-	Recommendations interface{} `json:"recommendations"`
+	Recommendations interface{} `json:"recommendations" description:""`
 }
 
 // rrPool is in charged of Pooling eventual requests in coming. This will help to reduce the alloc/s
@@ -54,6 +55,7 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
+	// get container from Aerospike
 	container, err := models.GetExistingContainer(rr.PublicationPoint, rr.Campaign, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
@@ -66,8 +68,11 @@ func Recommend(c *gin.Context) {
 	// the combination of publicationPoint/campaign
 	// ...
 	// TODO: change this!
+	// get model name either from Tucson or URL
+	// modelName = getModelName(c, pp, cp)
 	modelName := container.Models[0]
 
+	// get model from aerospike
 	m, err := models.GetExistingModel(modelName, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
@@ -92,6 +97,19 @@ func Recommend(c *gin.Context) {
 	utils.Response(c, http.StatusOK, &RecommendResponse{
 		Recommendations: itemsScore,
 	})
+}
+
+func getModelName(c *gin.Context, publicationPoint, campaign string) string {
+	// Check if we have Tucson
+	tc, exists := c.Get("TucsonClient")
+	if exists {
+		// get model name from tucson
+		mn, _ := tc.(*tucson.Client).GetModel(publicationPoint, campaign)
+		return mn
+	}
+
+	// check if it's in the URL
+	return c.DefaultQuery("model", "")
 }
 
 func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {

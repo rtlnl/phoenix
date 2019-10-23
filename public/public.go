@@ -13,7 +13,7 @@ type Public struct {
 }
 
 // NewPublicAPI creates a new object holding the Gin Server
-func NewPublicAPI(dbHost, dbNamespace string, dbPort int) (*Public, error) {
+func NewPublicAPI(dbHost, dbNamespace string, dbPort int, tucsonAddress string) (*Public, error) {
 	// Creates a router without any middleware by default
 	r := gin.Default()
 
@@ -21,6 +21,11 @@ func NewPublicAPI(dbHost, dbNamespace string, dbPort int) (*Public, error) {
 
 	// middleware to inject Redis to all the routes for caching the client
 	r.Use(middleware.Aerospike(dbHost, dbNamespace, dbPort))
+
+	// only if we pass the flag in the CLI we inject the client
+	if tucsonAddress != "" {
+		r.Use(middleware.Tucson(tucsonAddress))
+	}
 
 	// Routes
 	r.GET("/", LongVersion)
