@@ -31,7 +31,17 @@ func NewInternalAPI(dbHost, dbNamespace, s3Region, s3Endpoint string, s3DisableS
 	r.GET("/batch/status/:id", BatchStatus)
 
 	// Management Routes
-	mm := r.Group("/management/model")
+	mg := r.Group("/management")
+
+	// Container routes
+	mc := mg.Group("/containers")
+	mc.GET("/", GetContainer)
+	mc.POST("/", CreateContainer)
+	mc.DELETE("/", EmptyContainer)
+	mc.PUT("/link-model", LinkModel)
+
+	// Model routes
+	mm := mg.Group("/models")
 	mm.GET("/", GetModel)
 	mm.POST("/", CreateModel)
 	mm.DELETE("/", EmptyModel)

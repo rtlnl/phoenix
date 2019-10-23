@@ -16,13 +16,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createStreamingRequest(publicationPoint, campaign, modelName, signal string, recommendations []string) (*bytes.Reader, error) {
+func createStreamingRequest(modelName, signal string, recommendations []string) (*bytes.Reader, error) {
 	rr := &StreamingRequest{
-		PublicationPoint: publicationPoint,
-		Campaign:         campaign,
-		Signal:           signal,
-		ModelName:        modelName,
-		Recommendations:  recommendations,
+		Signal:          signal,
+		ModelName:       modelName,
+		Recommendations: recommendations,
 	}
 
 	rb, err := json.Marshal(rr)
@@ -33,12 +31,10 @@ func createStreamingRequest(publicationPoint, campaign, modelName, signal string
 	return bytes.NewReader(rb), nil
 }
 
-func createBatchRequestDirect(publicationPoint, campaign, modelName string, data []BatchData) (*bytes.Reader, error) {
+func createBatchRequestDirect(modelName string, data []BatchData) (*bytes.Reader, error) {
 	br := &BatchRequest{
-		PublicationPoint: publicationPoint,
-		Campaign:         campaign,
-		ModelName:        modelName,
-		Data:             data,
+		ModelName: modelName,
+		Data:      data,
 	}
 
 	rb, err := json.Marshal(br)
@@ -49,12 +45,10 @@ func createBatchRequestDirect(publicationPoint, campaign, modelName string, data
 	return bytes.NewReader(rb), nil
 }
 
-func createBatchRequestLocation(publicationPoint, campaign, modelName string, dataLocation string) (*bytes.Reader, error) {
+func createBatchRequestLocation(modelName string, dataLocation string) (*bytes.Reader, error) {
 	br := &BatchRequest{
-		PublicationPoint: publicationPoint,
-		Campaign:         campaign,
-		ModelName:        modelName,
-		DataLocation:     dataLocation,
+		ModelName:    modelName,
+		DataLocation: dataLocation,
 	}
 
 	rb, err := json.Marshal(br)
@@ -70,13 +64,13 @@ func TestStreaming(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "collaborative", "", []string{"articleId"}, false)
+	truncate := CreateTestModel(t, ac, "streaming", "", []string{"articleId"}, false)
 	defer truncate()
 
 	signal := "100"
 	recommendationItems := []string{"1", "2", "3", "4"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "fancy", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("streaming", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -100,13 +94,13 @@ func TestStreamingBadSignal(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy2", "collaborative", "_", []string{"articleId", "userId"}, false)
+	truncate := CreateTestModel(t, ac, "hybrid", "_", []string{"articleId", "userId"}, false)
 	defer truncate()
 
 	signal := "100"
 	recommendationItems := []string{"1", "2", "3", "4"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "fancy2", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("hybrid", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -129,7 +123,7 @@ func TestStreamingBadPayload(t *testing.T) {
 	signal := ""
 	recommendationItems := []string{}
 
-	rb, err := createStreamingRequest("", "", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -154,7 +148,7 @@ func TestStreamingUpdateBadPayload(t *testing.T) {
 	signal := ""
 	recommendationItems := []string{}
 
-	rb, err := createStreamingRequest("", "", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -179,7 +173,7 @@ func TestStreamingDeleteBadPayload(t *testing.T) {
 	signal := ""
 	recommendationItems := []string{}
 
-	rb, err := createStreamingRequest("", "", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -205,13 +199,13 @@ func TestStreamingPublishedModel(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "hello", "collaborative", "", []string{"articleId"}, true)
+	truncate := CreateTestModel(t, ac, "streaming", "", []string{"articleId"}, true)
 	defer truncate()
 
 	signal := "100"
 	recommendationItems := []string{"1", "2", "3", "4"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "hello", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("streaming", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -234,7 +228,7 @@ func TestStreamingModelNotExist(t *testing.T) {
 	signal := "100"
 	recommendationItems := []string{"1", "2", "3", "4"}
 
-	rb, err := createStreamingRequest("pasta", "pizza", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("rintintin", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -250,14 +244,14 @@ func TestStreamingModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key collaborative does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model rintintin not found\"}", string(b))
 }
 
 func TestStreamingUpdateModelNotExist(t *testing.T) {
 	signal := "100"
 	recommendationItems := []string{"1", "2", "3", "4"}
 
-	rb, err := createStreamingRequest("pasta", "pizza", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("titan", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -273,14 +267,14 @@ func TestStreamingUpdateModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key collaborative does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model titan not found\"}", string(b))
 }
 
 func TestStreamingDeleteModelNotExist(t *testing.T) {
 	signal := "100"
 	recommendationItems := []string{"1", "2", "3", "4"}
 
-	rb, err := createStreamingRequest("pasta", "pizza", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("pine", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -296,7 +290,7 @@ func TestStreamingDeleteModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key collaborative does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model pine not found\"}", string(b))
 }
 
 func TestStreamingUpdateData(t *testing.T) {
@@ -304,13 +298,13 @@ func TestStreamingUpdateData(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "fancy", "collaborative", "", []string{"articleId"}, false)
+	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, false)
 	defer truncate()
 
 	signal := "543"
 	recommendationItems := []string{"6", "7", "8", "9"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "fancy", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -334,13 +328,13 @@ func TestStreamingUpdateDataPublishedModel(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "homepage", "streaming", "", []string{"articleId"}, true)
+	truncate := CreateTestModel(t, ac, "streaming", "", []string{"articleId"}, true)
 	defer truncate()
 
 	signal := "100"
 	recommendationItems := []string{"6", "7", "8", "9"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "homepage", "streaming", signal, recommendationItems)
+	rb, err := createStreamingRequest("streaming", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -364,13 +358,13 @@ func TestStreamingDeleteData(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "burger", "collaborative", "", []string{"articleId"}, false)
+	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, false)
 	defer truncate()
 
 	signal := "890"
 	recommendationItems := []string{"6", "7", "8", "9"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "burger", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -394,13 +388,13 @@ func TestStreamingDeleteDataPublishedModel(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "banana", "collaborative", "", []string{"articleId"}, true)
+	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, true)
 	defer truncate()
 
 	signal := "100"
 	recommendationItems := []string{"6", "7", "8", "9"}
 
-	rb, err := createStreamingRequest("rtl_nieuws", "banana", "collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
@@ -428,7 +422,7 @@ func TestBatchUploadDirectWithErrors(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "ham", "_", []string{"articleId", "userId"}, false)
+	truncate := CreateTestModel(t, ac, "ham", "_", []string{"articleId", "userId"}, false)
 	defer truncate()
 
 	bd := make([]BatchData, 1)
@@ -454,7 +448,7 @@ func TestBatchUploadDirectWithErrors(t *testing.T) {
 		"124": d,
 	}
 
-	rb, err := createBatchRequestDirect("rtl_nieuws", "bread", "ham", bd)
+	rb, err := createBatchRequestDirect("ham", bd)
 	if err != nil {
 		t.Fail()
 	}
@@ -478,7 +472,7 @@ func TestBatchUploadDirectNoErrors(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "pizza", "", []string{"articleId"}, false)
+	truncate := CreateTestModel(t, ac, "pizza", "", []string{"articleId"}, false)
 	defer truncate()
 
 	bd := make([]BatchData, 1)
@@ -504,7 +498,7 @@ func TestBatchUploadDirectNoErrors(t *testing.T) {
 		"124": d,
 	}
 
-	rb, err := createBatchRequestDirect("rtl_nieuws", "bread", "pizza", bd)
+	rb, err := createBatchRequestDirect("pizza", bd)
 	if err != nil {
 		t.Fail()
 	}
@@ -528,7 +522,7 @@ func TestBatchUploadDirectModelPublished(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "pepperoni", "", []string{"articleId"}, true)
+	truncate := CreateTestModel(t, ac, "pepperoni", "", []string{"articleId"}, true)
 	defer truncate()
 
 	bd := make([]BatchData, 1)
@@ -553,7 +547,7 @@ func TestBatchUploadDirectModelPublished(t *testing.T) {
 		"123": d,
 	}
 
-	rb, err := createBatchRequestDirect("rtl_nieuws", "bread", "pepperoni", bd)
+	rb, err := createBatchRequestDirect("pepperoni", bd)
 	if err != nil {
 		t.Fail()
 	}
@@ -595,7 +589,7 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 		"123": d,
 	}
 
-	rb, err := createBatchRequestDirect("pasta", "pizza", "collaborative", bd)
+	rb, err := createBatchRequestDirect("collaborative", bd)
 	if err != nil {
 		t.Fail()
 	}
@@ -611,7 +605,7 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model with publicationPoint pasta and campaign pizza not found\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model collaborative not found\"}", string(b))
 }
 
 // CreateTestS3Bucket returns a bucket and defer a drop
@@ -638,7 +632,7 @@ func TestBatchUploadS3(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "collaborative", "", []string{"articleId"}, false)
+	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, false)
 	defer truncate()
 
 	drop := CreateTestS3Bucket(t, bucket, sess)
@@ -648,7 +642,7 @@ func TestBatchUploadS3(t *testing.T) {
 		t.Fail()
 	}
 
-	rb, err := createBatchRequestLocation("rtl_nieuws", "bread", "collaborative", "s3://"+s3TestBucket+s3TestKey)
+	rb, err := createBatchRequestLocation("collaborative", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
 		t.Fail()
 	}
@@ -708,7 +702,7 @@ func TestBadBatchUploadS3(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "rtl_nieuws", "bread", "collaborative", "_", []string{"articleId", "userId"}, false)
+	truncate := CreateTestModel(t, ac, "collaborative", "_", []string{"articleId", "userId"}, false)
 	defer truncate()
 
 	drop := CreateTestS3Bucket(t, bucket, sess)
@@ -718,7 +712,7 @@ func TestBadBatchUploadS3(t *testing.T) {
 		t.Fail()
 	}
 
-	rb, err := createBatchRequestLocation("rtl_nieuws", "bread", "collaborative", "s3://"+s3TestBucket+s3TestKey)
+	rb, err := createBatchRequestLocation("collaborative", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
 		t.Fail()
 	}
@@ -767,10 +761,10 @@ func TestCorrectSignalFormat(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "test", "fancy", "collaborative", "_", []string{"articleId", "userId"}, false)
+	truncate := CreateTestModel(t, ac, "collaborative", "_", []string{"articleId", "userId"}, false)
 	defer truncate()
 
-	m, _ := models.GetExistingModel("test", "fancy", "collaborative", ac)
+	m, _ := models.GetExistingModel("collaborative", ac)
 
 	tests := map[string]struct {
 		input    string

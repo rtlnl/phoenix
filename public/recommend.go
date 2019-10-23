@@ -21,10 +21,9 @@ const (
 
 // RecommendRequest is the object that represents the payload of the request for the recommend endpoint
 type RecommendRequest struct {
-	SignalID         string `json:"signalId" binding:"required" description:""`
-	PublicationPoint string `json:"publicationPoint" binding:"required" description:""`
-	Campaign         string `json:"campaign" binding:"required" description:""`
-	ModelName        string `json:"model" description:""`
+	SignalID         string `json:"signalId"`
+	PublicationPoint string `json:"publicationPoint"`
+	Campaign         string `json:"campaign"`
 }
 
 // RecommendResponse is the object that represents the payload of the response for the recommend endpoint
@@ -56,11 +55,25 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// get model name either from Tucson or URL
-	rr.ModelName = getModelName(c, pp, cp)
+	// get container from Aerospike
+	container, err := models.GetExistingContainer(rr.PublicationPoint, rr.Campaign, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
+		return
+	}
 
-	// get model from Aerospike
-	m, err := models.GetExistingModel(rr.PublicationPoint, rr.Campaign, rr.ModelName, ac)
+	// call Tucson here
+	// ...
+	// check if the container has the model that is being requested for
+	// the combination of publicationPoint/campaign
+	// ...
+	// TODO: change this!
+	// get model name either from Tucson or URL
+	// modelName = getModelName(c, pp, cp)
+	modelName := container.Models[0]
+
+	// get model from aerospike
+	m, err := models.GetExistingModel(modelName, ac)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -72,8 +85,7 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	sn := m.ComposeSetName()
-	r, err := ac.GetOne(sn, rr.SignalID)
+	r, err := ac.GetOne(modelName, rr.SignalID)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
