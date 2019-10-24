@@ -2,6 +2,7 @@ package logs
 
 import (
 	"errors"
+	"strings"
 
 	es "github.com/elastic/go-elasticsearch/v7"
 )
@@ -23,9 +24,9 @@ func ESCredentials(username, password string) func(*es.Config) {
 // NewElasticSearchLogs creates a new object for sending logs to ElasticSearch
 // For functional options see:
 // https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
-func NewElasticSearchLogs(addresses []string, index string, options ...func(*es.Config)) (ElasticSearchLogs, error) {
+func NewElasticSearchLogs(addresses string, index string, options ...func(*es.Config)) (ElasticSearchLogs, error) {
 	cfg := &es.Config{
-		Addresses: addresses,
+		Addresses: strings.Split(addresses, ","),
 	}
 
 	// call option functions on instance to set options on it
@@ -43,6 +44,6 @@ func NewElasticSearchLogs(addresses []string, index string, options ...func(*es.
 	}, nil
 }
 
-func (es *ElasticSearchLogs) Write(rl RowLog) error {
+func (es ElasticSearchLogs) Write(rl RowLog) error {
 	return errors.New("not implemented yet")
 }

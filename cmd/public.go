@@ -11,10 +11,15 @@ import (
 )
 
 var (
-	tucsonGRPCAddressFlag          = "tucson-address"
-	recommendationLogsFlag         = "recommendation-logs"
-	recommendationKafkaBrokersFlag = "brokers"
-	recommendationKafkaTopicFlag   = "topic"
+	tucsonGRPCAddressFlag                = "tucson-address"
+	recommendationLogsFlag               = "rec-logs-type"
+	recommendationKafkaBrokersFlag       = "kafka-brokers"
+	recommendationKafkaTopicFlag         = "kafka-topic"
+	recommendationKafkaSASLMechanismFlag = "kafka-sasl-mechanism"
+	recommendationESHostsFlag            = "es-hosts"
+	recommendationESIndexFlag            = "es-index"
+	recommendationUsernameFlag           = "log-username"
+	recommendationPasswordFlag           = "log-password"
 )
 
 // publicCmd represents the public command
@@ -30,12 +35,10 @@ APIs for serving the personalized content.`,
 		dbPort := viper.GetInt(dbPortPublicFlag)
 		dbNamespace := viper.GetString(dbNamespacePublicFlag)
 		logType := viper.GetString(recommendationLogsFlag)
-		brokers := viper.GetString(recommendationKafkaBrokersFlag)
-		topic := viper.GetString(recommendationKafkaTopicFlag)
 		tucsonAddress := viper.GetString(tucsonGRPCAddressFlag)
 
 		// create recommendation logger
-		recLogs, err := setRecommendationLogging(logType, brokers, topic)
+		recLogs, err := setRecommendationLogging(logType)
 		if err != nil {
 			panic(err)
 		}
@@ -70,9 +73,14 @@ func init() {
 	f.IntP(dbPortPublicFlag, "p", 3000, "database port")
 
 	// optional parameters
-	f.StringP(recommendationLogsFlag, "l", "stdout", "[LOGS] where to store the recommendation logs. Accepted type: stdout,kafka. Kafka needs two extra flags: brokers and topic")
+	f.StringP(recommendationLogsFlag, "l", "stdout", "[LOGS] where to store the recommendation logs. Accepted type: stdout,kafka,es")
+	f.StringP(recommendationUsernameFlag, "u", "", "[LOGS] username used for either kafka or elastichsearch")
+	f.StringP(recommendationPasswordFlag, "q", "", "[LOGS] password used for either kafka or elastichsearch")
 	f.StringP(recommendationKafkaBrokersFlag, "b", "", "[LOGS] kafka brokers composed by host and port separated by comma. Example: broker1:9092,broker2:9093")
 	f.StringP(recommendationKafkaTopicFlag, "t", "", "[LOGS] kafka topic where to send the recommendation logs")
+	f.StringP(recommendationKafkaSASLMechanismFlag, "s", "", "[LOGS] kafka sasl mechanism. Accepted values 'PLAIN', 'OAUTHBEARER', 'SCRAM-SHA-256', 'SCRAM-SHA-512', 'GSSAPI'")
+	f.StringP(recommendationESHostsFlag, "r", "", "[LOGS] elasticsearch addresses separated by comma. Example addr1:9200,addr2:9200")
+	f.StringP(recommendationESIndexFlag, "i", "", "[LOGS] elasticsearch index on where to push the data")
 
 	// tucson parameters
 	f.String(tucsonGRPCAddressFlag, "", "tucson api gRPC server address")
@@ -89,12 +97,29 @@ func init() {
 	viper.BindPFlags(f)
 }
 
-func setRecommendationLogging(logType, brokers, topic string) (logs.RecommendationLog, error) {
+func setRecommendationLogging(logType string) (logs.RecommendationLog, error) {
 	switch logType {
 	case "stdout":
 		return logs.NewStdoutLog(), nil
 	case "kafka":
-		return logs.NewKafkaLogs(brokers, topic)
+		brokers := viper.GetString(recommendationKafkaBrokersFlag)
+		topic := viper.GetString(recommendationKafkaTopicFlag)
+		username := viper.GetString(recommendationUsernameFlag)
+		password := viper.GetString(recommendationPasswordFlag)
+		saslMechanism := viper.GetString(recommendationKafkaSASLMechanismFlag)
+		kup := logs.KafkaCredentials(username, password)
+		sm := logs.KafkaSASLMechanism(saslMechanism)
+
+		return logs.NewKafkaLogs(brokers, topic, kup, sm)
+	case "es":
+		hosts := viper.GetString(recommendationESHostsFlag)
+		index := viper.GetString(recommendationESIndexFlag)
+		username := viper.GetString(recommendationUsernameFlag)
+		password := viper.GetString(recommendationPasswordFlag)
+
+		eup := logs.ESCredentials(username, password)
+
+		return logs.NewElasticSearchLogs(hosts, index, eup)
 	default:
 		return nil, errors.New("recommendation logging type not valid. Use only stdout or kafka")
 	}
