@@ -12,11 +12,35 @@ type KakfaLog struct {
 	Topic    string
 }
 
+// KafkaSASLMechanism functional option for the kafka configuration
+// Values accepted: "OAUTHBEARER", "PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512", "GSSAPI"
+func KafkaSASLMechanism(m string) func(*sarama.Config) {
+	return func(cfg *sarama.Config) {
+		cfg.Net.SASL.Mechanism = sarama.SASLMechanism(m)
+	}
+}
+
+// KafkaCredentials functional option for the kafka configuration
+// For functional options see:
+// https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
+func KafkaCredentials(username, password string) func(*sarama.Config) {
+	return func(cfg *sarama.Config) {
+		cfg.Net.SASL.User = username
+		cfg.Net.SASL.Password = password
+	}
+}
+
 // NewKafkaLogs create a new object for interacting with Kafka
-func NewKafkaLogs(brokers, topic string) (KakfaLog, error) {
+func NewKafkaLogs(brokers, topic string, options ...func(*sarama.Config)) (KakfaLog, error) {
 	bs := strings.Split(brokers, ",")
 
-	producer, err := sarama.NewSyncProducer(bs, nil)
+	// call option functions on instance to set options on it
+	cfg := &sarama.Config{}
+	for _, opt := range options {
+		opt(cfg)
+	}
+
+	producer, err := sarama.NewSyncProducer(bs, cfg)
 	if err != nil {
 		return KakfaLog{}, err
 	}
