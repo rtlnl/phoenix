@@ -2,7 +2,6 @@ package internal
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/phoenix/middleware"
 )
 
 // Internal is the struct that will retain the server for ingesting the
@@ -12,15 +11,16 @@ type Internal struct {
 }
 
 // NewInternalAPI creates the o object
-func NewInternalAPI(dbHost, dbNamespace, s3Region, s3Endpoint string, s3DisableSSL bool, dbPort int) (*Internal, error) {
+func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 	// Creates a router without any middleware by default
 	r := gin.Default()
 
 	r.RedirectTrailingSlash = true
 
-	// middlewares for injecting clients that are always in used. Caching is important when low latency is due
-	r.Use(middleware.Aerospike(dbHost, dbNamespace, dbPort))
-	r.Use(middleware.AWSSession(s3Region, s3Endpoint, s3DisableSSL))
+	// add all middleware
+	for _, m := range middlewares {
+		r.Use(m)
+	}
 
 	// Routes
 	r.GET("/", LongVersion)

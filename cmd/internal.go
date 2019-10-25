@@ -1,9 +1,12 @@
 package cmd
 
 import (
-	"github.com/rtlnl/phoenix/internal"
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/rtlnl/phoenix/internal"
+	md "github.com/rtlnl/phoenix/middleware"
 )
 
 var (
@@ -27,7 +30,12 @@ var internalCmd = &cobra.Command{
 		s3Endpoint := viper.GetString(s3EndpointFlag)
 		s3DisableSSL := viper.GetBool(s3DisableSSLFlag)
 
-		i, err := internal.NewInternalAPI(dbHost, dbNamespace, s3Region, s3Endpoint, s3DisableSSL, dbPort)
+		// append all the middlewares here
+		var middlewares []gin.HandlerFunc
+		middlewares = append(middlewares, md.Aerospike(dbHost, dbNamespace, dbPort))
+		middlewares = append(middlewares, md.AWSSession(s3Region, s3Endpoint, s3DisableSSL))
+
+		i, err := internal.NewInternalAPI(middlewares...)
 		if err != nil {
 			panic(err)
 		}

@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"errors"
-
-	"github.com/rtlnl/phoenix/pkg/logs"
-	"github.com/rtlnl/phoenix/public"
-
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	md "github.com/rtlnl/phoenix/middleware"
+	"github.com/rtlnl/phoenix/pkg/logs"
+	"github.com/rtlnl/phoenix/public"
 )
 
 var (
@@ -48,8 +48,18 @@ APIs for serving the personalized content.`,
 			defer recLogs.(logs.KakfaLog).Close()
 		}
 
+		// append all the middlewares here
+		var middlewares []gin.HandlerFunc
+		middlewares = append(middlewares, md.Aerospike(dbHost, dbNamespace, dbPort))
+		middlewares = append(middlewares, md.RecommendationLogs(recLogs))
+
+		// only if we pass the tucson flag in the CLI we inject the client
+		if tucsonAddress != "" {
+			middlewares = append(middlewares, md.Tucson(tucsonAddress))
+		}
+
 		// create new Public api object
-		p, err := public.NewPublicAPI(dbHost, dbNamespace, dbPort, tucsonAddress, recLogs)
+		p, err := public.NewPublicAPI(middlewares...)
 		if err != nil {
 			panic(err)
 		}
@@ -99,8 +109,6 @@ func init() {
 
 func setRecommendationLogging(logType string) (logs.RecommendationLog, error) {
 	switch logType {
-	case "stdout":
-		return logs.NewStdoutLog(), nil
 	case "kafka":
 		brokers := viper.GetString(recommendationKafkaBrokersFlag)
 		topic := viper.GetString(recommendationKafkaTopicFlag)
@@ -120,7 +128,9 @@ func setRecommendationLogging(logType string) (logs.RecommendationLog, error) {
 		eup := logs.ESCredentials(username, password)
 
 		return logs.NewElasticSearchLogs(hosts, index, eup)
+	case "stdout":
+		return logs.NewStdoutLog(), nil
 	default:
-		return nil, errors.New("recommendation logging type not valid. Use only stdout or kafka")
+		return logs.NewStdoutLog(), nil
 	}
 }
