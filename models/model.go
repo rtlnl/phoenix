@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/semver"
 	"github.com/rtlnl/phoenix/pkg/db"
@@ -18,6 +19,8 @@ const (
 	binKeySignalOrder  = "signal_order"
 	binKeyModelName    = "name"
 	binKeyConcatenator = "concatenator"
+	setNameAllModels   = "models"
+	binKeyCreatedAt    = "createdAt"
 )
 
 // StageType defines if the model is available for the recommendations or not
@@ -43,11 +46,16 @@ type Model struct {
 // Every new model starts with STAGED type and Version 0.1
 //
 // Definition of the table in Aerospike for models
-// setName --> Name
-// key     --> __metadata
-// bins    --> Version = 0.1
+// SetName --> Name
+// Key     --> __metadata
+// Bins    --> Version = 0.1
 //             Stage = STAGED
 //             SignalOrder = signalOrder
+//
+// Generic structure containing all the models
+// SetName --> models
+// Key     --> name
+// Bins    --> created_at = datetime
 func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeClient) (*Model, error) {
 	v, err := semver.NewVersion(initVersion)
 	if err != nil {
@@ -71,6 +79,12 @@ func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeC
 		if err := ac.AddOne(name, keyMetadata, k, v); err != nil {
 			return nil, err
 		}
+	}
+
+	// add to all models
+	cat := time.Now().Format("2006-01-02 15:04:05")
+	if err := ac.AddOne(setNameAllModels, name, binKeyCreatedAt, cat); err != nil {
+		return nil, err
 	}
 
 	return &Model{
@@ -240,4 +254,23 @@ func (m *Model) CorrectSignalFormat(s string) bool {
 		return c == r[0]
 	})
 	return len(m.SignalOrder) == len(res)
+}
+
+// GetAllModels is a convenient functions to get all the models from Aerospike
+func GetAllModels(ac *db.AerospikeClient) ([]*Model, error) {
+	var models []*Model
+	records, err := ac.GetAllRecords(setNameAllModels)
+	if err != nil {
+		return nil, err
+	}
+
+	for record := range records.Results() {
+		key := record.Record.Key.Value().String()
+		if m, err := GetExistingModel(key, ac); err == nil {
+			models = append(models, m)
+			continue
+		}
+		return nil, err
+	}
+	return models, nil
 }

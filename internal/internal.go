@@ -38,6 +38,7 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 	mc.GET("/", GetContainer)
 	mc.POST("/", CreateContainer)
 	mc.DELETE("/", EmptyContainer)
+	mc.GET("/all", GetAllContainers)
 	mc.PUT("/link-model", LinkModel)
 
 	// Model routes
@@ -45,6 +46,7 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 	mm.GET("/", GetModel)
 	mm.POST("/", CreateModel)
 	mm.DELETE("/", EmptyModel)
+	mm.GET("/all", GetAllModels)
 	mm.POST("/publish", PublishModel)
 	mm.POST("/stage", StageModel)
 

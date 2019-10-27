@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createStreamingRequest(modelName, signal string, recommendations []string) (*bytes.Reader, error) {
+func createStreamingRequest(modelName, signal string, recommendations []models.ItemScore) (*bytes.Reader, error) {
 	rr := &StreamingRequest{
 		Signal:          signal,
 		ModelName:       modelName,
@@ -68,7 +68,23 @@ func TestStreaming(t *testing.T) {
 	defer truncate()
 
 	signal := "100"
-	recommendationItems := []string{"1", "2", "3", "4"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("streaming", signal, recommendationItems)
 	if err != nil {
@@ -98,7 +114,23 @@ func TestStreamingBadSignal(t *testing.T) {
 	defer truncate()
 
 	signal := "100"
-	recommendationItems := []string{"1", "2", "3", "4"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("hybrid", signal, recommendationItems)
 	if err != nil {
@@ -121,7 +153,7 @@ func TestStreamingBadSignal(t *testing.T) {
 
 func TestStreamingBadPayload(t *testing.T) {
 	signal := ""
-	recommendationItems := []string{}
+	recommendationItems := []models.ItemScore{}
 
 	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
@@ -146,7 +178,7 @@ func TestStreamingBadPayload(t *testing.T) {
 
 func TestStreamingUpdateBadPayload(t *testing.T) {
 	signal := ""
-	recommendationItems := []string{}
+	recommendationItems := []models.ItemScore{}
 
 	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
@@ -171,7 +203,7 @@ func TestStreamingUpdateBadPayload(t *testing.T) {
 
 func TestStreamingDeleteBadPayload(t *testing.T) {
 	signal := ""
-	recommendationItems := []string{}
+	recommendationItems := []models.ItemScore{}
 
 	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
@@ -203,7 +235,23 @@ func TestStreamingPublishedModel(t *testing.T) {
 	defer truncate()
 
 	signal := "100"
-	recommendationItems := []string{"1", "2", "3", "4"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("streaming", signal, recommendationItems)
 	if err != nil {
@@ -226,7 +274,23 @@ func TestStreamingPublishedModel(t *testing.T) {
 
 func TestStreamingModelNotExist(t *testing.T) {
 	signal := "100"
-	recommendationItems := []string{"1", "2", "3", "4"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("rintintin", signal, recommendationItems)
 	if err != nil {
@@ -249,7 +313,23 @@ func TestStreamingModelNotExist(t *testing.T) {
 
 func TestStreamingUpdateModelNotExist(t *testing.T) {
 	signal := "100"
-	recommendationItems := []string{"1", "2", "3", "4"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("titan", signal, recommendationItems)
 	if err != nil {
@@ -272,7 +352,23 @@ func TestStreamingUpdateModelNotExist(t *testing.T) {
 
 func TestStreamingDeleteModelNotExist(t *testing.T) {
 	signal := "100"
-	recommendationItems := []string{"1", "2", "3", "4"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("pine", signal, recommendationItems)
 	if err != nil {
@@ -302,7 +398,23 @@ func TestStreamingUpdateData(t *testing.T) {
 	defer truncate()
 
 	signal := "543"
-	recommendationItems := []string{"6", "7", "8", "9"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
@@ -332,7 +444,23 @@ func TestStreamingUpdateDataPublishedModel(t *testing.T) {
 	defer truncate()
 
 	signal := "100"
-	recommendationItems := []string{"6", "7", "8", "9"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("streaming", signal, recommendationItems)
 	if err != nil {
@@ -362,7 +490,23 @@ func TestStreamingDeleteData(t *testing.T) {
 	defer truncate()
 
 	signal := "890"
-	recommendationItems := []string{"6", "7", "8", "9"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {
@@ -392,7 +536,23 @@ func TestStreamingDeleteDataPublishedModel(t *testing.T) {
 	defer truncate()
 
 	signal := "100"
-	recommendationItems := []string{"6", "7", "8", "9"}
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
 
 	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
 	if err != nil {

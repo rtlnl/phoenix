@@ -205,7 +205,7 @@ func TestEmptyContainer(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"videoland\",\"campaign\":\"profile\",\"models\":[\"test\"],\"createdAt\":null},\"message\":\"container empty\"}", string(b))
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"videoland\",\"campaign\":\"profile\",\"models\":null,\"createdAt\":null},\"message\":\"container empty\"}", string(b))
 }
 
 func TestEmptyContainerFailValidation(t *testing.T) {

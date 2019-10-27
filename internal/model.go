@@ -210,3 +210,24 @@ func EmptyModel(c *gin.Context) {
 		Message: "model empty",
 	})
 }
+
+type ManagementModelsResponse struct {
+	Models  []*models.Model `json:"models"`
+	Message string          `json:"message"`
+}
+
+func GetAllModels(c *gin.Context) {
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+
+	// fetch models
+	models, err := models.GetAllModels(ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, errors.New("no models found"))
+		return
+	}
+
+	utils.Response(c, http.StatusOK, &ManagementModelsResponse{
+		Models:  models,
+		Message: "models fetched",
+	})
+}

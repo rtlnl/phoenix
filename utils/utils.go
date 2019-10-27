@@ -36,6 +36,10 @@ func StringInSlice(str string, list []string) bool {
 // ConvertInterfaceToList converts the objects coming from Aerospike have type []interface{}.
 // This function converts the Bins in the appropriate type for consistency
 func ConvertInterfaceToList(bins interface{}) []string {
+	if bins == nil {
+		return nil
+	}
+
 	var list []string
 	newBins := bins.([]interface{})
 	for _, bin := range newBins {

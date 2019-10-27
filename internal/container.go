@@ -135,3 +135,26 @@ func LinkModel(c *gin.Context) {
 		Message:   "model linked to container",
 	})
 }
+
+// ManagementContainersResponse handles the response when there are multiple containers
+type ManagementContainersResponse struct {
+	Containers []*models.Container `json:"containers"`
+	Message    string              `json:"message"`
+}
+
+// GetAllContainers returns all the containers in the database
+func GetAllContainers(c *gin.Context) {
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+
+	// fetch container
+	containers, err := models.GetAllContainers(ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, errors.New("no containers found"))
+		return
+	}
+
+	utils.Response(c, http.StatusOK, &ManagementContainersResponse{
+		Containers: containers,
+		Message:    "containers fetched",
+	})
+}

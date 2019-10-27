@@ -35,9 +35,9 @@ const (
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
 type StreamingRequest struct {
-	Signal          string   `json:"signal" binding:"required"`
-	ModelName       string   `json:"modelName" binding:"required"`
-	Recommendations []string `json:"recommendations" binding:"required"`
+	Signal          string             `json:"signal" binding:"required"`
+	ModelName       string             `json:"modelName" binding:"required"`
+	Recommendations []models.ItemScore `json:"recommendations" binding:"required"`
 }
 
 // StreamingResponse is the object that represents the payload for the response in the streaming endpoints
