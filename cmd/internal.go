@@ -34,6 +34,7 @@ var internalCmd = &cobra.Command{
 		var middlewares []gin.HandlerFunc
 		middlewares = append(middlewares, md.Aerospike(dbHost, dbNamespace, dbPort))
 		middlewares = append(middlewares, md.AWSSession(s3Region, s3Endpoint, s3DisableSSL))
+		middlewares = append(middlewares, md.Cors())
 
 		i, err := internal.NewInternalAPI(middlewares...)
 		if err != nil {
