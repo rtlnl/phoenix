@@ -22,10 +22,12 @@ require (
 	github.com/json-iterator/go v1.1.7
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/leodido/go-urn v1.1.0 // indirect
+	github.com/machinebox/graphql v0.2.2
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
 	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
+	github.com/prisma/prisma-client-lib-go v0.0.0-20181017161110-68a1f9908416
 	github.com/rs/zerolog v1.15.0
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0

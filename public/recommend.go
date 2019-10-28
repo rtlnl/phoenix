@@ -58,13 +58,6 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// get container from Aerospike
-	container, err := models.GetExistingContainer(rr.PublicationPoint, rr.Campaign, ac)
-	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
-		return
-	}
-
 	// get model name either from Tucson or URL
 	modelName, err := getModelName(c, container)
 	if err != nil {
@@ -110,14 +103,14 @@ func Recommend(c *gin.Context) {
 	})
 }
 
-func getModelName(c *gin.Context, container *models.Container) (string, error) {
+func getModelName(c *gin.Context, publicationPoint, campaign string) (string, error) {
 	// check if it's in the URL
 	modelName := c.DefaultQuery("model", "")
 
 	// Check if we have Tucson connected
 	if tc, exists := c.Get("TucsonClient"); exists {
 		// get model name from tucson
-		if modelName, _ = tc.(*tucson.Client).GetModel(container.PublicationPoint, container.Campaign); modelName == "" {
+		if modelName, _ = tc.(*tucson.Client).GetModel(publicationPoint, campaign); modelName == "" {
 			return "", errors.New("model is empty")
 		}
 		return modelName, nil
@@ -127,12 +120,7 @@ func getModelName(c *gin.Context, container *models.Container) (string, error) {
 	if modelName == "" {
 		return "", errors.New("model is empty")
 	}
-
-	// check if there are models available in the container
-	if len(container.Models) > 0 && utils.StringInSlice(modelName, container.Models) {
-		return modelName, nil
-	}
-	return "", fmt.Errorf("model %s not available in publicationPoint %s and campaign %s", modelName, container.PublicationPoint, container.Campaign)
+	return modelName, nil
 }
 
 func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {

@@ -35,19 +35,19 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 
 	// Container routes
 	mc := mg.Group("/containers")
-	mc.GET("/", GetContainer)
+	mc.GET("/", GetAllContainers)
 	mc.POST("/", CreateContainer)
-	mc.DELETE("/", EmptyContainer)
-	mc.GET("/all", GetAllContainers)
-	mc.PUT("/link-model", LinkModel)
+	mc.GET("/:id", GetContainer)
+	mc.DELETE("/:id", DeleteContainer)
+	mc.PUT("/:id/link-model", LinkModel)
 
 	// Model routes
 	mm := mg.Group("/models")
-	mm.GET("/", GetModel)
+	mm.GET("/", GetAllModels)
 	mm.POST("/", CreateModel)
-	mm.DELETE("/", EmptyModel)
+	mm.GET("/:id", GetModel)
+	mm.DELETE("/:id", EmptyModel)
 	mm.GET("/preview", GetDataPreview)
-	mm.GET("/all", GetAllModels)
 	mm.POST("/publish", PublishModel)
 	mm.POST("/stage", StageModel)
 

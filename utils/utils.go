@@ -3,7 +3,10 @@ package utils
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 // GetEnv will set an env variable with a default if the variable is not
@@ -65,4 +68,15 @@ func RemoveEmptyValueInSlice(s []string) []string {
 		}
 	}
 	return r
+}
+
+// ConvertStringToInt32 returns a pointer to int32
+func ConvertStringToInt32(val string) *int32 {
+	v, err := strconv.Atoi(val)
+	if err != nil {
+		log.Error().Msg(err.Error())
+		return nil
+	}
+	r := int32(v)
+	return &r
 }

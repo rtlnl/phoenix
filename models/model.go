@@ -53,11 +53,6 @@ type Model struct {
 // Bins    --> Version = 0.1
 //             Stage = STAGED
 //             SignalOrder = signalOrder
-//
-// Generic structure containing all the models
-// SetName --> models
-// Key     --> name
-// Bins    --> created_at = datetime
 func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeClient) (*Model, error) {
 	v, err := semver.NewVersion(initVersion)
 	if err != nil {

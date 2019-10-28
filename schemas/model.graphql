@@ -1,0 +1,11 @@
+type Model {
+    id: Int! @id
+    name: String! @unique
+    signalOrder: [String!]! @scalarList(strategy: RELATION)
+    concatenator: String!
+    stage: String!
+    version: String!
+    containerId: [Container!]!
+    createdAt: DateTime! @createdAt
+    updatedAt: DateTime! @updatedAt
+}

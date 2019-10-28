@@ -1,0 +1,10 @@
+datamodel:
+  - schemas/model.graphql
+  - schemas/container.graphql
+
+endpoint: http://localhost:4466
+
+# Specifies the language and directory for the generated Prisma client.
+generate:
+  - generator: go-client
+    output: pkg/prisma

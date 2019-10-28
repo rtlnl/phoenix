@@ -1,29 +1,61 @@
 version: "3"
 services:
-  aerospike:
-    image: aerospike/aerospike-server
-    container_name: aerospike
-    command: ["--config-file", "/opt/aerospike/etc/aerospike.conf"]
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./data:/opt/aerospike/data
-      - ./config/aerospike.test.conf:/opt/aerospike/etc/aerospike.conf
+  # aerospike:
+  #   image: aerospike/aerospike-server
+  #   container_name: aerospike
+  #   command: ["--config-file", "/opt/aerospike/etc/aerospike.conf"]
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./data:/opt/aerospike/data
+  #     - ./config/aerospike.test.conf:/opt/aerospike/etc/aerospike.conf
 
-  localstack:
-    container_name: localstack
-    image: localstack/localstack
+  # localstack:
+  #   container_name: localstack
+  #   image: localstack/localstack
+  #   ports:
+  #     - "4572:4572"
+  #     - "8080:8080"
+  #   environment:
+  #     - SERVICES=s3
+  #     - DEFAULT_REGION=eu-west-1
+  #     - DEBUG=1
+  #     - DATA_DIR=/tmp/localstack/data
+  #     - DOCKER_HOST=unix:///var/run/docker.sock
+  #   volumes:
+  #     - ./.localstack:/tmp/localstack
+
+  prisma:
+    container_name: prisma
+    image: prismagraphql/prisma:1.34
+    restart: always
     ports:
-      - "4572:4572"
-      - "8080:8080"
+      - "4466:4466"
     environment:
-      - SERVICES=s3
-      - DEFAULT_REGION=eu-west-1
-      - DEBUG=1
-      - DATA_DIR=/tmp/localstack/data
-      - DOCKER_HOST=unix:///var/run/docker.sock
+      PRISMA_CONFIG: |
+        port: 4466
+        databases:
+          default:
+            connector: postgres
+            host: postgres
+            port: 5432
+            user: root
+            password: prisma
+            migrations: true
+            managementSchema: management
+            database: root
+  postgres:
+    container_name: postgres
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: prisma
+    ports:
+      - "5432:5432"
     volumes:
-      - ./.localstack:/tmp/localstack
+      - postgres:/var/lib/postgresql/data
 
 volumes:
-  aerospike-data:
+  postgres:
+  # aerospike-data:

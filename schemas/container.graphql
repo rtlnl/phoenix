@@ -1,0 +1,8 @@
+type Container {
+    id: Int! @id
+    publicationPoint: String! @unique
+    campaign: String! @unique
+    models: [Model!]!
+    createdAt: DateTime! @createdAt
+    updatedAt: DateTime! @updatedAt
+}

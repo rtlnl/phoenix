@@ -7,39 +7,30 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rtlnl/phoenix/models"
-	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/pkg/prisma"
 	"github.com/rtlnl/phoenix/utils"
 )
 
 // ManagementContainerRequest handles the request from the client
 type ManagementContainerRequest struct {
-	PublicationPoint string   `json:"publicationPoint" binding:"required"`
-	Campaign         string   `json:"campaign" binding:"required"`
-	Models           []string `json:"models"`
+	PublicationPoint string `json:"publicationPoint" binding:"required"`
+	Campaign         string `json:"campaign" binding:"required"`
+	Model            string `json:"model"`
 }
 
 // ManagementContainerResponse handles the response object to the client
 type ManagementContainerResponse struct {
-	Container *models.Container `json:"container"`
+	Container *prisma.Container `json:"container"`
 	Message   string            `json:"message"`
 }
 
 // GetContainer returns an already existsing container
 func GetContainer(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
-
-	// read from params in url
-	pp := c.Query("publicationPoint")
-	cmp := c.Query("campaign")
-
-	// if either is empty then
-	if pp == "" || cmp == "" {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("missing parameters in url for searching the container"))
-		return
-	}
+	pc := c.MustGet("PrismClient").(*prisma.Client)
+	cID := c.Query("id")
 
 	// fetch container
-	container, err := models.GetExistingContainer(pp, cmp, ac)
+	container, err := models.GetContainerByID(cID, pc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s not found", pp, cmp))
 		return
@@ -53,7 +44,7 @@ func GetContainer(c *gin.Context) {
 
 // CreateContainer creates a new container for the given publication point and campaign
 func CreateContainer(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	pc := c.MustGet("PrismClient").(*prisma.Client)
 
 	var mc ManagementContainerRequest
 	if err := c.BindJSON(&mc); err != nil {
@@ -61,7 +52,7 @@ func CreateContainer(c *gin.Context) {
 		return
 	}
 
-	container, err := models.NewContainer(mc.PublicationPoint, mc.Campaign, mc.Models, ac)
+	container, err := models.NewContainer(mc.PublicationPoint, mc.Campaign, mc.Models, pc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return
@@ -73,24 +64,14 @@ func CreateContainer(c *gin.Context) {
 	})
 }
 
-// EmptyContainer truncate the container's data
-func EmptyContainer(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
-
-	var mc ManagementContainerRequest
-	if err := c.BindJSON(&mc); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	container, err := models.GetExistingContainer(mc.PublicationPoint, mc.Campaign, ac)
-	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s not found", mc.PublicationPoint, mc.Campaign))
-		return
-	}
+// DeleteContainer deletes the container from the database
+func DeleteContainer(c *gin.Context) {
+	pc := c.MustGet("PrismaClient").(*prisma.Client)
+	cID := c.Query("id")
 
 	// empty model from database
-	if err := container.DeleteContainer(ac); err != nil {
+	container, err := models.DeleteContainer(cID, pc)
+	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -103,7 +84,8 @@ func EmptyContainer(c *gin.Context) {
 
 // LinkModel attaches the specified models in input to an existing container
 func LinkModel(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	pc := c.MustGet("PrismaClient").(*prisma.Client)
+	cID := c.Query("id")
 
 	var mc ManagementContainerRequest
 	if err := c.BindJSON(&mc); err != nil {
@@ -111,20 +93,14 @@ func LinkModel(c *gin.Context) {
 		return
 	}
 
-	if len(mc.Models) <= 0 {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("no models to link to the container"))
-		return
-	}
-
-	// get the existing model
-	container, err := models.GetExistingContainer(mc.PublicationPoint, mc.Campaign, ac)
-	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s not found", mc.PublicationPoint, mc.Campaign))
+	// check if model's value is empty
+	if mc.Model == "" {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("model parameter is empty"))
 		return
 	}
 
 	// link the models internally
-	container, err = container.LinkModel(mc.Models, ac)
+	container, err := models.LinkModel(cID, mc.Model, pc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
@@ -138,18 +114,18 @@ func LinkModel(c *gin.Context) {
 
 // ManagementContainersResponse handles the response when there are multiple containers
 type ManagementContainersResponse struct {
-	Containers []*models.Container `json:"containers"`
-	Message    string              `json:"message"`
+	Containers []prisma.Container `json:"containers"`
+	Message    string             `json:"message"`
 }
 
 // GetAllContainers returns all the containers in the database
 func GetAllContainers(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	pc := c.MustGet("PrismClient").(*prisma.Client)
 
 	// fetch container
-	containers, err := models.GetAllContainers(ac)
+	containers, err := models.GetAllContainers(pc)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, errors.New("no containers found"))
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
