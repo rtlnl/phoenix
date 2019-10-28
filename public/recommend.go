@@ -163,8 +163,8 @@ func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, ca
 	return nil
 }
 
-// The objects coming from Aerospike have type []interface{}. This function converts
-// the Bins in the appropriate type for consistency
+// ConvertSingleEntry This function converts the Bins in the appropriate type for consistency
+// The objects coming from Aerospike that have type []interface{}.
 func convertSingleEntry(bins interface{}) []models.ItemScore {
 	var itemsScore []models.ItemScore
 	newBins := bins.([]interface{})

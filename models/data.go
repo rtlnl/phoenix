@@ -1,7 +1,7 @@
 package models
 
 // ItemScore is the object containing the recommended item and its score
-// Example: {"item":"11","score":"0.6"}
+// Example: {"item":"11","score":"0.6","type":"movie"}
 type ItemScore map[string]string
 
 // LineError contains the line number as key and the error message as string
@@ -17,6 +17,6 @@ type RecordQueue struct {
 
 // SingleEntry is the object used to unmarshal a single JSON line
 type SingleEntry struct {
-	SignalID    string      `json:"signalID"`
+	SignalID    string      `json:"signalId"`
 	Recommended []ItemScore `json:"recommended"`
 }

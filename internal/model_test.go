@@ -48,7 +48,7 @@ func TestGetModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"name\":\"collaborative\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"articleId\"],\"concatenator\":\"\"}", string(b))
+	assert.Equal(t, "{\"model\":{\"name\":\"collaborative\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"articleId\"],\"concatenator\":\"\"},\"message\":\"model fetched\"}", string(b))
 }
 
 func TestGetModelEmptyParams(t *testing.T) {

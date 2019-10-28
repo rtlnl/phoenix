@@ -84,7 +84,10 @@ func GetModel(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusOK, m)
+	utils.Response(c, http.StatusCreated, &ManagementModelResponse{
+		Model:   m,
+		Message: "model fetched",
+	})
 }
 
 // CreateModel create a new model in the database where to upload the data
@@ -211,11 +214,13 @@ func EmptyModel(c *gin.Context) {
 	})
 }
 
+// ManagementModelsResponse handles the response when multiple models
 type ManagementModelsResponse struct {
 	Models  []*models.Model `json:"models"`
 	Message string          `json:"message"`
 }
 
+// GetAllModels returns all the models in the database
 func GetAllModels(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
 
@@ -230,4 +235,39 @@ func GetAllModels(c *gin.Context) {
 		Models:  models,
 		Message: "models fetched",
 	})
+}
+
+// ManagementDataPreviewResponse handles the data preview response
+type ManagementDataPreviewResponse struct {
+	Preview []*models.SingleEntry `json:"preview"`
+}
+
+// GetDataPreview returns a preview of the dataset
+func GetDataPreview(c *gin.Context) {
+	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+
+	// read from params in url
+	mn := c.Query("name")
+
+	// if either is empty then
+	if mn == "" {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("missing parameters in url for searching the model"))
+		return
+	}
+
+	// fetch model
+	m, err := models.GetExistingModel(mn, ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mn))
+		return
+	}
+
+	// fetch data preview
+	data, err := m.GetDataPreview(ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.Response(c, http.StatusOK, &ManagementDataPreviewResponse{Preview: data})
 }

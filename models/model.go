@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ const (
 	binKeyConcatenator = "concatenator"
 	setNameAllModels   = "models"
 	binKeyCreatedAt    = "createdAt"
+	maxEntries         = 100
 )
 
 // StageType defines if the model is available for the recommendations or not
@@ -273,4 +275,55 @@ func GetAllModels(ac *db.AerospikeClient) ([]*Model, error) {
 		return nil, err
 	}
 	return models, nil
+}
+
+// GetDataPreview returns a limited amount of data as preview for a single model
+func (m *Model) GetDataPreview(ac *db.AerospikeClient) ([]*SingleEntry, error) {
+	var data []*SingleEntry
+	records, err := ac.GetAllRecords(m.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	counter := 0
+	for record := range records.Results() {
+		if counter == maxEntries {
+			break
+		}
+
+		key := record.Record.Key.Value().String()
+		if key == keyMetadata {
+			// skip metadata
+			continue
+		}
+
+		bins := record.Record.Bins
+		recommended := convertSingleEntry(bins["items"])
+
+		data = append(data, &SingleEntry{
+			SignalID:    key,
+			Recommended: recommended,
+		})
+		counter++
+	}
+
+	return data, nil
+}
+
+// ConvertSingleEntry This function converts the Bins in the appropriate type for consistency
+// The objects coming from Aerospike that have type []interface{}.
+func convertSingleEntry(bins interface{}) []ItemScore {
+	var itemsScore []ItemScore
+	newBins := bins.([]interface{})
+	for _, bin := range newBins {
+		b := bin.(map[interface{}]interface{})
+		item := make(ItemScore)
+		for k, v := range b {
+			it := fmt.Sprintf("%v", k)
+			score := fmt.Sprintf("%v", v)
+			item[it] = score
+		}
+		itemsScore = append(itemsScore, item)
+	}
+	return itemsScore
 }
