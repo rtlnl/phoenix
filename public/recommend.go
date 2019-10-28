@@ -60,8 +60,8 @@ func Recommend(c *gin.Context) {
 
 	// get container from Aerospike
 	container, err := models.GetExistingContainer(rr.PublicationPoint, rr.Campaign, ac)
-	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+	if container == nil || err != nil {
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s is not found", pp, cp))
 		return
 	}
 
@@ -74,7 +74,7 @@ func Recommend(c *gin.Context) {
 
 	// get model from aerospike
 	m, err := models.GetExistingModel(modelName, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}

@@ -118,7 +118,7 @@ func TestRecommendNoModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key hello does not exist\"}", string(b))
+	assert.Equal(t, "{\"message\":\"container with publication point tuna and campaign hello is not found\"}", string(b))
 }
 
 func TestRecommendWrongSignal(t *testing.T) {
@@ -126,15 +126,15 @@ func TestRecommendWrongSignal(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	// create container
-	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "homepage", []string{"pizza"})
-	defer truncateContainer()
-
 	// create model
-	truncateModel := CreateTestModel(t, ac, "pizza", "", []string{"articleId"}, true)
+	truncateModel := CreateTestModel(t, ac, "pepperoni", "", []string{"articleId"}, true)
 	defer truncateModel()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=pizza&signalId=jjkk_767", nil)
+	// create container
+	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "homepage", []string{"pepperoni"})
+	defer truncateContainer()
+
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=pepperoni&signalId=jjkk_767", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -153,13 +153,13 @@ func TestRecommendModelStaged(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	// create container
-	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "banana", []string{"pear"})
-	defer truncateContainer()
-
 	// create model
 	truncateModel := CreateTestModel(t, ac, "pear", "", []string{"articleId"}, false)
 	defer truncateModel()
+
+	// create container
+	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "banana", []string{"pear"})
+	defer truncateContainer()
 
 	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=banana&model=pear&signalId=500083", nil)
 	if err != nil {
@@ -182,13 +182,13 @@ func BenchmarkRecommend(b *testing.B) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	// create container
-	truncateContainer := CreateTestContainer(nil, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
-	defer truncateContainer()
-
 	// create model
 	truncateModel := CreateTestModel(nil, ac, "collaborative", "", []string{"articleId"}, false)
 	defer truncateModel()
+
+	// create container
+	truncateContainer := CreateTestContainer(nil, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
+	defer truncateContainer()
 
 	// upload data to model
 	truncateTestData := UploadTestData(nil, ac, "testdata/test_published_model_data.jsonl", "collaborative")

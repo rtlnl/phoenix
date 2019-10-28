@@ -56,7 +56,7 @@ func CreateStreaming(c *gin.Context) {
 	}
 
 	m, err := models.GetExistingModel(sr.ModelName, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", sr.ModelName))
 		return
 	}
@@ -93,7 +93,7 @@ func UpdateStreaming(c *gin.Context) {
 	}
 
 	m, err := models.GetExistingModel(sr.ModelName, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", sr.ModelName))
 		return
 	}
@@ -126,7 +126,7 @@ func DeleteStreaming(c *gin.Context) {
 	}
 
 	m, err := models.GetExistingModel(sr.ModelName, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", sr.ModelName))
 		return
 	}
@@ -195,7 +195,7 @@ func Batch(c *gin.Context) {
 
 	// retrieve the model
 	m, err := models.GetExistingModel(br.ModelName, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", br.ModelName))
 		return
 	}

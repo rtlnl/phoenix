@@ -1,8 +1,6 @@
 package models
 
 import (
-	"fmt"
-
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/utils"
 )
@@ -25,9 +23,8 @@ type Container struct {
 // Bins    --> campaing => [model_1, model_2, ..., model_n]
 func NewContainer(publicationPoint, campaign string, models []string, ac *db.AerospikeClient) (*Container, error) {
 	// does container exists already then return it to the client
-	c, err := GetExistingContainer(publicationPoint, campaign, ac)
-	if err != nil {
-		return nil, err
+	if c, err := GetExistingContainer(publicationPoint, campaign, ac); c != nil || err != nil {
+		return c, err
 	}
 
 	// otherwise fill up bins with the new campaign and models
@@ -36,7 +33,7 @@ func NewContainer(publicationPoint, campaign string, models []string, ac *db.Aer
 
 	// create model and fill up metadata
 	for k, v := range bins {
-		if err := ac.AddOne(setNameContainers, c.PublicationPoint, k, v); err != nil {
+		if err := ac.AddOne(setNameContainers, publicationPoint, k, v); err != nil {
 			return nil, err
 		}
 	}
@@ -50,21 +47,15 @@ func NewContainer(publicationPoint, campaign string, models []string, ac *db.Aer
 
 // GetExistingContainer checks if an existing object already exists or not
 func GetExistingContainer(publicationPoint, campaign string, ac *db.AerospikeClient) (*Container, error) {
-	c, _ := ac.GetOne(setNameContainers, publicationPoint)
-
-	// convert models list back
-	if c != nil {
-		if c.Bins[campaign] != nil {
-			return nil, fmt.Errorf("container with publication point %s and campaign %s already exists", publicationPoint, campaign)
-		}
+	if c, _ := ac.GetOne(setNameContainers, publicationPoint); c != nil {
+		models := utils.ConvertInterfaceToList(c.Bins[campaign])
+		return &Container{
+			PublicationPoint: publicationPoint,
+			Campaign:         campaign,
+			Models:           models,
+		}, nil
 	}
-
-	var models []string
-	return &Container{
-		PublicationPoint: publicationPoint,
-		Campaign:         campaign,
-		Models:           models,
-	}, nil
+	return nil, nil
 }
 
 // DeleteContainer deletes the content of the container by truncating the PublicationPoint (aka setName)

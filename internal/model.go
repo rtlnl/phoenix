@@ -79,12 +79,12 @@ func GetModel(c *gin.Context) {
 
 	// fetch model
 	m, err := models.GetExistingModel(mn, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mn))
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, &ManagementModelResponse{
+	utils.Response(c, http.StatusOK, &ManagementModelResponse{
 		Model:   m,
 		Message: "model fetched",
 	})
@@ -133,7 +133,7 @@ func PublishModel(c *gin.Context) {
 	}
 
 	m, err := models.GetExistingModel(mm.Name, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mm.Name))
 		return
 	}
@@ -165,7 +165,7 @@ func StageModel(c *gin.Context) {
 	}
 
 	m, err := models.GetExistingModel(mm.Name, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mm.Name))
 		return
 	}
@@ -197,7 +197,7 @@ func EmptyModel(c *gin.Context) {
 	}
 
 	m, err := models.GetExistingModel(mm.Name, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mm.Name))
 		return
 	}
@@ -257,7 +257,7 @@ func GetDataPreview(c *gin.Context) {
 
 	// fetch model
 	m, err := models.GetExistingModel(mn, ac)
-	if err != nil {
+	if m == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mn))
 		return
 	}

@@ -100,27 +100,25 @@ func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeC
 
 // GetExistingModel returns an already existing model to the caller
 func GetExistingModel(name string, ac *db.AerospikeClient) (*Model, error) {
-	m, err := ac.GetOne(name, keyMetadata)
-	if err != nil {
-		return nil, err
+	if m, _ := ac.GetOne(name, keyMetadata); m != nil {
+		// convert version back
+		v, err := semver.NewVersion(m.Bins[binKeyVersion].(string))
+		if err != nil {
+			return nil, err
+		}
+
+		// read string and convert to enum
+		stg := m.Bins[binKeyStage].(string)
+
+		return &Model{
+			Name:         name,
+			SignalOrder:  utils.ConvertInterfaceToList(m.Bins[binKeySignalOrder]),
+			Stage:        StageType(stg),
+			Version:      v,
+			Concatenator: m.Bins[binKeyConcatenator].(string),
+		}, nil
 	}
-
-	// convert version back
-	v, err := semver.NewVersion(m.Bins[binKeyVersion].(string))
-	if err != nil {
-		return nil, err
-	}
-
-	// read string and convert to enum
-	stg := m.Bins[binKeyStage].(string)
-
-	return &Model{
-		Name:         name,
-		SignalOrder:  utils.ConvertInterfaceToList(m.Bins[binKeySignalOrder]),
-		Stage:        StageType(stg),
-		Version:      v,
-		Concatenator: m.Bins[binKeyConcatenator].(string),
-	}, nil
+	return nil, nil
 }
 
 // PublishModel set the model to be available to the clients

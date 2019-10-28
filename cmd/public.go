@@ -79,7 +79,7 @@ func init() {
 	// mandatory parameters
 	f.StringP(addressPublicFlag, "a", ":8082", "server address")
 	f.StringP(dbHostPublicFlag, "d", "127.0.0.1", "database host")
-	f.StringP(dbNamespacePublicFlag, "n", "personalization", "namespace of the database")
+	f.StringP(dbNamespacePublicFlag, "n", "phoenix", "namespace of the database")
 	f.IntP(dbPortPublicFlag, "p", 3000, "database port")
 
 	// optional parameters

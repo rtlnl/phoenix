@@ -26,7 +26,7 @@ Namespace --> setName --> Keys --> Bins
 
 The Models
 
-Namespace: personalization
+Namespace: phoenix
 SetName: publicationPoint
 Key: Campaign
 Bins: version => 0.1.0 				 // as start
@@ -55,7 +55,7 @@ Below you can find an example of multiple models:
 
 The Data
 
-Namespace: personalization
+Namespace: phoenix
 SetName: publicationPoint#campaign#STAGED/PUBLISHED
 Key: signalID	// for example 111_3333
 Bins: signalID => ["item1", "item2", ..., "itemN"]
