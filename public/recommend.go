@@ -59,7 +59,7 @@ func Recommend(c *gin.Context) {
 	}
 
 	// get model name either from Tucson or URL
-	modelName, err := getModelName(c, container)
+	modelName, err := getModelName(c, rr.PublicationPoint, rr.Campaign)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
@@ -68,7 +68,7 @@ func Recommend(c *gin.Context) {
 	// get model from aerospike
 	m, err := models.GetExistingModel(modelName, ac)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, err) 
 		return
 	}
 
