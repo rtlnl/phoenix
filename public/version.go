@@ -18,6 +18,6 @@ type VersionResponse struct {
 
 // LongVersion returns the current version of the APIs
 func LongVersion(c *gin.Context) {
-	v := fmt.Sprintf("Public Personalization APIs %s", version)
+	v := fmt.Sprintf("Public Phoenix APIs %s", version)
 	utils.Response(c, http.StatusOK, &VersionResponse{Version: v})
 }

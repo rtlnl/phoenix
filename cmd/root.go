@@ -19,9 +19,9 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "personalization",
-	Short: "Personalization root command for initializing APIs",
-	Long: `Personalization is able to spin up two different type of services: Internal
+	Use:   "phoenix",
+	Short: "Phoenix root command for initializing APIs",
+	Long: `Phoenix is able to spin up two different type of services: Internal
 	or Public APIs. The internal APIs have the objective of populating the personalized content
 	given from the data-science team. The Public APIs will be the frontend part where clients
 	can connect to`,

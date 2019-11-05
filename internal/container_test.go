@@ -45,7 +45,7 @@ func TestGetContainer(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"videoland\",\"campaign\":\"homepage\",\"models\":[\"collaborative\"],\"createdAt\":null},\"message\":\"container fetched\"}", string(b))
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"videoland\",\"campaign\":\"homepage\",\"models\":[\"collaborative\"]},\"message\":\"container fetched\"}", string(b))
 }
 
 func TestGetContainerEmptyParams(t *testing.T) {
@@ -72,7 +72,7 @@ func TestGetContainerEmptyParams(t *testing.T) {
 }
 
 func TestGetContainerNotExist(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/management/containers/?publicationPoint=goat&campaign=panini", nil)
+	code, body, err := MockRequest(http.MethodGet, "/management/containers/?publicationPoint=ciao&campaign=panini", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -83,7 +83,7 @@ func TestGetContainerNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"container with publication point goat and campaign panini not found\"}", string(b))
+	assert.Equal(t, "{\"message\":\"container with publication point ciao and campaign panini not found\"}", string(b))
 }
 
 func TestCreateContainerAlreadyExists(t *testing.T) {
@@ -92,10 +92,10 @@ func TestCreateContainerAlreadyExists(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestContainer(t, ac, "videoland", "homepage", []string{"collaborative"})
+	truncate := CreateTestContainer(t, ac, "dog", "vizsla", []string{"collaborative"})
 	defer truncate()
 
-	r, err := createManagementContainerRequest("videoland", "homepage", []string{"collaborative"})
+	r, err := createManagementContainerRequest("dog", "vizsla", []string{"collaborative"})
 	if err != nil {
 		t.Fail()
 	}
@@ -111,7 +111,7 @@ func TestCreateContainerAlreadyExists(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"videoland\",\"campaign\":\"homepage\",\"models\":[\"collaborative\"],\"createdAt\":null},\"message\":\"container created\"}", string(b))
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"dog\",\"campaign\":\"vizsla\",\"models\":[\"collaborative\"]},\"message\":\"container created\"}", string(b))
 }
 
 func TestCreateContainerFailValidationCampaign(t *testing.T) {
@@ -186,10 +186,10 @@ func TestEmptyContainer(t *testing.T) {
 	defer c()
 
 	// create container
-	truncate := CreateTestContainer(t, ac, "videoland", "profile", []string{"test"})
+	truncate := CreateTestContainer(t, ac, "cat", "anubi", []string{"test"})
 	defer truncate()
 
-	r, err := createManagementContainerRequest("videoland", "profile", []string{"test"})
+	r, err := createManagementContainerRequest("cat", "anubi", []string{"test"})
 	if err != nil {
 		t.Fail()
 	}
@@ -205,7 +205,7 @@ func TestEmptyContainer(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"videoland\",\"campaign\":\"profile\",\"models\":null,\"createdAt\":null},\"message\":\"container empty\"}", string(b))
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"cat\",\"campaign\":\"anubi\",\"models\":[\"test\"]},\"message\":\"container empty\"}", string(b))
 }
 
 func TestEmptyContainerFailValidation(t *testing.T) {
@@ -231,7 +231,7 @@ func TestEmptyContainerFailValidation(t *testing.T) {
 }
 
 func TestEmptyContainerNotExist(t *testing.T) {
-	r, err := createManagementContainerRequest("rtl_news", "sport", []string{"test"})
+	r, err := createManagementContainerRequest("rtl", "clock", []string{"test"})
 	if err != nil {
 		t.Fail()
 	}
@@ -247,7 +247,7 @@ func TestEmptyContainerNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"container with publication point rtl_news and campaign sport not found\"}", string(b))
+	assert.Equal(t, "{\"message\":\"container with publication point rtl and campaign clock not found\"}", string(b))
 }
 
 func TestLinkModel(t *testing.T) {
@@ -261,7 +261,8 @@ func TestLinkModel(t *testing.T) {
 	}
 
 	// create container
-	CreateTestContainer(t, ac, "channel", "dart", []string{""})
+	truncate := CreateTestContainer(t, ac, "channel", "dart", []string{""})
+	defer truncate()
 
 	code, body, err := MockRequest(http.MethodPut, "/management/containers/link-model", r)
 	if err != nil {
@@ -274,8 +275,5 @@ func TestLinkModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"channel\",\"campaign\":\"dart\",\"models\":[\"hello\",\"world\"],\"createdAt\":null},\"message\":\"model linked to container\"}", string(b))
-
-	// force truncate
-	ac.TruncateSet("channel")
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"channel\",\"campaign\":\"dart\",\"models\":[\"hello\",\"world\"]},\"message\":\"model linked to container\"}", string(b))
 }

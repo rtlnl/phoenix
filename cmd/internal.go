@@ -55,7 +55,7 @@ func init() {
 	f.String(addressInternalFlag, ":8081", "server address")
 	f.String(dbHostInternalFlag, "127.0.0.1", "database host")
 	f.Int(dbPortInternalFlag, 3000, "database port")
-	f.String(dbNamespaceInternalFlag, "personalization", "namespace of the database")
+	f.String(dbNamespaceInternalFlag, "phoenix", "namespace of the database")
 	f.String(s3RegionFlag, "eu-west-1", "s3 region")
 	f.String(s3EndpointFlag, "localhost:4572", "s3 endpoint")
 	f.Bool(s3DisableSSLFlag, true, "disable SSL verification for s3")

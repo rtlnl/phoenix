@@ -17,6 +17,7 @@ import (
 	"github.com/rtlnl/phoenix/middleware"
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/utils"
 )
 
@@ -43,6 +44,7 @@ func tearUp() {
 
 	p, _ := strconv.Atoi(testDBPort)
 	router.Use(middleware.Aerospike(testDBHost, testNamespace, p))
+	router.Use(middleware.RecommendationLogs(logs.NewStdoutLog()))
 
 	// subscribe route Recommend here due to multiple tests on this route
 	// it avoids a panic error for registering the route multiple times

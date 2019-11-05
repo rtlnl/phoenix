@@ -40,7 +40,7 @@ func GetContainer(c *gin.Context) {
 
 	// fetch container
 	container, err := models.GetExistingContainer(pp, cmp, ac)
-	if err != nil {
+	if container == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s not found", pp, cmp))
 		return
 	}
@@ -84,7 +84,7 @@ func EmptyContainer(c *gin.Context) {
 	}
 
 	container, err := models.GetExistingContainer(mc.PublicationPoint, mc.Campaign, ac)
-	if err != nil {
+	if container == nil || err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s not found", mc.PublicationPoint, mc.Campaign))
 		return
 	}
