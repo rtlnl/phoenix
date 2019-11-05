@@ -127,14 +127,14 @@ func TestRecommendWrongSignal(t *testing.T) {
 	defer c()
 
 	// create model
-	truncateModel := CreateTestModel(t, ac, "pepperoni", "", []string{"articleId"}, true)
+	truncateModel := CreateTestModel(t, ac, "ciao", "", []string{"articleId"}, true)
 	defer truncateModel()
 
 	// create container
-	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "homepage", []string{"pepperoni"})
+	truncateContainer := CreateTestContainer(t, ac, "curry", "homepage", []string{"ciao"})
 	defer truncateContainer()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=pepperoni&signalId=jjkk_767", nil)
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=curry&campaign=homepage&model=ciao&signalId=jjkk_767", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -154,14 +154,14 @@ func TestRecommendModelStaged(t *testing.T) {
 	defer c()
 
 	// create model
-	truncateModel := CreateTestModel(t, ac, "pear", "", []string{"articleId"}, false)
+	truncateModel := CreateTestModel(t, ac, "sloth", "", []string{"articleId"}, false)
 	defer truncateModel()
 
 	// create container
-	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "banana", []string{"pear"})
+	truncateContainer := CreateTestContainer(t, ac, "fruits", "banana", []string{"sloth"})
 	defer truncateContainer()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=banana&model=pear&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=fruits&campaign=banana&model=sloth&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
