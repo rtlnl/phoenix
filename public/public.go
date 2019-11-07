@@ -24,7 +24,7 @@ func NewPublicAPI(middlewares ...gin.HandlerFunc) (*Public, error) {
 
 	// Routes
 	r.GET("/", LongVersion)
-	r.GET("/recommend", Recommend)
+	r.GET("/v1/recommend", Recommend)
 	r.GET("/healthz", Healthz)
 
 	// Docs

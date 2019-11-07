@@ -48,7 +48,7 @@ func tearUp() {
 
 	// subscribe route Recommend here due to multiple tests on this route
 	// it avoids a panic error for registering the route multiple times
-	router.GET("/recommend", Recommend)
+	router.GET("/v1/recommend", Recommend)
 }
 
 func tearDown() {
