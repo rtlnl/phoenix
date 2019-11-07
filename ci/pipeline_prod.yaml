@@ -1,10 +1,3 @@
-resource_types:
-  - name: sonar-runner
-    type: docker-image
-    source:
-      repository: cathive/concourse-sonarqube-resource
-      tag: latest
-
 resources:
   - name: git-repo
     type: git
@@ -22,16 +15,8 @@ resources:
       repository: ((ecr_repository))/phoenix
       tag: prod
 
-  - name: code-analysis
-    type: sonar-runner
-    source:
-      host_url: https://sonarqube-controlplane.rtl-di.nl/
-      login: ((personalization_api_sonarqube_auth_token))
-      project_key: phoenix
-      branch_name: master
-
 jobs:
-  - name: build-and-analyze
+  - name: build-and-test
     plan:
       - get: git-repo
         trigger: true
@@ -56,35 +41,6 @@ jobs:
                 export GO111MODULE=on
                 go get -t -v ./...
                 # go test -v ./...
-          outputs:
-            - name: sonarqube-analysis-input
-      - in_parallel:
-          - put: code-analysis
-            params:
-              project_path: git-repo
-              project_key: phoenix
-              additional_properties:
-                sonar.go.coverage.reportPaths: coverage/coverage.out
-
-  - name: qualitygate
-    plan:
-      - get: code-analysis
-        passed:
-          - build-and-analyze
-        trigger: true
-      - task: check-sonarqube-quality-gate
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source:
-              repository: cathive/concourse-sonarqube-qualitygate-task
-              tag: latest # Use one of the versioned tags for reproducible builds!
-          inputs:
-            - name: code-analysis
-          run:
-            path: /sonarqube-qualitygate-check
-            dir: code-analysis
 
   - name: build
     public: false
