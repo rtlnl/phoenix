@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/utils"
 )
@@ -101,10 +100,6 @@ func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeC
 
 // GetExistingModel returns an already existing model to the caller
 func GetExistingModel(name string, ac *db.AerospikeClient) (*Model, error) {
-
-	_, err := ac.GetOne(name, keyMetadata)
-	spew.Dump(err)
-
 	if m, _ := ac.GetOne(name, keyMetadata); m != nil {
 		// convert version back
 		v, err := semver.NewVersion(m.Bins[binKeyVersion].(string))
