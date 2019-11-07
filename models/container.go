@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/utils"
 )
@@ -25,6 +27,17 @@ func NewContainer(publicationPoint, campaign string, models []string, ac *db.Aer
 	// does container exists already then return it to the client
 	if c, err := GetExistingContainer(publicationPoint, campaign, ac); c != nil || err != nil {
 		return c, err
+	}
+
+	// check if models exist
+	if len(models) > 0 {
+		for _, m := range models {
+			if m != "" {
+				if m, _ := GetExistingModel(m, ac); m == nil {
+					return nil, fmt.Errorf("model with name %s not found", m)
+				}
+			}
+		}
 	}
 
 	// otherwise fill up bins with the new campaign and models

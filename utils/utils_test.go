@@ -61,3 +61,26 @@ func TestGetDefault(t *testing.T) {
 		assert.Equal(t, test.expected, o)
 	}
 }
+
+func TestIsStringEmpty(t *testing.T) {
+	tests := map[string]struct {
+		input    string
+		expected bool
+	}{
+		"not empty": {
+			input:    "hello",
+			expected: false,
+		},
+		"empty": {
+			input:    "",
+			expected: true,
+		},
+	}
+
+	for testName, test := range tests {
+		t.Logf("Running test case %s", testName)
+		o := IsStringEmpty(test.input)
+
+		assert.Equal(t, test.expected, o)
+	}
+}
