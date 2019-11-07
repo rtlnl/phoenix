@@ -13,13 +13,13 @@ func TestRecommend(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
-	// create container
-	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
-	defer truncateContainer()
-
 	// create model
 	truncateModel := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, true)
 	defer truncateModel()
+
+	// create container
+	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
+	defer truncateContainer()
 
 	truncateTestData := UploadTestData(t, ac, "testdata/test_published_model_data.jsonl", "collaborative")
 	defer truncateTestData()

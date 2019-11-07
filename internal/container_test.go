@@ -31,10 +31,14 @@ func TestGetContainer(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestContainer(t, ac, "videoland", "homepage", []string{"collaborative"})
+	truncateModel := CreateTestModel(t, ac, "quattro-formaggi", "", []string{"gorgonzola"}, false)
+	defer truncateModel()
+
+	// create container
+	truncate := CreateTestContainer(t, ac, "food", "pizza", []string{"quattro-formaggi"})
 	defer truncate()
 
-	code, body, err := MockRequest(http.MethodGet, "/management/containers/?publicationPoint=videoland&campaign=homepage", nil)
+	code, body, err := MockRequest(http.MethodGet, "/management/containers/?publicationPoint=food&campaign=pizza", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -45,7 +49,7 @@ func TestGetContainer(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"videoland\",\"campaign\":\"homepage\",\"models\":[\"collaborative\"]},\"message\":\"container fetched\"}", string(b))
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"food\",\"campaign\":\"pizza\",\"models\":[\"quattro-formaggi\"]},\"message\":\"container fetched\"}", string(b))
 }
 
 func TestGetContainerEmptyParams(t *testing.T) {
@@ -92,10 +96,14 @@ func TestCreateContainerAlreadyExists(t *testing.T) {
 	defer c()
 
 	// create model
-	truncate := CreateTestContainer(t, ac, "dog", "vizsla", []string{"collaborative"})
+	truncateModel := CreateTestModel(t, ac, "animals", "", []string{"paw"}, false)
+	defer truncateModel()
+
+	// create container
+	truncate := CreateTestContainer(t, ac, "dog", "vizsla", []string{"animals"})
 	defer truncate()
 
-	r, err := createManagementContainerRequest("dog", "vizsla", []string{"collaborative"})
+	r, err := createManagementContainerRequest("dog", "vizsla", []string{"animals"})
 	if err != nil {
 		t.Fail()
 	}
@@ -111,7 +119,7 @@ func TestCreateContainerAlreadyExists(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"dog\",\"campaign\":\"vizsla\",\"models\":[\"collaborative\"]},\"message\":\"container created\"}", string(b))
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"dog\",\"campaign\":\"vizsla\",\"models\":[\"animals\"]},\"message\":\"container created\"}", string(b))
 }
 
 func TestCreateContainerFailValidationCampaign(t *testing.T) {
@@ -185,11 +193,15 @@ func TestEmptyContainer(t *testing.T) {
 	ac, c := GetTestAerospikeClient()
 	defer c()
 
+	// create model
+	truncateModel := CreateTestModel(t, ac, "egypt", "", []string{"god"}, false)
+	defer truncateModel()
+
 	// create container
-	truncate := CreateTestContainer(t, ac, "cat", "anubi", []string{"test"})
+	truncate := CreateTestContainer(t, ac, "cat", "anubi", []string{"egypt"})
 	defer truncate()
 
-	r, err := createManagementContainerRequest("cat", "anubi", []string{"test"})
+	r, err := createManagementContainerRequest("cat", "anubi", []string{"egypt"})
 	if err != nil {
 		t.Fail()
 	}
@@ -205,7 +217,7 @@ func TestEmptyContainer(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"cat\",\"campaign\":\"anubi\",\"models\":[\"test\"]},\"message\":\"container empty\"}", string(b))
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"cat\",\"campaign\":\"anubi\",\"models\":[\"egypt\"]},\"message\":\"container empty\"}", string(b))
 }
 
 func TestEmptyContainerFailValidation(t *testing.T) {
@@ -259,6 +271,14 @@ func TestLinkModel(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
+
+	// create model hello
+	truncateHello := CreateTestModel(t, ac, "hello", "", []string{"articleId"}, false)
+	defer truncateHello()
+
+	// create model world
+	truncateWorld := CreateTestModel(t, ac, "world", "", []string{"articleId"}, false)
+	defer truncateWorld()
 
 	// create container
 	truncate := CreateTestContainer(t, ac, "channel", "dart", []string{""})

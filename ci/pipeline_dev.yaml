@@ -1,10 +1,3 @@
-resource_types:
-  - name: sonar-runner
-    type: docker-image
-    source:
-      repository: cathive/concourse-sonarqube-resource
-      tag: latest
-
 resources:
   - name: git-repo
     type: git
@@ -20,18 +13,10 @@ resources:
       aws_access_key_id: ((ecr_access_key_id))
       aws_secret_access_key: ((ecr_secret_access_key))
       repository: ((ecr_repository))/phoenix
-      tag: prod
-
-  - name: code-analysis
-    type: sonar-runner
-    source:
-      host_url: https://sonarqube-controlplane.rtl-di.nl/
-      login: ((personalization_api_sonarqube_auth_token))
-      project_key: phoenix
-      branch_name: master
+      tag: latest
 
 jobs:
-  - name: run tests
+  - name: build-and-test
     plan:
       - get: git-repo
         trigger: true
@@ -56,7 +41,7 @@ jobs:
                 export GO111MODULE=on
                 go get -t -v ./...
                 # go test -v ./...
-
+      # release the image if the tests are successful
       - put: ecr-docker-reg
         params:
           build: git-repo
