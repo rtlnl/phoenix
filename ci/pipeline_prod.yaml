@@ -41,12 +41,6 @@ jobs:
                 export GO111MODULE=on
                 go get -t -v ./...
                 # go test -v ./...
-
-  - name: build
-    public: false
-    plan:
-      - get: git-repo
-        trigger: true
         # release the image if the tests are successful
       - put: ecr-docker-reg
         params:
