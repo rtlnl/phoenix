@@ -66,3 +66,11 @@ func RemoveEmptyValueInSlice(s []string) []string {
 	}
 	return r
 }
+
+// IsStringEmpty checks if the input is empty
+func IsStringEmpty(m string) bool {
+	if m == "" {
+		return true
+	}
+	return false
+}

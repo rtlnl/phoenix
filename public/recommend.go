@@ -111,28 +111,55 @@ func Recommend(c *gin.Context) {
 }
 
 func getModelName(c *gin.Context, container *models.Container) (string, error) {
-	// check if it's in the URL
-	modelName := c.DefaultQuery("model", "")
+	// check tucson
+	modelName := getModelFromTucson(c, container.PublicationPoint, container.Campaign)
+	if !utils.IsStringEmpty(modelName) {
+		return modelName, nil
+	}
 
-	// Check if we have Tucson connected
-	if tc, exists := c.Get("TucsonClient"); exists {
-		// get model name from tucson
-		if modelName, _ = tc.(*tucson.Client).GetModel(container.PublicationPoint, container.Campaign); modelName == "" {
-			return "", errors.New("model is empty")
-		}
+	// check URL
+	modelName = getModelFromURL(c.DefaultQuery("model", ""), container)
+	if !utils.IsStringEmpty(modelName) {
+		return modelName, nil
+	}
+
+	// check default model
+	modelName = getDefaultModelName(container)
+	if !utils.IsStringEmpty(modelName) {
 		return modelName, nil
 	}
 
 	// model is empty
-	if modelName == "" {
-		return "", errors.New("model is empty")
-	}
-
-	// check if there are models available in the container
-	if len(container.Models) > 0 && utils.StringInSlice(modelName, container.Models) {
-		return modelName, nil
-	}
 	return "", fmt.Errorf("model %s not available in publicationPoint %s and campaign %s", modelName, container.PublicationPoint, container.Campaign)
+}
+
+func getModelFromURL(modelName string, container *models.Container) string {
+	if modelName != "" {
+		// check if there are models available in the container
+		if len(container.Models) > 0 && utils.StringInSlice(modelName, container.Models) {
+			return modelName
+		}
+	}
+	return ""
+}
+
+func getModelFromTucson(c *gin.Context, publicationPoint, campaign string) string {
+	if tc, exists := c.Get("TucsonClient"); exists {
+		// get model name from tucson
+		if mn, _ := tc.(*tucson.Client).GetModel(publicationPoint, campaign); mn != "" {
+			return mn
+		}
+	}
+	return ""
+}
+
+func getDefaultModelName(container *models.Container) string {
+	if len(container.Models) > 0 {
+		// TODO: define potential default model in the future
+		// return the first for now
+		return container.Models[0]
+	}
+	return ""
 }
 
 func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {
