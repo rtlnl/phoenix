@@ -24,6 +24,7 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 
 	// Routes
 	r.GET("/", LongVersion)
+
 	r.POST("/streaming", CreateStreaming)
 	r.PUT("/streaming", UpdateStreaming)
 	r.DELETE("/streaming", DeleteStreaming)

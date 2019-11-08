@@ -13,7 +13,7 @@ resources:
       aws_access_key_id: ((ecr_access_key_id))
       aws_secret_access_key: ((ecr_secret_access_key))
       repository: ((ecr_repository))/phoenix
-      tag: latest
+      tag: dev
 
 jobs:
   - name: build-and-test
