@@ -1,7 +1,7 @@
 version: "3"
 services:
   aerospike:
-    image: aerospike/aerospike-server
+    image: aerospike/aerospike-server:4.7.0.2
     container_name: aerospike
     command: ["--config-file", "/opt/aerospike/etc/aerospike.conf"]
     ports:
