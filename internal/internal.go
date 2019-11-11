@@ -22,17 +22,20 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 		r.Use(m)
 	}
 
-	// Routes
-	r.GET("/", LongVersion)
+	// Internal API v1
+	v1 := r.Group("v1")
 
-	r.POST("/streaming", CreateStreaming)
-	r.PUT("/streaming", UpdateStreaming)
-	r.DELETE("/streaming", DeleteStreaming)
-	r.POST("/batch", Batch)
-	r.GET("/batch/status/:id", BatchStatus)
+	// Routes
+	v1.GET("/", LongVersion)
+
+	v1.POST("/streaming", CreateStreaming)
+	v1.PUT("/streaming", UpdateStreaming)
+	v1.DELETE("/streaming", DeleteStreaming)
+	v1.POST("/batch", Batch)
+	v1.GET("/batch/status/:id", BatchStatus)
 
 	// Management Routes
-	mg := r.Group("/management")
+	mg := v1.Group("/management")
 
 	// Container routes
 	mc := mg.Group("/containers")
@@ -53,10 +56,10 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 	mm.POST("/stage", StageModel)
 
 	// Healthz
-	r.GET("/healthz", Healthz)
+	v1.GET("/healthz", Healthz)
 
 	// Docs
-	r.Static("/docs", "docs/swagger-internal")
+	v1.Static("/docs", "docs/swagger-internal")
 
 	return &Internal{
 		App: r,

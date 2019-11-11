@@ -91,7 +91,7 @@ func TestStreaming(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -137,7 +137,7 @@ func TestStreamingBadSignal(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -160,7 +160,7 @@ func TestStreamingBadPayload(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -185,7 +185,7 @@ func TestStreamingUpdateBadPayload(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPut, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodPut, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -210,7 +210,7 @@ func TestStreamingDeleteBadPayload(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -258,7 +258,7 @@ func TestStreamingPublishedModel(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -297,7 +297,7 @@ func TestStreamingModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -336,7 +336,7 @@ func TestStreamingUpdateModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPut, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodPut, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -375,7 +375,7 @@ func TestStreamingDeleteModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -421,7 +421,7 @@ func TestStreamingUpdateData(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPut, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodPut, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -467,7 +467,7 @@ func TestStreamingUpdateDataPublishedModel(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPut, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodPut, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -513,7 +513,7 @@ func TestStreamingDeleteData(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -559,7 +559,7 @@ func TestStreamingDeleteDataPublishedModel(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/streaming", rb)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -613,7 +613,7 @@ func TestBatchUploadDirectWithErrors(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/batch", rb)
+	code, body, err := MockRequest(http.MethodPost, "/v1/batch", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -663,7 +663,7 @@ func TestBatchUploadDirectNoErrors(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/batch", rb)
+	code, body, err := MockRequest(http.MethodPost, "/v1/batch", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -712,7 +712,7 @@ func TestBatchUploadDirectModelPublished(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/batch", rb)
+	code, body, err := MockRequest(http.MethodPost, "/v1/batch", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -754,7 +754,7 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/batch", rb)
+	code, body, err := MockRequest(http.MethodPost, "/v1/batch", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -807,7 +807,7 @@ func TestBatchUploadS3(t *testing.T) {
 		t.Fail()
 	}
 
-	_, brsBody, err := MockRequest(http.MethodPost, "/batch", rb)
+	_, brsBody, err := MockRequest(http.MethodPost, "/v1/batch", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -824,7 +824,7 @@ func TestBatchUploadS3(t *testing.T) {
 
 	// do checks
 	var srs BatchStatusResponse
-	srsCode, srsBody, err := MockRequest(http.MethodGet, "/batch/status/"+brs.BatchID, nil)
+	srsCode, srsBody, err := MockRequest(http.MethodGet, "/v1/batch/status/"+brs.BatchID, nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -877,7 +877,7 @@ func TestBadBatchUploadS3(t *testing.T) {
 		t.Fail()
 	}
 
-	_, brsBody, err := MockRequest(http.MethodPost, "/batch", rb)
+	_, brsBody, err := MockRequest(http.MethodPost, "/v1/batch", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -894,7 +894,7 @@ func TestBadBatchUploadS3(t *testing.T) {
 
 	// do checks
 	var srs BatchStatusResponse
-	srsCode, srsBody, err := MockRequest(http.MethodGet, "/batch/status/"+brs.BatchID, nil)
+	srsCode, srsBody, err := MockRequest(http.MethodGet, "/v1/batch/status/"+brs.BatchID, nil)
 	if err != nil {
 		t.Fail()
 	}

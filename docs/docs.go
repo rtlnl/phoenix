@@ -61,7 +61,7 @@ Key: signalID	// for example 111_3333
 Bins: signalID => ["item1", "item2", ..., "itemN"]
 
 The data is organized similarly to the Model but with a different naming convention. To make the SetName "unique" per model, we
-use a combination of "publicPoint", "campaing" and "stage" separated by a #. In this way, we are able to insert all the Keys we
+use a combination of "publicPoint", "campaign" and "stage" separated by a #. In this way, we are able to insert all the Keys we
 need for that particular model
 
 Below you can find and example of data for a model

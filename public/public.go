@@ -22,13 +22,16 @@ func NewPublicAPI(middlewares ...gin.HandlerFunc) (*Public, error) {
 		r.Use(m)
 	}
 
+	// Public API v1
+	v1 := r.Group("v1")
+
 	// Routes
-	r.GET("/", LongVersion)
-	r.GET("/v1/recommend", Recommend)
-	r.GET("/healthz", Healthz)
+	v1.GET("/", LongVersion)
+	v1.GET("/recommend", Recommend)
+	v1.GET("/healthz", Healthz)
 
 	// Docs
-	r.Static("/docs", "docs/swagger-public")
+	v1.Static("/docs", "docs/swagger-public")
 
 	return &Public{
 		App: r,
