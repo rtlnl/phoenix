@@ -7,9 +7,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rtlnl/phoenix/models"
-
 	"github.com/gin-gonic/gin"
+	zerolog "github.com/rs/zerolog/log"
+
+	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/pkg/tucson"
@@ -29,6 +30,7 @@ type RecommendRequest struct {
 
 // RecommendResponse is the object that represents the payload of the response for the recommend endpoint
 type RecommendResponse struct {
+	ModelName       string      `json:"modelName"`
 	Recommendations interface{} `json:"recommendations" description:""`
 }
 
@@ -75,7 +77,7 @@ func Recommend(c *gin.Context) {
 	// get model from aerospike
 	m, err := models.GetExistingModel(modelName, ac)
 	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, err)
+		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", modelName))
 		return
 	}
 
@@ -106,6 +108,7 @@ func Recommend(c *gin.Context) {
 	}()
 
 	utils.Response(c, http.StatusOK, &RecommendResponse{
+		ModelName:       modelName,
 		Recommendations: itemsScore,
 	})
 }
@@ -146,8 +149,10 @@ func getModelFromURL(modelName string, container *models.Container) string {
 func getModelFromTucson(c *gin.Context, publicationPoint, campaign string) string {
 	if tc, exists := c.Get("TucsonClient"); exists {
 		// get model name from tucson
-		if mn, _ := tc.(*tucson.Client).GetModel(publicationPoint, campaign); mn != "" {
+		if mn, err := tc.(*tucson.Client).GetModel(publicationPoint, campaign); mn != "" {
 			return mn
+		} else if err != nil {
+			zerolog.Error().Msg(err.Error())
 		}
 	}
 	return ""

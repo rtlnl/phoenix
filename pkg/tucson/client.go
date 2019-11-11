@@ -27,7 +27,7 @@ func NewClient(address string) *Client {
 
 // Ping tests the server connection
 func (c *Client) Ping() error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	_, err := c.Conn.Ping(ctx, &PingMessage{Msg: "Ping"})
@@ -36,7 +36,7 @@ func (c *Client) Ping() error {
 
 // GetModel returns the name of the model based on the publicationPoint and campaign in input
 func (c *Client) GetModel(publicationPoint, campaign string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	r, err := c.Conn.GetModel(ctx, &ModelRequestMessage{

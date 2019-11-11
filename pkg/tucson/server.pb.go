@@ -193,7 +193,7 @@ type ServerClient interface {
 	// Simple Ping call, useful to check gRPC connection
 	// liveness / readiness status.
 	Ping(ctx context.Context, in *PingMessage, opts ...grpc.CallOption) (*PingMessage, error)
-	//Given the message in input, it returns the model name to the client
+	// Given the message in input, it returns the model name to the client
 	GetModel(ctx context.Context, in *ModelRequestMessage, opts ...grpc.CallOption) (*ModelResponseMessage, error)
 }
 
@@ -228,7 +228,7 @@ type ServerServer interface {
 	// Simple Ping call, useful to check gRPC connection
 	// liveness / readiness status.
 	Ping(context.Context, *PingMessage) (*PingMessage, error)
-	//Given the message in input, it returns the model name to the client
+	// Given the message in input, it returns the model name to the client
 	GetModel(context.Context, *ModelRequestMessage) (*ModelResponseMessage, error)
 }
 
