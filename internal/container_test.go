@@ -38,7 +38,7 @@ func TestGetContainer(t *testing.T) {
 	truncate := CreateTestContainer(t, ac, "food", "pizza", []string{"quattro-formaggi"})
 	defer truncate()
 
-	code, body, err := MockRequest(http.MethodGet, "/management/containers/?publicationPoint=food&campaign=pizza", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/containers/?publicationPoint=food&campaign=pizza", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -61,7 +61,7 @@ func TestGetContainerEmptyParams(t *testing.T) {
 	truncate := CreateTestContainer(t, ac, "videoland", "homepage", []string{"collaborative"})
 	defer truncate()
 
-	code, body, err := MockRequest(http.MethodGet, "/management/containers/?campaign=homepage", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/containers/?campaign=homepage", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -76,7 +76,7 @@ func TestGetContainerEmptyParams(t *testing.T) {
 }
 
 func TestGetContainerNotExist(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/management/containers/?publicationPoint=ciao&campaign=panini", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/containers/?publicationPoint=ciao&campaign=panini", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -108,7 +108,7 @@ func TestCreateContainerAlreadyExists(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/containers/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/containers/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -128,7 +128,7 @@ func TestCreateContainerFailValidationCampaign(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/containers/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/containers/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -150,7 +150,7 @@ func TestCreateContainerFailValidationPP(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/containers/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/containers/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -172,7 +172,7 @@ func TestCreateContainerFailValidation(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/containers/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/containers/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -206,7 +206,7 @@ func TestEmptyContainer(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/management/containers/", r)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/management/containers/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -226,7 +226,7 @@ func TestEmptyContainerFailValidation(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/management/containers/", r)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/management/containers/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -248,7 +248,7 @@ func TestEmptyContainerNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/management/containers/", r)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/management/containers/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -284,7 +284,7 @@ func TestLinkModel(t *testing.T) {
 	truncate := CreateTestContainer(t, ac, "channel", "dart", []string{""})
 	defer truncate()
 
-	code, body, err := MockRequest(http.MethodPut, "/management/containers/link-model", r)
+	code, body, err := MockRequest(http.MethodPut, "/v1/management/containers/link-model", r)
 	if err != nil {
 		t.Fail()
 	}

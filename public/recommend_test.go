@@ -24,7 +24,7 @@ func TestRecommend(t *testing.T) {
 	truncateTestData := UploadTestData(t, ac, "testdata/test_published_model_data.jsonl", "collaborative")
 	defer truncateTestData()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=collaborative&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=collaborative&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -35,11 +35,11 @@ func TestRecommend(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"recommendations\":[{\"item\":\"6456\",\"score\":\"0.6\"},{\"item\":\"1252\",\"score\":\"0.345\"},{\"item\":\"7876\",\"score\":\"0.987\"}]}", string(b))
+	assert.Equal(t, "{\"modelName\":\"collaborative\",\"recommendations\":[{\"item\":\"6456\",\"score\":\"0.6\"},{\"item\":\"1252\",\"score\":\"0.345\"},{\"item\":\"7876\",\"score\":\"0.987\"}]}", string(b))
 }
 
 func TestRecommendFailValidation1(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?campaign=homepage&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?campaign=homepage&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -56,7 +56,7 @@ func TestRecommendFailValidation1(t *testing.T) {
 }
 
 func TestRecommendFailValidation2(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=hello&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=hello&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -73,7 +73,7 @@ func TestRecommendFailValidation2(t *testing.T) {
 }
 
 func TestRecommendFailValidation3(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=hello&campaign=homepage", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=hello&campaign=homepage", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -90,7 +90,7 @@ func TestRecommendFailValidation3(t *testing.T) {
 }
 
 func TestRecommendFailValidation4(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?campaign=homepage", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?campaign=homepage", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -107,7 +107,7 @@ func TestRecommendFailValidation4(t *testing.T) {
 }
 
 func TestRecommendNoModel(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=tuna&campaign=hello&model=banana&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=tuna&campaign=hello&model=banana&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -134,7 +134,7 @@ func TestRecommendWrongSignal(t *testing.T) {
 	truncateContainer := CreateTestContainer(t, ac, "curry", "homepage", []string{"ciao"})
 	defer truncateContainer()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=curry&campaign=homepage&model=ciao&signalId=jjkk_767", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=curry&campaign=homepage&model=ciao&signalId=jjkk_767", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -161,7 +161,7 @@ func TestRecommendModelStaged(t *testing.T) {
 	truncateContainer := CreateTestContainer(t, ac, "fruits", "banana", []string{"sloth"})
 	defer truncateContainer()
 
-	code, body, err := MockRequest(http.MethodGet, "/recommend?publicationPoint=fruits&campaign=banana&model=sloth&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=fruits&campaign=banana&model=sloth&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -195,6 +195,6 @@ func BenchmarkRecommend(b *testing.B) {
 	defer truncateTestData()
 
 	for i := 0; i < b.N; i++ {
-		MockRequestBenchmark(b, http.MethodGet, "/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=500083", nil)
+		MockRequestBenchmark(b, http.MethodGet, "/v1/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=500083", nil)
 	}
 }

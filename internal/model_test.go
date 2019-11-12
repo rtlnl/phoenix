@@ -37,7 +37,7 @@ func TestGetModel(t *testing.T) {
 	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, false)
 	defer truncate()
 
-	code, body, err := MockRequest(http.MethodGet, "/management/models/?name=collaborative", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/?name=collaborative", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -52,7 +52,7 @@ func TestGetModel(t *testing.T) {
 }
 
 func TestGetModelEmptyParams(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/management/models/?&campaign=homepage", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/?&campaign=homepage", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -67,7 +67,7 @@ func TestGetModelEmptyParams(t *testing.T) {
 }
 
 func TestGetModelNotExist(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/management/models/?publicationPoint=rtl_nieuws&campaign=panini&name=collaborative", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/?publicationPoint=rtl_nieuws&campaign=panini&name=collaborative", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -95,7 +95,7 @@ func TestCreateModelAlreadyExists(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -115,7 +115,7 @@ func TestCreateModelFailValidation(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -145,7 +145,7 @@ func TestEmptyModel(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/management/models/", r)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/management/models/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -165,7 +165,7 @@ func TestEmptyModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/management/models/", r)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/management/models/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -193,7 +193,7 @@ func TestPublishModelAlreadyPublished(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/publish", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/publish", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -213,7 +213,7 @@ func TestPublishModelFailValidation(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/publish", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/publish", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -235,7 +235,7 @@ func TestPublishModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/publish", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/publish", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -255,7 +255,7 @@ func TestStageModelNotExist(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/stage", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/stage", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -283,7 +283,7 @@ func TestStageModelAlreadyStaged(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/stage", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/stage", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -303,7 +303,7 @@ func TestConcatenatorFailValidation(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -323,7 +323,7 @@ func TestConcatenatorPassValidation(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -343,7 +343,7 @@ func TestConcatenatorMissing(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/", r)
 	if err != nil {
 		t.Fail()
 	}
@@ -362,7 +362,7 @@ func TestConcatenatorUneeded(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/management/models/", r)
+	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/", r)
 	if err != nil {
 		t.Fail()
 	}

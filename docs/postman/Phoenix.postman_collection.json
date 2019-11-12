@@ -1,0 +1,345 @@
+{
+	"info": {
+		"_postman_id": "8f3a1625-b003-4341-b54e-67071cc49dce",
+		"name": "Phoenix",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Models All",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/models/all",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"models",
+						"all"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Management Containers All",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/containers/all",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"containers",
+						"all"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create model",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"collaborative\",\n\t\"signalOrder\": [\"articleId\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/models",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"models"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create model container",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"publicationPoint\": \"some-domain\",\n\t\"campaign\": \"some-campaign\",\n\t\"models\": [\"collaborative\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/containers",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"containers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Stage model",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"collaborative\",\n\t\"signalOrder\": [\"articleId\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/models/stage",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"models",
+						"stage"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Batch data from S3",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"dataLocation\": \"s3://bucket/path/file.json\"\n}"
+				},
+				"url": {
+					"raw": "{{phoenix_url_internal}}/batch",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"batch"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Batch Status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_internal}}/batch/status/123",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"batch",
+						"status",
+						"123"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Streaming data",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signal\": \"11\",\n\t\"recommendations\": [{\"item\":\"1\",\"score\":\"0.8\",\"type\":\"article\"}]\n}"
+				},
+				"url": {
+					"raw": "{{phoenix_url_internal}}/streaming",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"streaming"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Publish model",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"collaborative\",\n\t\"signalOrder\":[\"articleId\"]\n}"
+				},
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/models/publish",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"models",
+						"publish"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get model metadata",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/models?name=collaborative",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"models"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "collaborative"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Model Data Preview",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/models/preview?name=collaborative",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"models",
+						"preview"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "collaborative"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Recommend Videoland",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_public}}/recommend?publicationPoint=videoland&campaign=homepage&signalId=11",
+					"host": [
+						"{{phoenix_url_public}}"
+					],
+					"path": [
+						"recommend"
+					],
+					"query": [
+						{
+							"key": "publicationPoint",
+							"value": "videoland"
+						},
+						{
+							"key": "campaign",
+							"value": "homepage"
+						},
+						{
+							"key": "signalId",
+							"value": "11"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

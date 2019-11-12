@@ -30,6 +30,10 @@ $: go clean -testcache && go test -race ./...
 The first part is to avoid that Go will cache the result of the tests. This could lead to some evaluation errors
 if you change some tests. Better without cache.
 
+## How to perform manual tests
+
+For manual testing of endpoints on the different environments, a [Postman collection](docs/postman/Phoenix.postman_collection.json) has been included in the `docs` directory.
+
 ## Aerospike
 
 For testing we use two different namespaces specified in the `./conf/aerospike.conf` file. We use a custom settings-file to create a secondary namespace a logically divide testing from development.
@@ -40,6 +44,6 @@ The APIs gives the possibility to read a file from S3 and upload it to Aerospike
 
 ![](/docs/images/batch_upload.png)
 
-The process of uploading the file from S3 to Aerospike is delegated to a separate `go routine`. The client should store the `batchID` that is returned from the initial request `(POST /batch)` and ask for the status with `GET /batch/status/:id`.
+The process of uploading the file from S3 to Aerospike is delegated to a separate `go routine`. The client should store the `batchID` that is returned from the initial request `(POST /v1/batch)` and ask for the status with `GET /v1/batch/status/:id`.
 
 Time taken to upload **1.6M unique keys** from S3 is `3m 33secs`. Check this [PR](https://github.com/rtlnl/phoenix/pull/5) for more information

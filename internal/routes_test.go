@@ -49,15 +49,15 @@ func tearUp() {
 
 	// subscribe routes here due to multiple tests on the same endpoint
 	// it avoids a panic error for registering the route multiple times
-	router.POST("/streaming", CreateStreaming)
-	router.PUT("/streaming", UpdateStreaming)
-	router.DELETE("/streaming", DeleteStreaming)
+	router.POST("/v1/streaming", CreateStreaming)
+	router.PUT("/v1/streaming", UpdateStreaming)
+	router.DELETE("/v1/streaming", DeleteStreaming)
 
-	router.POST("/batch", Batch)
-	router.GET("/batch/status/:id", BatchStatus)
+	router.POST("/v1/batch", Batch)
+	router.GET("/v1/batch/status/:id", BatchStatus)
 
 	// Management Routes
-	mg := router.Group("/management")
+	mg := router.Group("/v1/management")
 
 	// Container routes
 	mc := mg.Group("/containers")
