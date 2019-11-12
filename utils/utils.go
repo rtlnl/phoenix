@@ -41,9 +41,10 @@ func ConvertInterfaceToList(bins interface{}) []string {
 	}
 
 	var list []string
-	newBins := bins.([]interface{})
-	for _, bin := range newBins {
-		list = append(list, bin.(string))
+	if newBins, ok := bins.([]interface{}); ok {
+		for _, bin := range newBins {
+			list = append(list, bin.(string))
+		}
 	}
 	return list
 }
@@ -73,4 +74,13 @@ func IsStringEmpty(m string) bool {
 		return true
 	}
 	return false
+}
+
+// ConvertBinToString returns empty string in case of failure or the actual value
+// converted to string
+func ConvertBinToString(bin interface{}) string {
+	if v, ok := bin.(string); ok {
+		return v
+	}
+	return ""
 }

@@ -101,21 +101,31 @@ func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeC
 // GetExistingModel returns an already existing model to the caller
 func GetExistingModel(name string, ac *db.AerospikeClient) (*Model, error) {
 	if m, _ := ac.GetOne(name, keyMetadata); m != nil {
+		version := utils.ConvertBinToString(m.Bins[binKeyVersion])
+		if version == "" {
+			return nil, fmt.Errorf("error in model %s. version not converted correctly", name)
+		}
 		// convert version back
-		v, err := semver.NewVersion(m.Bins[binKeyVersion].(string))
+		v, err := semver.NewVersion(version)
 		if err != nil {
 			return nil, err
 		}
 
 		// read string and convert to enum
-		stg := m.Bins[binKeyStage].(string)
+		stg := utils.ConvertBinToString(m.Bins[binKeyStage])
+		if version == "" {
+			return nil, fmt.Errorf("error in model %s. stage type not converted correctly", name)
+		}
+
+		// test if concatenator can be converted correctly
+		concatenator := utils.ConvertBinToString(m.Bins[binKeyConcatenator])
 
 		return &Model{
 			Name:         name,
 			SignalOrder:  utils.ConvertInterfaceToList(m.Bins[binKeySignalOrder]),
 			Stage:        StageType(stg),
 			Version:      v,
-			Concatenator: m.Bins[binKeyConcatenator].(string),
+			Concatenator: concatenator,
 		}, nil
 	}
 	return nil, nil
