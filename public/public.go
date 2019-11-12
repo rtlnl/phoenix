@@ -22,13 +22,13 @@ func NewPublicAPI(middlewares ...gin.HandlerFunc) (*Public, error) {
 		r.Use(m)
 	}
 
+	// Base path for health checks
+	r.GET("/", LongVersion)
+	r.GET("/healthz", Healthz)
+
 	// Public API v1
 	v1 := r.Group("v1")
-
-	// Routes
-	v1.GET("/", LongVersion)
 	v1.GET("/recommend", Recommend)
-	v1.GET("/healthz", Healthz)
 
 	// Docs
 	v1.Static("/docs", "docs/swagger-public")

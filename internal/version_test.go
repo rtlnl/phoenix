@@ -9,9 +9,9 @@ import (
 )
 
 func TestLongVersion(t *testing.T) {
-	router.GET("/v1/", LongVersion)
+	router.GET("/", LongVersion)
 
-	code, body, err := MockRequest(http.MethodGet, "/v1/", nil)
+	code, body, err := MockRequest(http.MethodGet, "/", nil)
 	if err != nil {
 		t.FailNow()
 	}

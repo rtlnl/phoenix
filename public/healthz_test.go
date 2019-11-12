@@ -9,9 +9,9 @@ import (
 )
 
 func TestHealthz(t *testing.T) {
-	router.GET("/v1/healthz", Healthz)
+	router.GET("/healthz", Healthz)
 
-	code, body, err := MockRequest(http.MethodGet, "/v1/healthz", nil)
+	code, body, err := MockRequest(http.MethodGet, "/healthz", nil)
 	if err != nil {
 		t.FailNow()
 	}
