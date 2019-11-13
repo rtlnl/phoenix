@@ -6,9 +6,11 @@ require (
 	github.com/Masterminds/semver v1.4.2
 	github.com/Shopify/sarama v1.24.0
 	github.com/aerospike/aerospike-client-go v2.2.0+incompatible
+	github.com/allegro/bigcache v1.2.1
 	github.com/aws/aws-sdk-go v1.20.20
 	github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b // indirect
 	github.com/davecgh/go-spew v1.1.1
+	github.com/dgraph-io/ristretto v0.0.0-20191108194154-8d6a8a75b4ca
 	github.com/dgryski/go-gk v0.0.0-20140819190930-201884a44051 // indirect
 	github.com/elastic/go-elasticsearch/v7 v7.4.1
 	github.com/gin-contrib/cors v1.3.0
@@ -40,5 +42,6 @@ require (
 	golang.org/x/sys v0.0.0-20190919044723-0c1ff786ef13 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/grpc v1.21.0
+	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/go-playground/validator.v9 v9.29.1
 )

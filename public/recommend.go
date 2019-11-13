@@ -8,9 +8,11 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	zerolog "github.com/rs/zerolog/log"
 
 	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/pkg/tucson"
@@ -43,7 +45,6 @@ var rrPool = sync.Pool{
 // Recommend will take care of fetching the personalized content for a specific user
 func Recommend(c *gin.Context) {
 	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
-	lt := c.MustGet("RecommendationLog").(logs.RecommendationLog)
 
 	// get a new object from the pool and then dispose it
 	rr := rrPool.Get().(*RecommendRequest)
@@ -87,6 +88,30 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
+	// get caching layer client
+	cc := c.MustGet("CacheClient").(cache.Cache)
+	// get logging client
+	lt := c.MustGet("RecommendationLog").(logs.RecommendationLog)
+
+	// compose key for the cache
+	key := fmt.Sprintf("%s#%s", modelName, rr.SignalID)
+	// check if value is in cache
+	if is, ok := cc.Get(key); ok {
+		// write logs
+		lt.Write(logs.RowLog{
+			PublicationPoint: rr.PublicationPoint,
+			Campaign:         rr.Campaign,
+			SignalID:         rr.SignalID,
+			ItemScores:       is,
+		})
+		// return response
+		utils.Response(c, http.StatusOK, &RecommendResponse{
+			ModelName:       modelName,
+			Recommendations: is,
+		})
+		return
+	}
+
 	// get the recommended values
 	r, err := ac.GetOne(modelName, rr.SignalID)
 	if err != nil {
@@ -97,15 +122,19 @@ func Recommend(c *gin.Context) {
 	// convert single entry from interface{} to []models.ItemScore
 	itemsScore := convertSingleEntry(r.Bins[binKey])
 
-	// write logs in a separate thread for not blocking the server
-	go func() {
-		lt.Write(logs.RowLog{
-			PublicationPoint: rr.PublicationPoint,
-			Campaign:         rr.Campaign,
-			SignalID:         rr.SignalID,
-			ItemScores:       itemsScore,
-		})
-	}()
+	// store in cache
+	if ok := cc.Set(key, itemsScore); !ok {
+		// if an error occur we simply log it and continue
+		log.Error().Msgf("failed to store key %s in cache", key)
+	}
+
+	// write logs to the logging system
+	lt.Write(logs.RowLog{
+		PublicationPoint: rr.PublicationPoint,
+		Campaign:         rr.Campaign,
+		SignalID:         rr.SignalID,
+		ItemScores:       itemsScore,
+	})
 
 	utils.Response(c, http.StatusOK, &RecommendResponse{
 		ModelName:       modelName,

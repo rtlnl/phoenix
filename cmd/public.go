@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	md "github.com/rtlnl/phoenix/middleware"
+	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/public"
 )
@@ -37,6 +40,16 @@ APIs for serving the personalized content.`,
 		logType := viper.GetString(recommendationLogsFlag)
 		tucsonAddress := viper.GetString(tucsonGRPCAddressFlag)
 
+		// set caching layer
+		cacheClient, err := cache.NewAllegroBigCache(cache.Shards(1024),
+			cache.LifeWindow(time.Minute*10),
+			cache.MaxEntriesInWindow(1000*10*60),
+			cache.MaxEntrySize(500),
+		)
+		if err != nil {
+			panic(err)
+		}
+
 		// create recommendation logger
 		recLogs, err := setRecommendationLogging(logType)
 		if err != nil {
@@ -52,6 +65,7 @@ APIs for serving the personalized content.`,
 		var middlewares []gin.HandlerFunc
 		middlewares = append(middlewares, md.Aerospike(dbHost, dbNamespace, dbPort))
 		middlewares = append(middlewares, md.RecommendationLogs(recLogs))
+		middlewares = append(middlewares, md.Cache(cacheClient))
 
 		// only if we pass the tucson flag in the CLI we inject the client
 		if tucsonAddress != "" {
