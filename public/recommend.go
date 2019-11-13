@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	zerolog "github.com/rs/zerolog/log"
 
 	"github.com/rtlnl/phoenix/models"
@@ -125,7 +124,7 @@ func Recommend(c *gin.Context) {
 	// store in cache
 	if ok := cc.Set(key, itemsScore); !ok {
 		// if an error occur we simply log it and continue
-		log.Error().Msgf("failed to store key %s in cache", key)
+		zerolog.Error().Msgf("failed to store key %s in cache", key)
 	}
 
 	// write logs to the logging system
