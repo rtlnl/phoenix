@@ -82,10 +82,6 @@ func TestModelStaged(t *testing.T) {
 		t.Fail()
 	}
 
-	if err := m.StageModel(ac); err != nil {
-		t.Fail()
-	}
-
 	assert.Equal(t, true, m.IsStaged())
 	assert.Equal(t, false, m.IsPublished())
 }
@@ -146,7 +142,7 @@ func TestGetAllModels(t *testing.T) {
 	if err := ac.TruncateSet(setNameAllModels); err != nil {
 		t.Fail()
 	}
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 3)
 
 	_, err := NewModel("test6", "_", []string{"a", "b"}, ac)
 	defer ac.TruncateSet("test6")

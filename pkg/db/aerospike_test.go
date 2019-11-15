@@ -50,7 +50,7 @@ func TestClose(t *testing.T) {
 func TestSetOne(t *testing.T) {
 	ac := createAerospikeClient()
 
-	err := ac.AddOne(testSetName, "key", "bin_key", "bin_value")
+	err := ac.PutOne(testSetName, "key", "bin_key", "bin_value")
 	if err != nil {
 		t.Errorf("TestSetOne(%v) got unexpected error", err)
 	}
@@ -65,7 +65,7 @@ func TestGetOne(t *testing.T) {
 	ac := createAerospikeClient()
 
 	// key --> bin_key:bin_value
-	err := ac.AddOne(testSetName, "key", "bin_key", "bin_value")
+	err := ac.PutOne(testSetName, "key", "bin_key", "bin_value")
 	if err != nil {
 		t.Errorf("TestGetOne(%v) got unexpected error", err)
 	}
@@ -106,7 +106,7 @@ func TestAddMultipleRecords(t *testing.T) {
 		bk := fmt.Sprintf("bin_key_%d", i)
 		bv := fmt.Sprintf("bin_value_%d", i)
 
-		err := ac.AddOne(tsn, k, bk, bv)
+		err := ac.PutOne(tsn, k, bk, bv)
 		if err != nil {
 			t.Errorf("AddMultipleRecords(%v) got unexpected error", err)
 		}

@@ -7,11 +7,13 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
+	"github.com/rs/zerolog/log"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/utils"
 )
 
 const (
+	setNameAllModels   = "models"
 	initVersion        = "0.1.0"
 	initStage          = STAGED
 	keyMetadata        = "__metadata"
@@ -21,8 +23,9 @@ const (
 	binKeyModelName    = "name"
 	binKeyConcatenator = "concatenator"
 	binKeyDeleted      = "deleted"
-	setNameAllModels   = "models"
 	binKeyCreatedAt    = "createdAt"
+	binKeyDeletedTrue  = "true"
+	binKeyDeletedFalse = "false"
 	maxEntries         = 100
 )
 
@@ -78,18 +81,18 @@ func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeC
 	bins[binKeyStage] = initStage
 	bins[binKeySignalOrder] = signalOrder
 	bins[binKeyConcatenator] = concatenator
-	bins[binKeyDeleted] = "false"
+	bins[binKeyDeleted] = binKeyDeletedFalse
 
 	// create model and fill up metadata
 	for k, v := range bins {
-		if err := ac.AddOne(name, keyMetadata, k, v); err != nil {
+		if err := ac.PutOne(name, keyMetadata, k, v); err != nil {
 			return nil, err
 		}
 	}
 
 	// add to all models
 	cat := time.Now().Format("2006-01-02 15:04:05")
-	if err := ac.AddOne(setNameAllModels, name, binKeyCreatedAt, cat); err != nil {
+	if err := ac.PutOne(setNameAllModels, name, binKeyCreatedAt, cat); err != nil {
 		return nil, err
 	}
 
@@ -99,20 +102,21 @@ func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeC
 		Stage:        initStage,
 		Version:      v,
 		Concatenator: concatenator,
-		Deleted:      "false",
+		Deleted:      binKeyDeletedFalse,
 	}, nil
 }
 
 // GetExistingModel returns an already existing model to the caller
 func GetExistingModel(name string, ac *db.AerospikeClient) (*Model, error) {
-	if m, _ := ac.GetOne(name, keyMetadata); m != nil {
+	m, err := ac.GetOne(name, keyMetadata)
+	if m != nil {
 		deleted := utils.ConvertBinToString(m.Bins[binKeyDeleted])
-		if deleted == "true" {
+		if deleted == binKeyDeletedTrue {
 			// if the model has been "deleted" previously
 			// the model is considered not found
 			return nil, nil
 		} else if deleted == "" {
-			deleted = "false"
+			deleted = binKeyDeletedFalse
 		}
 
 		// grab version from aerospike
@@ -144,6 +148,7 @@ func GetExistingModel(name string, ac *db.AerospikeClient) (*Model, error) {
 			Deleted:      deleted,
 		}, nil
 	}
+	log.Error().Msg(err.Error())
 	return nil, nil
 }
 
@@ -163,7 +168,7 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 	bins[binKeyVersion] = m.Version.String()
 
 	for k, v := range bins {
-		if err := ac.AddOne(m.Name, keyMetadata, k, v); err != nil {
+		if err := ac.PutOne(m.Name, keyMetadata, k, v); err != nil {
 			return err
 		}
 	}
@@ -187,7 +192,7 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 	bins[binKeyVersion] = m.Version.String()
 
 	for k, v := range bins {
-		if err := ac.AddOne(m.Name, keyMetadata, k, v); err != nil {
+		if err := ac.PutOne(m.Name, keyMetadata, k, v); err != nil {
 			return err
 		}
 	}
@@ -212,14 +217,14 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 		return err
 	}
 	m.Version = v
-	m.Deleted = "true"
+	m.Deleted = binKeyDeletedTrue
 
 	bins := make(map[string]interface{})
 	bins[binKeyVersion] = m.Version.String()
-	bins[binKeyDeleted] = "true"
+	bins[binKeyDeleted] = binKeyDeletedTrue
 
 	for k, v := range bins {
-		if err := ac.AddOne(m.Name, keyMetadata, k, v); err != nil {
+		if err := ac.PutOne(m.Name, keyMetadata, k, v); err != nil {
 			return err
 		}
 	}
@@ -245,12 +250,12 @@ func (m *Model) UpdateSignalOrder(signalOrder []string, ac *db.AerospikeClient) 
 	m.Version.IncPatch()
 
 	// store model signalOrder
-	if err := ac.AddOne(m.Name, keyMetadata, binKeySignalOrder, m.SignalOrder); err != nil {
+	if err := ac.PutOne(m.Name, keyMetadata, binKeySignalOrder, m.SignalOrder); err != nil {
 		return err
 	}
 
 	// store new version
-	if err := ac.AddOne(m.Name, keyMetadata, binKeyVersion, m.Version.String()); err != nil {
+	if err := ac.PutOne(m.Name, keyMetadata, binKeyVersion, m.Version.String()); err != nil {
 		return err
 	}
 
@@ -269,7 +274,7 @@ func (m *Model) IsPublished() bool {
 
 // IsDeleted determines if the model has been deleted or not
 func (m *Model) IsDeleted() bool {
-	return m.Deleted == "true"
+	return m.Deleted == binKeyDeletedTrue
 }
 
 // RequireSignalFormat checks if it is required to check the signal format
@@ -303,6 +308,7 @@ func GetAllModels(ac *db.AerospikeClient) ([]*Model, error) {
 			models = append(models, m)
 			continue
 		}
+		log.Error().Msg(err.Error())
 	}
 	return models, nil
 }

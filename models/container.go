@@ -46,7 +46,7 @@ func NewContainer(publicationPoint, campaign string, models []string, ac *db.Aer
 
 	// create model and fill up metadata
 	for k, v := range bins {
-		if err := ac.AddOne(setNameContainers, publicationPoint, k, v); err != nil {
+		if err := ac.PutOne(setNameContainers, publicationPoint, k, v); err != nil {
 			return nil, err
 		}
 	}
@@ -89,7 +89,7 @@ func (c *Container) LinkModel(models []string, ac *db.AerospikeClient) (*Contain
 
 	// create model and fill up metadata
 	for k, v := range bins {
-		if err := ac.AddOne(setNameContainers, c.PublicationPoint, k, v); err != nil {
+		if err := ac.PutOne(setNameContainers, c.PublicationPoint, k, v); err != nil {
 			return nil, err
 		}
 	}
@@ -112,7 +112,7 @@ func (c *Container) UnlinkModel(model string, ac *db.AerospikeClient) (*Containe
 
 	// create model and fill up metadata
 	for k, v := range bins {
-		if err := ac.AddOne(setNameContainers, c.PublicationPoint, k, v); err != nil {
+		if err := ac.PutOne(setNameContainers, c.PublicationPoint, k, v); err != nil {
 			return nil, err
 		}
 	}

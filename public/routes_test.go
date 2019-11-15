@@ -83,7 +83,7 @@ func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelNam
 			t.Fatal("fixtures contains the wrong type of json")
 		}
 
-		if err := ac.AddOne(m.Name, entry.SignalID, binKey, entry.Recommended); err != nil {
+		if err := ac.PutOne(m.Name, entry.SignalID, binKey, entry.Recommended); err != nil {
 			t.Fatal(err)
 		}
 		i++

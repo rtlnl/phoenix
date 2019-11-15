@@ -72,8 +72,8 @@ func (ac *AerospikeClient) GetOne(setName string, key string) (*Record, error) {
 	}, nil
 }
 
-// AddOne add the map value to the specified key in the set
-func (ac *AerospikeClient) AddOne(setName string, key string, binKey string, binValue interface{}) error {
+// PutOne upsert the map value to the specified key in the set
+func (ac *AerospikeClient) PutOne(setName string, key string, binKey string, binValue interface{}) error {
 	k, err := aero.NewKey(ac.Namespace, setName, key)
 	if err != nil {
 		return fmt.Errorf("could not create key: %v", err)
@@ -188,7 +188,7 @@ func (ac *AerospikeClient) AddMultipleRecords(setName string, records *aero.Reco
 func createNewScanPolicy() *aero.ScanPolicy {
 	sp := aero.NewScanPolicy()
 	sp.ConcurrentNodes = true
-	sp.Priority = aero.LOW
+	sp.Priority = aero.HIGH
 	sp.IncludeBinData = true
 
 	return sp
@@ -198,6 +198,7 @@ func createNewScanPolicy() *aero.ScanPolicy {
 func createNewWritingPolicy() *aero.WritePolicy {
 	wp := aero.NewWritePolicy(0, 0)
 	wp.SendKey = true
+	wp.Priority = aero.HIGH
 	wp.RecordExistsAction = aero.UPDATE
 	wp.SleepBetweenRetries = 50 * time.Millisecond
 	wp.SocketTimeout = 5000 * time.Millisecond

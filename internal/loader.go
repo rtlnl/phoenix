@@ -72,7 +72,7 @@ func CreateStreaming(c *gin.Context) {
 		return
 	}
 
-	if err := ac.AddOne(sr.ModelName, sr.Signal, binKey, sr.Recommendations); err != nil {
+	if err := ac.PutOne(sr.ModelName, sr.Signal, binKey, sr.Recommendations); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -105,7 +105,7 @@ func UpdateStreaming(c *gin.Context) {
 	}
 
 	// The AddOne method does an UPSERT
-	if err := ac.AddOne(sr.ModelName, sr.Signal, binKey, sr.Recommendations); err != nil {
+	if err := ac.PutOne(sr.ModelName, sr.Signal, binKey, sr.Recommendations); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 

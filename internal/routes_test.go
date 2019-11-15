@@ -112,7 +112,10 @@ func CreateTestModel(t *testing.T, ac *db.AerospikeClient, name, concatenator st
 
 // CreateTestContainer returns a container and defer a truncate
 func CreateTestContainer(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign string, modelsName []string) func() {
-	c, _ := models.NewContainer(publicationPoint, campaign, modelsName, ac)
+	c, err := models.NewContainer(publicationPoint, campaign, modelsName, ac)
+	if err != nil {
+		t.Errorf("CreateTestContainer has an error %s", err.Error())
+	}
 	if c == nil {
 		c, _ = models.GetExistingContainer(publicationPoint, campaign, ac)
 	}
