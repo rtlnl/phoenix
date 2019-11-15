@@ -375,3 +375,51 @@ func TestConcatenatorUneeded(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "{\"message\":\"for one signalOrder no concatenator character is required\"}", string(b))
 }
+
+func TestRemoveModelFromContainer(t *testing.T) {
+	// get client
+	ac, c := GetTestAerospikeClient()
+	defer c()
+
+	// create model hello
+	truncateHello := CreateTestModel(t, ac, "hello", "", []string{"articleId"}, false)
+	defer truncateHello()
+
+	// create model world
+	truncateWorld := CreateTestModel(t, ac, "world", "", []string{"articleId"}, false)
+	defer truncateWorld()
+
+	// create container
+	truncate := CreateTestContainer(t, ac, "channel", "dart", []string{"hello", "world"})
+	defer truncate()
+
+	r, err := createManagementModelRequest("hello", "", []string{"articleId"})
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodDelete, "/v1/management/models/", r)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusOK, code)
+	assert.Equal(t, "{\"model\":{\"name\":\"hello\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"articleId\"],\"concatenator\":\"\"},\"message\":\"model empty\"}", string(b))
+
+	code, body, err = MockRequest(http.MethodGet, "/v1/management/containers/?publicationPoint=channel&campaign=dart", nil)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err = ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+	assert.Equal(t, http.StatusOK, code)
+	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"channel\",\"campaign\":\"dart\",\"models\":[\"world\"]},\"message\":\"container fetched\"}", string(b))
+}

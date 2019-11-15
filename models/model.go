@@ -20,6 +20,7 @@ const (
 	binKeySignalOrder  = "signal_order"
 	binKeyModelName    = "name"
 	binKeyConcatenator = "concatenator"
+	binKeyDeleted      = "deleted"
 	setNameAllModels   = "models"
 	binKeyCreatedAt    = "createdAt"
 	maxEntries         = 100
@@ -42,6 +43,7 @@ type Model struct {
 	Version      *semver.Version `json:"version" description:"internal version of the model. Should follow this pattern Major.Minor"`
 	SignalOrder  []string        `json:"signalOrder" description:"list of ordered signals"`
 	Concatenator string          `json:"concatenator" description:"character used as concatenator for SignalOrder {'|','#','_','-'}"`
+	Deleted      string          `json:"-" description:"this setting checks if the model has been deleted or not. it is not returned to the client"`
 }
 
 // NewModel is invoked when a new model is created in the database.
@@ -53,6 +55,7 @@ type Model struct {
 // Bins    --> Version = 0.1
 //             Stage = STAGED
 //             SignalOrder = signalOrder
+//             Deleted = false
 //
 // Generic structure containing all the models
 // SetName --> models
@@ -75,6 +78,7 @@ func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeC
 	bins[binKeyStage] = initStage
 	bins[binKeySignalOrder] = signalOrder
 	bins[binKeyConcatenator] = concatenator
+	bins[binKeyDeleted] = "false"
 
 	// create model and fill up metadata
 	for k, v := range bins {
@@ -95,12 +99,23 @@ func NewModel(name, concatenator string, signalOrder []string, ac *db.AerospikeC
 		Stage:        initStage,
 		Version:      v,
 		Concatenator: concatenator,
+		Deleted:      "false",
 	}, nil
 }
 
 // GetExistingModel returns an already existing model to the caller
 func GetExistingModel(name string, ac *db.AerospikeClient) (*Model, error) {
 	if m, _ := ac.GetOne(name, keyMetadata); m != nil {
+		deleted := utils.ConvertBinToString(m.Bins[binKeyDeleted])
+		if deleted == "true" {
+			// if the model has been "deleted" previously
+			// the model is considered not found
+			return nil, nil
+		} else if deleted == "" {
+			deleted = "false"
+		}
+
+		// grab version from aerospike
 		version := utils.ConvertBinToString(m.Bins[binKeyVersion])
 		if version == "" {
 			return nil, fmt.Errorf("error in model %s. version not converted correctly", name)
@@ -126,6 +141,7 @@ func GetExistingModel(name string, ac *db.AerospikeClient) (*Model, error) {
 			Stage:        StageType(stg),
 			Version:      v,
 			Concatenator: concatenator,
+			Deleted:      deleted,
 		}, nil
 	}
 	return nil, nil
@@ -142,16 +158,15 @@ func (m *Model) PublishModel(ac *db.AerospikeClient) error {
 	m.Stage = PUBLISHED
 	m.Version.IncMajor()
 
-	// store model stage
-	if err := ac.AddOne(m.Name, keyMetadata, binKeyStage, m.Stage); err != nil {
-		return err
-	}
+	bins := make(map[string]interface{})
+	bins[binKeyStage] = m.Stage
+	bins[binKeyVersion] = m.Version.String()
 
-	// store new version
-	if err := ac.AddOne(m.Name, keyMetadata, binKeyVersion, m.Version.String()); err != nil {
-		return err
+	for k, v := range bins {
+		if err := ac.AddOne(m.Name, keyMetadata, k, v); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
@@ -167,16 +182,15 @@ func (m *Model) StageModel(ac *db.AerospikeClient) error {
 	m.Stage = STAGED
 	m.Version.IncMinor()
 
-	// store model stage
-	if err := ac.AddOne(m.Name, keyMetadata, binKeyStage, m.Stage); err != nil {
-		return err
-	}
+	bins := make(map[string]interface{})
+	bins[binKeyStage] = m.Stage
+	bins[binKeyVersion] = m.Version.String()
 
-	// store new version
-	if err := ac.AddOne(m.Name, keyMetadata, binKeyVersion, m.Version.String()); err != nil {
-		return err
+	for k, v := range bins {
+		if err := ac.AddOne(m.Name, keyMetadata, k, v); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
@@ -188,7 +202,6 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 	}
 
 	// delete the published data of the model
-	// Recommendations setName => publicationPoint#campaign#name
 	if err := ac.TruncateSet(m.Name); err != nil {
 		return err
 	}
@@ -199,12 +212,17 @@ func (m *Model) DeleteModel(ac *db.AerospikeClient) error {
 		return err
 	}
 	m.Version = v
+	m.Deleted = "true"
 
-	// store new version
-	if err := ac.AddOne(m.Name, keyMetadata, binKeyVersion, m.Version.String()); err != nil {
-		return err
+	bins := make(map[string]interface{})
+	bins[binKeyVersion] = m.Version.String()
+	bins[binKeyDeleted] = "true"
+
+	for k, v := range bins {
+		if err := ac.AddOne(m.Name, keyMetadata, k, v); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
@@ -249,6 +267,11 @@ func (m *Model) IsPublished() bool {
 	return m.Stage == PUBLISHED
 }
 
+// IsDeleted determines if the model has been deleted or not
+func (m *Model) IsDeleted() bool {
+	return m.Deleted == "true"
+}
+
 // RequireSignalFormat checks if it is required to check the signal format
 func (m *Model) RequireSignalFormat() bool {
 	if len(m.SignalOrder) > 1 && m.Concatenator != "" {
@@ -276,11 +299,10 @@ func GetAllModels(ac *db.AerospikeClient) ([]*Model, error) {
 
 	for record := range records.Results() {
 		key := record.Record.Key.Value().String()
-		if m, err := GetExistingModel(key, ac); err == nil {
+		if m, err := GetExistingModel(key, ac); m != nil && err == nil {
 			models = append(models, m)
 			continue
 		}
-		return nil, err
 	}
 	return models, nil
 }

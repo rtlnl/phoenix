@@ -84,3 +84,15 @@ func ConvertBinToString(bin interface{}) string {
 	}
 	return ""
 }
+
+// RemoveElemFromSlice removes an element from the slice. Not super efficient but it does the job
+func RemoveElemFromSlice(v string, l []string) []string {
+	var res []string
+	for _, elem := range l {
+		if elem == v {
+			continue
+		}
+		res = append(res, elem)
+	}
+	return res
+}

@@ -96,6 +96,29 @@ func (c *Container) LinkModel(models []string, ac *db.AerospikeClient) (*Contain
 	return c, nil
 }
 
+// UnlinkModel removes the model from the list of models linked to the container
+func (c *Container) UnlinkModel(model string, ac *db.AerospikeClient) (*Container, error) {
+	if !utils.StringInSlice(model, c.Models) {
+		return c, nil
+	}
+
+	// append models in the current container
+	tmp := utils.RemoveElemFromSlice(model, c.Models)
+	c.Models = utils.RemoveEmptyValueInSlice(tmp)
+
+	// fill up bins
+	bins := make(map[string]interface{})
+	bins[c.Campaign] = c.Models
+
+	// create model and fill up metadata
+	for k, v := range bins {
+		if err := ac.AddOne(setNameContainers, c.PublicationPoint, k, v); err != nil {
+			return nil, err
+		}
+	}
+	return c, nil
+}
+
 // GetAllContainers returns all the containers in the database
 func GetAllContainers(ac *db.AerospikeClient) ([]*Container, error) {
 	var containers []*Container

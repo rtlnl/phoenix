@@ -208,6 +208,16 @@ func EmptyModel(c *gin.Context) {
 		return
 	}
 
+	// remove model from containers
+	containers, err := models.GetAllContainers(ac)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+	for _, container := range containers {
+		container.UnlinkModel(mm.Name, ac)
+	}
+
 	utils.Response(c, http.StatusOK, &ManagementModelResponse{
 		Model:   m,
 		Message: "model empty",
