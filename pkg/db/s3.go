@@ -111,7 +111,7 @@ func (c *S3Client) DeleteS3Bucket(bucket *S3Bucket) (bool, error) {
 	return false, err
 }
 
-// Delete all objects within a bucket (this is not the most efficient way)
+// DeleteS3AllObjects all objects within a bucket (this is not the most efficient way)
 func (c *S3Client) DeleteS3AllObjects(bucket *S3Bucket) error {
 
 	// setup BatchDeleteIterator to iterate through a list of objects.
@@ -129,7 +129,7 @@ func (c *S3Client) DeleteS3AllObjects(bucket *S3Bucket) error {
 	return nil
 }
 
-// Upload a file to S3
+// UploadS3File a file to S3
 func (c *S3Client) UploadS3File(fileDir string, bucket *S3Bucket) error {
 
 	// Open the file for use

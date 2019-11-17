@@ -2,28 +2,22 @@ package internal
 
 import (
 	"bytes"
+	"github.com/gin-gonic/gin"
+	"github.com/rtlnl/phoenix/middleware"
+	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/utils"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strconv"
 	"testing"
-	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/phoenix/middleware"
-	"github.com/rtlnl/phoenix/models"
-	"github.com/rtlnl/phoenix/pkg/db"
-	"github.com/rtlnl/phoenix/utils"
 )
 
 var (
-	testDBHost     = utils.GetEnv("DB_HOST", "127.0.0.1")
-	testDBPort     = utils.GetEnv("DB_PORT", "3000")
-	testNamespace  = "test"
+	testDBHost     = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
 	testBucket     = "test"
-	testRegion     = "eu-west-1"
 	testEndpoint   = "localhost:4572"
+	testRegion     = "eu-west-1"
 	testDisableSSL = true
 )
 
@@ -37,14 +31,32 @@ func TestMain(m *testing.M) {
 }
 
 func tearUp() {
+	// clean up
+	dbc, c := GetTestRedisClient()
+	defer c()
 
+	err := dbc.DropTable("models")
+	if err != nil {
+		panic(err)
+	}
+
+	err = dbc.DropTable("containers")
+	if err != nil {
+		panic(err)
+	}
+
+	// set server
 	gin.SetMode(gin.TestMode)
 
 	router = gin.Default()
 	router.RedirectTrailingSlash = true
 
-	p, _ := strconv.Atoi(testDBPort)
-	router.Use(middleware.Aerospike(testDBHost, testNamespace, p))
+	redisClient, err := db.NewRedisClient(testDBHost)
+	if err != nil {
+		panic(err)
+	}
+
+	router.Use(middleware.DB(redisClient))
 	router.Use(middleware.AWSSession(testRegion, testEndpoint, testDisableSSL))
 
 	// subscribe routes here due to multiple tests on the same endpoint
@@ -71,55 +83,33 @@ func tearUp() {
 	mm.GET("/", GetModel)
 	mm.POST("/", CreateModel)
 	mm.DELETE("/", EmptyModel)
-	mm.POST("/publish", PublishModel)
-	mm.POST("/stage", StageModel)
 }
 
 func tearDown() {
-	router = nil
+	dbc, c := GetTestRedisClient()
+	defer c()
 
-	ac, _ := GetTestAerospikeClient()
-	ac.TruncateNamespace("test")
-	time.Sleep(2 * time.Second)
-}
-
-// GetTestAerospikeClient returns the client used for tests
-func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
-	p, _ := strconv.Atoi(testDBPort)
-	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
-
-	return ac, func() { ac.Close() }
-}
-
-// CreateTestModel returns a model and defer a truncate
-func CreateTestModel(t *testing.T, ac *db.AerospikeClient, name, concatenator string, signalType []string, publish bool) func() {
-	m, _ := models.NewModel(name, concatenator, signalType, ac)
-	if m == nil {
-		m, _ = models.GetExistingModel(name, ac)
+	err := dbc.DropTable("models")
+	if err != nil {
+		panic(err)
 	}
 
-	if publish {
-		if err := m.PublishModel(ac); err != nil {
-			t.FailNow()
+	err = dbc.DropTable("containers")
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GetTestRedisClient() (db.DB, func()) {
+	dbc, err := db.NewRedisClient(testDBHost)
+	if err != nil {
+		panic(err)
+	}
+	return dbc, func() {
+		err := dbc.Close()
+		if err != nil {
+			panic(err)
 		}
-	}
-
-	return func() {
-		ac.TruncateSet(name)
-		time.Sleep(2 * time.Second)
-	}
-}
-
-// CreateTestContainer returns a container and defer a truncate
-func CreateTestContainer(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign string, modelsName []string) func() {
-	c, _ := models.NewContainer(publicationPoint, campaign, modelsName, ac)
-	if c == nil {
-		c, _ = models.GetExistingContainer(publicationPoint, campaign, ac)
-	}
-
-	return func() {
-		ac.TruncateSet(publicationPoint)
-		time.Sleep(2 * time.Second)
 	}
 }
 

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -83,4 +84,25 @@ func ConvertBinToString(bin interface{}) string {
 		return v
 	}
 	return ""
+}
+
+// SerializeObject returns the JSON string representation of the object
+func SerializeObject(v interface{}) (string, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+// RemoveElemFromSlice removes an element from the slice. Not super efficient but it does the job
+func RemoveElemFromSlice(v string, l []string) []string {
+	var res []string
+	for _, elem := range l {
+		if elem == v {
+			continue
+		}
+		res = append(res, elem)
+	}
+	return res
 }

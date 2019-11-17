@@ -924,7 +924,7 @@ func TestCorrectSignalFormat(t *testing.T) {
 	truncate := CreateTestModel(t, ac, "collaborative", "_", []string{"articleId", "userId"}, false)
 	defer truncate()
 
-	m, _ := models.GetExistingModel("collaborative", ac)
+	m, _ := models.GetModel("collaborative", ac)
 
 	tests := map[string]struct {
 		input    string

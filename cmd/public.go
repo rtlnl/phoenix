@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -32,10 +33,14 @@ APIs for serving the personalized content.`,
 		// read parameters in input
 		addr := viper.GetString(addressPublicFlag)
 		dbHost := viper.GetString(dbHostPublicFlag)
-		dbPort := viper.GetInt(dbPortPublicFlag)
-		dbNamespace := viper.GetString(dbNamespacePublicFlag)
 		logType := viper.GetString(recommendationLogsFlag)
 		tucsonAddress := viper.GetString(tucsonGRPCAddressFlag)
+
+		// instantiate Redis client
+		redisClient, err := db.NewRedisClient(dbHost)
+		if err != nil {
+			panic(err)
+		}
 
 		// create recommendation logger
 		recLogs, err := setRecommendationLogging(logType)
@@ -50,7 +55,7 @@ APIs for serving the personalized content.`,
 
 		// append all the middlewares here
 		var middlewares []gin.HandlerFunc
-		middlewares = append(middlewares, md.Aerospike(dbHost, dbNamespace, dbPort))
+		middlewares = append(middlewares, md.DB(redisClient))
 		middlewares = append(middlewares, md.RecommendationLogs(recLogs))
 
 		// only if we pass the tucson flag in the CLI we inject the client
@@ -78,9 +83,7 @@ func init() {
 
 	// mandatory parameters
 	f.StringP(addressPublicFlag, "a", ":8082", "server address")
-	f.StringP(dbHostPublicFlag, "d", "127.0.0.1", "database host")
-	f.StringP(dbNamespacePublicFlag, "n", "phoenix", "namespace of the database")
-	f.IntP(dbPortPublicFlag, "p", 3000, "database port")
+	f.StringP(dbHostPublicFlag, "d", "127.0.0.1:6379", "database host")
 
 	// optional parameters
 	f.StringP(recommendationLogsFlag, "l", "stdout", "[LOGS] where to store the recommendation logs. Accepted type: stdout,kafka,es")
@@ -97,8 +100,6 @@ func init() {
 
 	viper.BindEnv(addressPublicFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostPublicFlag, "DB_HOST")
-	viper.BindEnv(dbPortPublicFlag, "DB_PORT")
-	viper.BindEnv(dbNamespacePublicFlag, "DB_NAMESPACE")
 	viper.BindEnv(tucsonGRPCAddressFlag, "TUCSON_ADDRESS")
 	viper.BindEnv(recommendationLogsFlag, "REC_LOGS_TYPE")
 	viper.BindEnv(recommendationKafkaBrokersFlag, "REC_LOGS_BROKERS")

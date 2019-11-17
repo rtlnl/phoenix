@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -24,15 +25,19 @@ var internalCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		addr := viper.GetString(addressInternalFlag)
 		dbHost := viper.GetString(dbHostInternalFlag)
-		dbPort := viper.GetInt(dbPortInternalFlag)
-		dbNamespace := viper.GetString(dbNamespaceInternalFlag)
 		s3Region := viper.GetString(s3RegionFlag)
 		s3Endpoint := viper.GetString(s3EndpointFlag)
 		s3DisableSSL := viper.GetBool(s3DisableSSLFlag)
 
+		// instantiate Redis client
+		redisClient, err := db.NewRedisClient(dbHost)
+		if err != nil {
+			panic(err)
+		}
+
 		// append all the middlewares here
 		var middlewares []gin.HandlerFunc
-		middlewares = append(middlewares, md.Aerospike(dbHost, dbNamespace, dbPort))
+		middlewares = append(middlewares, md.DB(redisClient))
 		middlewares = append(middlewares, md.AWSSession(s3Region, s3Endpoint, s3DisableSSL))
 		middlewares = append(middlewares, md.Cors())
 
@@ -53,17 +58,13 @@ func init() {
 	f := internalCmd.PersistentFlags()
 
 	f.String(addressInternalFlag, ":8081", "server address")
-	f.String(dbHostInternalFlag, "127.0.0.1", "database host")
-	f.Int(dbPortInternalFlag, 3000, "database port")
-	f.String(dbNamespaceInternalFlag, "phoenix", "namespace of the database")
+	f.String(dbHostInternalFlag, "127.0.0.1:6379", "database host")
 	f.String(s3RegionFlag, "eu-west-1", "s3 region")
 	f.String(s3EndpointFlag, "localhost:4572", "s3 endpoint")
 	f.Bool(s3DisableSSLFlag, true, "disable SSL verification for s3")
 
 	viper.BindEnv(addressInternalFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostInternalFlag, "DB_HOST")
-	viper.BindEnv(dbPortInternalFlag, "DB_PORT")
-	viper.BindEnv(dbNamespaceInternalFlag, "DB_NAMESPACE")
 	viper.BindEnv(s3RegionFlag, "S3_REGION")
 	viper.BindEnv(s3EndpointFlag, "S3_ENDPOINT")
 	viper.BindEnv(s3DisableSSLFlag, "S3_DISABLE_SSL")

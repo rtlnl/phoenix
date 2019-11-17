@@ -1,7 +1,6 @@
 package public
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -35,14 +34,14 @@ type RecommendResponse struct {
 }
 
 // rrPool is in charged of Pooling eventual requests in coming. This will help to reduce the alloc/s
-// and effeciently improve the garbage collection operations. rr is short for recommend-request
+// and efficiently improve the garbage collection operations. rr is short for recommend-request
 var rrPool = sync.Pool{
 	New: func() interface{} { return new(RecommendRequest) },
 }
 
 // Recommend will take care of fetching the personalized content for a specific user
 func Recommend(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 	lt := c.MustGet("RecommendationLog").(logs.RecommendationLog)
 
 	// get a new object from the pool and then dispose it
@@ -60,10 +59,10 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// get container from Aerospike
-	container, err := models.GetExistingContainer(rr.PublicationPoint, rr.Campaign, ac)
-	if container == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s is not found", pp, cp))
+	// get container from DB
+	container, err := models.GetContainer(rr.PublicationPoint, rr.Campaign, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
@@ -74,37 +73,38 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// get model from aerospike
-	m, err := models.GetExistingModel(modelName, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", modelName))
-		return
-	}
-
-	// if the model is staged, the clients cannot access it
-	if m.IsStaged() {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("model is staged. Clients cannot access staged models"))
+	// model exists
+	if !models.ModelExists(modelName, dbc) {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	// get the recommended values
-	r, err := ac.GetOne(modelName, rr.SignalID)
+	r, err := dbc.GetOne(modelName, rr.SignalID)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
-	// convert single entry from interface{} to []models.ItemScore
-	itemsScore := convertSingleEntry(r.Bins[binKey])
+	// convert single entry from string to []models.ItemScore
+	itemsScore, err := models.DeserializeItemScoreArray(r)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, fmt.Errorf("could not deserialize object. error: %s", err.Error()))
+		return
+	}
 
 	// write logs in a separate thread for not blocking the server
 	go func() {
-		lt.Write(logs.RowLog{
+		err := lt.Write(logs.RowLog{
 			PublicationPoint: rr.PublicationPoint,
 			Campaign:         rr.Campaign,
 			SignalID:         rr.SignalID,
 			ItemScores:       itemsScore,
 		})
+		// log error if it fails the logging
+		if err != nil {
+			zerolog.Error().Msg(err.Error())
+		}
 	}()
 
 	utils.Response(c, http.StatusOK, &RecommendResponse{
@@ -113,7 +113,7 @@ func Recommend(c *gin.Context) {
 	})
 }
 
-func getModelName(c *gin.Context, container *models.Container) (string, error) {
+func getModelName(c *gin.Context, container models.Container) (string, error) {
 	// check tucson
 	modelName := getModelFromTucson(c, container.PublicationPoint, container.Campaign)
 	if !utils.IsStringEmpty(modelName) {
@@ -136,7 +136,7 @@ func getModelName(c *gin.Context, container *models.Container) (string, error) {
 	return "", fmt.Errorf("model %s not available in publicationPoint %s and campaign %s", modelName, container.PublicationPoint, container.Campaign)
 }
 
-func getModelFromURL(modelName string, container *models.Container) string {
+func getModelFromURL(modelName string, container models.Container) string {
 	if modelName != "" {
 		// check if there are models available in the container
 		if len(container.Models) > 0 && utils.StringInSlice(modelName, container.Models) {
@@ -158,7 +158,7 @@ func getModelFromTucson(c *gin.Context, publicationPoint, campaign string) strin
 	return ""
 }
 
-func getDefaultModelName(container *models.Container) string {
+func getDefaultModelName(container models.Container) string {
 	if len(container.Models) > 0 {
 		// TODO: define potential default model in the future
 		// return the first for now
@@ -193,22 +193,4 @@ func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, ca
 	rr.SignalID = signalID
 
 	return nil
-}
-
-// ConvertSingleEntry This function converts the Bins in the appropriate type for consistency
-// The objects coming from Aerospike that have type []interface{}.
-func convertSingleEntry(bins interface{}) []models.ItemScore {
-	var itemsScore []models.ItemScore
-	newBins := bins.([]interface{})
-	for _, bin := range newBins {
-		b := bin.(map[interface{}]interface{})
-		item := make(models.ItemScore)
-		for k, v := range b {
-			it := fmt.Sprintf("%v", k)
-			score := fmt.Sprintf("%v", v)
-			item[it] = score
-		}
-		itemsScore = append(itemsScore, item)
-	}
-	return itemsScore
 }

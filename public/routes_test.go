@@ -4,15 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strconv"
 	"testing"
-	"time"
-
-	"github.com/gin-gonic/gin"
 
 	"github.com/rtlnl/phoenix/middleware"
 	"github.com/rtlnl/phoenix/models"
@@ -22,9 +19,7 @@ import (
 )
 
 var (
-	testDBHost    = utils.GetEnv("DB_HOST", "127.0.0.1")
-	testDBPort    = utils.GetEnv("DB_PORT", "3000")
-	testNamespace = "test"
+	testDBHost    = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
 )
 
 var router *gin.Engine
@@ -42,8 +37,13 @@ func tearUp() {
 	router = gin.New()
 	router.RedirectTrailingSlash = true
 
-	p, _ := strconv.Atoi(testDBPort)
-	router.Use(middleware.Aerospike(testDBHost, testNamespace, p))
+	// instantiate Redis client
+	redisClient, err := db.NewRedisClient(testDBHost, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	router.Use(middleware.DB(redisClient))
 	router.Use(middleware.RecommendationLogs(logs.NewStdoutLog()))
 
 	// subscribe route Recommend here due to multiple tests on this route
@@ -54,19 +54,29 @@ func tearUp() {
 func tearDown() {
 	router = nil
 
-	ac, _ := GetTestAerospikeClient()
-	ac.TruncateNamespace("test")
-	time.Sleep(2 * time.Second)
+	redisClient, err := db.NewRedisClient(testDBHost, nil)
+	if err != nil {
+		panic(err)
+	}
+	defer redisClient.Close()
+
+	if err := redisClient.DropTable("tableModels"); err != nil {
+		panic(err.Error())
+	}
+
+	if err := redisClient.DropTable("tableContainers"); err != nil {
+		panic(err.Error())
+	}
 }
 
-func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelName string) func() {
+func UploadTestData(t *testing.T, dbc db.DB, testDataPath, modelName string) {
 	f, err := os.OpenFile(testDataPath, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	m, err := models.GetExistingModel(modelName, ac)
+	m, err := models.GetModel(modelName, dbc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,57 +93,18 @@ func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelNam
 			t.Fatal("fixtures contains the wrong type of json")
 		}
 
-		if err := ac.AddOne(m.Name, entry.SignalID, binKey, entry.Recommended); err != nil {
+		ser, err := utils.SerializeObject(entry.Recommended)
+		if err != nil {
+			t.FailNow()
+		}
+
+		if err := dbc.AddOne(m.Name, entry.SignalID, ser); err != nil {
 			t.Fatal(err)
 		}
 		i++
 	}
 	if err := sc.Err(); err != nil {
 		t.Fatal(err)
-	}
-	return func() {
-		ac.TruncateSet(modelName)
-		time.Sleep(2 * time.Second)
-	}
-}
-
-// GetTestAerospikeClient returns the client used for tests
-func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
-	p, _ := strconv.Atoi(testDBPort)
-	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
-
-	return ac, func() { ac.Close() }
-}
-
-// CreateTestModel returns a model and defer a truncate
-func CreateTestModel(t *testing.T, ac *db.AerospikeClient, modelName, concatenator string, signalType []string, publish bool) func() {
-	m, _ := models.NewModel(modelName, concatenator, signalType, ac)
-	if m == nil {
-		m, _ = models.GetExistingModel(modelName, ac)
-	}
-
-	if publish {
-		if err := m.PublishModel(ac); err != nil {
-			t.FailNow()
-		}
-	}
-
-	return func() {
-		ac.TruncateSet(modelName)
-		time.Sleep(2 * time.Second)
-	}
-}
-
-// CreateTestContainer returns a container and defer a truncate
-func CreateTestContainer(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign string, modelsName []string) func() {
-	c, _ := models.NewContainer(publicationPoint, campaign, modelsName, ac)
-	if c == nil {
-		c, _ = models.GetExistingContainer(publicationPoint, campaign, ac)
-	}
-
-	return func() {
-		ac.TruncateSet(publicationPoint)
-		time.Sleep(2 * time.Second)
 	}
 }
 

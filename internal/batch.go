@@ -3,6 +3,7 @@ package internal
 import (
 	"bufio"
 	"fmt"
+	"github.com/rtlnl/phoenix/utils"
 	"io"
 	"runtime"
 	"strconv"
@@ -36,15 +37,15 @@ var (
 
 // BatchOperator is the object responsible for uploading data in batch to Aerospike
 type BatchOperator struct {
-	AeroClient *db.AerospikeClient
-	Model      *models.Model
+	DBClient db.DB
+	Model    models.Model
 }
 
 // NewBatchOperator returns the object responsible for uploading the data in batch to Aerospike
-func NewBatchOperator(ac *db.AerospikeClient, m *models.Model) *BatchOperator {
+func NewBatchOperator(dbc db.DB, m models.Model) *BatchOperator {
 	return &BatchOperator{
-		AeroClient: ac,
-		Model:      m,
+		DBClient: dbc,
+		Model:    m,
 	}
 }
 
@@ -52,8 +53,8 @@ func NewBatchOperator(ac *db.AerospikeClient, m *models.Model) *BatchOperator {
 func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string) {
 	start := time.Now()
 
-	// write to Aerospike it's uploading
-	if err := bo.AeroClient.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkUploading); err != nil {
+	// write to DB that it's uploading
+	if err := bo.DBClient.AddOne(tableBulkStatus, batchID, BulkUploading); err != nil {
 		log.Panic().Msg(err.Error())
 	}
 
@@ -74,13 +75,13 @@ func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string)
 	// store eventual errors
 	go func() {
 		if bo.StoreErrors(batchID, le) > 0 {
-			// write to Aerospike it partially uploded the data
-			if err := bo.AeroClient.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkPartialUpload); err != nil {
+			// write to DB that it partially uploaded the data
+			if err := bo.DBClient.AddOne(tableBulkStatus, batchID, BulkPartialUpload); err != nil {
 				log.Panic().Msg(err.Error())
 			}
 		} else {
-			// write to Aerospike it succeeded
-			if err := bo.AeroClient.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkSucceeded); err != nil {
+			// write to DB that it succeeded
+			if err := bo.DBClient.AddOne(tableBulkStatus, batchID, BulkSucceeded); err != nil {
 				log.Panic().Msg(err.Error())
 			}
 		}
@@ -127,8 +128,12 @@ func (bo *BatchOperator) UploadDataDirectly(bd []BatchData) (string, DataUploade
 				continue
 			}
 
-			// upload to Aerospike
-			if err := bo.AeroClient.AddOne(bo.Model.Name, sig, binKey, recommendedItems); err != nil {
+			// upload to DB
+			ser, err := utils.SerializeObject(recommendedItems)
+			if err != nil {
+				log.Error().Msgf("could not serialize recommended object. error: %s", err.Error())
+			}
+			if err := bo.DBClient.AddOne(bo.Model.Name, sig, ser); err != nil {
 				return "", DataUploadedError{}, err
 			}
 		}
@@ -184,19 +189,22 @@ func (bo *BatchOperator) IterateFile(rd *bufio.Reader, setName string, rs chan<-
 		}
 
 		// add to channel
-		rs <- &models.RecordQueue{SetName: setName, Entry: entry, Error: nil}
+		rs <- &models.RecordQueue{Table: setName, Entry: entry, Error: nil}
 	}
 }
 
-// UploadRecord store each message from the channel to Aerospike
+// UploadRecord store each message from the channel to DB
 func (bo *BatchOperator) UploadRecord(batchID string, rs chan *models.RecordQueue) {
-	// upload record to aerospike when it arrives
+	// upload record to DB when it arrives
 	for r := range rs {
-		if err := bo.AeroClient.AddOne(r.SetName, r.Entry.SignalID, binKey, r.Entry.Recommended); err != nil {
-			// write to Aerospike it failed
-			if err := bo.AeroClient.AddOne(bulkStatusSetName, batchID, statusBinKey, BulkFailed); err != nil {
-				// if this fails than since we cannot return the request to the user
-				// we need to restart the application
+		ser, err := utils.SerializeObject(r.Entry.Recommended)
+		if err != nil {
+			log.Error().Msgf("cold not serialize recommendations. error: %s", err.Error())
+			continue
+		}
+		if err := bo.DBClient.AddOne(r.Table, r.Entry.SignalID, ser); err != nil {
+			// write to DB that it failed
+			if err := bo.DBClient.AddOne(tableBulkStatus, batchID, BulkFailed); err != nil {
 				log.Panic().Msg(err.Error())
 			}
 			return
@@ -216,8 +224,12 @@ func (bo *BatchOperator) StoreErrors(batchID string, le chan models.LineError) i
 		}
 		break
 	}
-	// save to Aerospike the errors list
-	if err := bo.AeroClient.AddOne(bulkStatusSetName, batchID, lineBinError, allErrors); err != nil {
+	// save to DB the errors list
+	ser, err := utils.SerializeObject(allErrors)
+	if err != nil {
+		log.Error().Msgf("could not serialize error objects. error: %s", err.Error())
+	}
+	if err := bo.DBClient.AddOne(tableBulkErrors, batchID, ser); err != nil {
 		log.Panic().Msg(err.Error())
 	}
 	return i

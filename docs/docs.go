@@ -27,7 +27,7 @@ Namespace --> setName --> Keys --> Bins
 The Models
 
 Namespace: phoenix
-SetName: publicationPoint
+Table: publicationPoint
 Key: Campaign
 Bins: version => 0.1.0 				 // as start
 	  stage => STAGED/PUBLISHED		 // either value
@@ -43,31 +43,31 @@ on the SemVer algorithm.
 Below you can find an example of multiple models:
 
 - Model1
-	SetName = rtl_news
+	Table = rtl_news
 	Key = homepage
 - Model2
-	SetName = rtl_news
+	Table = rtl_news
 	Key = footer
 - Model3
-	SetName = videoland
+	Table = videoland
 	Key = profile
 
 
 The Data
 
 Namespace: phoenix
-SetName: publicationPoint#campaign#STAGED/PUBLISHED
+Table: publicationPoint#campaign#STAGED/PUBLISHED
 Key: signalID	// for example 111_3333
 Bins: signalID => ["item1", "item2", ..., "itemN"]
 
-The data is organized similarly to the Model but with a different naming convention. To make the SetName "unique" per model, we
+The data is organized similarly to the Model but with a different naming convention. To make the Table "unique" per model, we
 use a combination of "publicPoint", "campaign" and "stage" separated by a #. In this way, we are able to insert all the Keys we
 need for that particular model
 
 Below you can find and example of data for a model
 
 - Data1
-	SetName = rtl_news#homepage#STAGED
+	Table = rtl_news#homepage#STAGED
 		- Key = 11_22
 		  Bins = 11_22 = ["1","2","3"]
 		- Key = 33_44
@@ -75,7 +75,7 @@ Below you can find and example of data for a model
 		- Key = 55_66
 		  Bins = 55_66 = ["7","8","9"]
 - Data2
-	SetName = rtl_news#footer#PUBLISHED
+	Table = rtl_news#footer#PUBLISHED
 		- Key = 3333
 		  Bins = 3333 = ["a","b","c"]
 		- Key = 4444

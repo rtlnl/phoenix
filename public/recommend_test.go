@@ -1,6 +1,8 @@
 package public
 
 import (
+	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/db"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -9,20 +11,24 @@ import (
 )
 
 func TestRecommend(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
-	defer c()
+	// instantiate Redis client
+	redisClient, err := db.NewRedisClient(testDBHost, nil)
+	if err != nil {
+		panic(err)
+	}
+	defer redisClient.Close()
 
-	// create model
-	truncateModel := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, true)
-	defer truncateModel()
+	// Test object creation
+	if _, err := models.NewModel("model", "", []string{"signal"}, redisClient); err != nil {
+		t.FailNow()
+	}
 
-	// create container
-	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
-	defer truncateContainer()
+	_, err = models.NewContainer("publication", "campaign", []string{"model"}, redisClient)
+	if err != nil {
+		t.FailNow()
+	}
 
-	truncateTestData := UploadTestData(t, ac, "testdata/test_published_model_data.jsonl", "collaborative")
-	defer truncateTestData()
+	UploadTestData(t, redisClient, "testdata/test_published_model_data.jsonl", "model")
 
 	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=collaborative&signalId=500083", nil)
 	if err != nil {
@@ -122,17 +128,22 @@ func TestRecommendNoModel(t *testing.T) {
 }
 
 func TestRecommendWrongSignal(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
-	defer c()
+	// instantiate Redis client
+	redisClient, err := db.NewRedisClient(testDBHost, nil)
+	if err != nil {
+		panic(err)
+	}
+	defer redisClient.Close()
 
-	// create model
-	truncateModel := CreateTestModel(t, ac, "ciao", "", []string{"articleId"}, true)
-	defer truncateModel()
+	// Test object creation
+	if _, err := models.NewModel("model", "", []string{"signal"}, redisClient); err != nil {
+		t.FailNow()
+	}
 
-	// create container
-	truncateContainer := CreateTestContainer(t, ac, "curry", "homepage", []string{"ciao"})
-	defer truncateContainer()
+	_, err = models.NewContainer("publication1", "campaign", []string{"model"}, redisClient)
+	if err != nil {
+		t.FailNow()
+	}
 
 	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=curry&campaign=homepage&model=ciao&signalId=jjkk_767", nil)
 	if err != nil {
@@ -148,51 +159,28 @@ func TestRecommendWrongSignal(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"key jjkk_767 does not exist\"}", string(b))
 }
 
-func TestRecommendModelStaged(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-
-	// create model
-	truncateModel := CreateTestModel(t, ac, "sloth", "", []string{"articleId"}, false)
-	defer truncateModel()
-
-	// create container
-	truncateContainer := CreateTestContainer(t, ac, "fruits", "banana", []string{"sloth"})
-	defer truncateContainer()
-
-	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=fruits&campaign=banana&model=sloth&signalId=500083", nil)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"model is staged. Clients cannot access staged models\"}", string(b))
-}
-
 func BenchmarkRecommend(b *testing.B) {
 	b.StopTimer()
 
-	// get client
-	ac, c := GetTestAerospikeClient()
-	defer c()
+	// instantiate Redis client
+	redisClient, err := db.NewRedisClient(testDBHost, nil)
+	if err != nil {
+		panic(err)
+	}
+	defer redisClient.Close()
 
-	// create model
-	truncateModel := CreateTestModel(nil, ac, "collaborative", "", []string{"articleId"}, false)
-	defer truncateModel()
+	// Test object creation
+	if _, err := models.NewModel("model", "", []string{"signal"}, redisClient); err != nil {
+		b.FailNow()
+	}
 
-	// create container
-	truncateContainer := CreateTestContainer(nil, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
-	defer truncateContainer()
+	_, err = models.NewContainer("publication1", "campaign", []string{"model"}, redisClient)
+	if err != nil {
+		b.FailNow()
+	}
 
 	// upload data to model
-	truncateTestData := UploadTestData(nil, ac, "testdata/test_published_model_data.jsonl", "collaborative")
-	defer truncateTestData()
+	UploadTestData(nil, redisClient, "testdata/test_published_model_data.jsonl", "model")
 
 	for i := 0; i < b.N; i++ {
 		MockRequestBenchmark(b, http.MethodGet, "/v1/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=500083", nil)

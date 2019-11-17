@@ -2,7 +2,6 @@ package internal
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -24,7 +23,7 @@ type ManagementModelRequest struct {
 
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
 type ManagementModelResponse struct {
-	Model   *models.Model `json:"model" description:"model object that is being returned to the client"`
+	Model   models.Model `json:"model" description:"model object that is being returned to the client"`
 	Message string        `json:"message" description:"summary of the action just taken"`
 }
 
@@ -36,7 +35,6 @@ var (
 // ManagementModelRequestStructureValidation validates structure and content
 func ManagementModelRequestStructureValidation(sl validator.StructLevel) {
 	request := sl.Current().Interface().(ManagementModelRequest)
-
 	// Enforces the need of a separator when more than one element
 	if len(request.SignalOrder) > 1 && !utils.StringInSlice(request.Concatenator, concatenatorList) {
 		sl.ReportError(request.Concatenator, "concatenator", "", "wrongConcatenator", "")
@@ -49,7 +47,6 @@ func ManagementModelRequestStructureValidation(sl validator.StructLevel) {
 func ManagementModelRequestValidation(request *ManagementModelRequest) error {
 	validate = validator.New()
 	validate.RegisterStructValidation(ManagementModelRequestStructureValidation, ManagementModelRequest{})
-
 	return validate.Struct(request)
 }
 
@@ -66,7 +63,7 @@ func ValidationConcatenationErrorMsg(err error) error {
 
 // GetModel returns the model's information from the given parameters in input
 func GetModel(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	// read from params in url
 	mn := c.Query("name")
@@ -78,9 +75,9 @@ func GetModel(c *gin.Context) {
 	}
 
 	// fetch model
-	m, err := models.GetExistingModel(mn, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mn))
+	m, err := models.GetModel(mn, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
@@ -92,7 +89,7 @@ func GetModel(c *gin.Context) {
 
 // CreateModel create a new model in the database where to upload the data
 func CreateModel(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
@@ -105,7 +102,7 @@ func CreateModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.NewModel(mm.Name, mm.Concatenator, mm.SignalOrder, ac)
+	m, err := models.NewModel(mm.Name, mm.Concatenator, mm.SignalOrder, dbc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return
@@ -117,73 +114,9 @@ func CreateModel(c *gin.Context) {
 	})
 }
 
-// PublishModel set a model to be the one to be used by the clients
-func PublishModel(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
-
-	var mm ManagementModelRequest
-	if err := c.BindJSON(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := ManagementModelRequestValidation(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
-		return
-	}
-
-	m, err := models.GetExistingModel(mm.Name, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mm.Name))
-		return
-	}
-
-	if err := m.PublishModel(ac); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	utils.Response(c, http.StatusOK, &ManagementModelResponse{
-		Model:   m,
-		Message: "model published",
-	})
-}
-
-// StageModel set a model to be the one to be used by the internal systems
-func StageModel(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
-
-	var mm ManagementModelRequest
-	if err := c.BindJSON(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := ManagementModelRequestValidation(&mm); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, ValidationConcatenationErrorMsg(err))
-		return
-	}
-
-	m, err := models.GetExistingModel(mm.Name, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mm.Name))
-		return
-	}
-
-	if err := m.StageModel(ac); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	utils.Response(c, http.StatusOK, &ManagementModelResponse{
-		Model:   m,
-		Message: "model staged",
-	})
-}
-
 // EmptyModel truncate the content of a model but leave the model in the database
 func EmptyModel(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	var mm ManagementModelRequest
 	if err := c.BindJSON(&mm); err != nil {
@@ -196,14 +129,14 @@ func EmptyModel(c *gin.Context) {
 		return
 	}
 
-	m, err := models.GetExistingModel(mm.Name, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mm.Name))
+	m, err := models.GetModel(mm.Name, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	// empty model from database
-	if err := m.DeleteModel(ac); err != nil {
+	if err := m.DeleteModel(dbc); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -216,23 +149,23 @@ func EmptyModel(c *gin.Context) {
 
 // ManagementModelsResponse handles the response when multiple models
 type ManagementModelsResponse struct {
-	Models  []*models.Model `json:"models"`
+	Models  []models.Model `json:"models"`
 	Message string          `json:"message"`
 }
 
 // GetAllModels returns all the models in the database
 func GetAllModels(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	// fetch models
-	models, err := models.GetAllModels(ac)
+	ms, err := models.GetAllModels(dbc)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, errors.New("no models found"))
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	utils.Response(c, http.StatusOK, &ManagementModelsResponse{
-		Models:  models,
+		Models:  ms,
 		Message: "models fetched",
 	})
 }
@@ -244,7 +177,7 @@ type ManagementDataPreviewResponse struct {
 
 // GetDataPreview returns a preview of the dataset
 func GetDataPreview(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	// read from params in url
 	mn := c.Query("name")
@@ -256,14 +189,14 @@ func GetDataPreview(c *gin.Context) {
 	}
 
 	// fetch model
-	m, err := models.GetExistingModel(mn, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", mn))
+	m, err := models.GetModel(mn, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	// fetch data preview
-	data, err := m.GetDataPreview(ac)
+	data, err := m.GetDataPreview(dbc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
