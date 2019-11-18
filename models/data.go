@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 )
 
+var (
+	reservedNames = []string{"models", "containers"}
+)
+
 // ItemScore is the object containing the recommended item and its score
 // Example: {"item":"11","score":"0.6","type":"movie"}
 type ItemScore map[string]string

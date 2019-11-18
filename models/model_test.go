@@ -80,6 +80,19 @@ func TestNewModel(t *testing.T) {
 	assert.Equal(t, 1, len(m.SignalOrder))
 }
 
+func TestNewModelReservedWorld(t *testing.T) {
+	dbc, c := GetTestRedisClient()
+	defer c()
+
+	// Test object creation
+	_, err := NewModel("models", "", []string{"articleId"}, dbc)
+	if err == nil {
+		t.FailNow()
+	}
+
+	assert.Equal(t, "cannot use models as name. this name is reserved", err.Error())
+}
+
 func TestGetModel(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()

@@ -12,7 +12,7 @@ import (
 
 const (
 	tableModels = "models"
-	maxEntries         = 100
+	maxEntries  = 100
 )
 
 // Model is the object that acts as container for the metadata of each model
@@ -32,6 +32,11 @@ func NewModel(name, concatenator string, signalOrder []string, dbc db.DB) (Model
 	// validate model's parameters
 	if len(signalOrder) > 1 && concatenator == "" {
 		return Model{}, errors.New("multiple signals are being specified but no concatenator. concatenator is missing")
+	}
+
+	// check if name used is reserved
+	if utils.StringInSlice(name, reservedNames) {
+		return Model{}, fmt.Errorf("cannot use %s as name. this name is reserved", name)
 	}
 
 	// create model object
