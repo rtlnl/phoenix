@@ -23,6 +23,3 @@ services:
       - "6379:6379"
     volumes:
       - ./data:/redis
-
-volumes:
-  aerospike-data:

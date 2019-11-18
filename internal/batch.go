@@ -35,13 +35,13 @@ var (
 	MaxNumberOfWorkers = runtime.NumCPU()
 )
 
-// BatchOperator is the object responsible for uploading data in batch to Aerospike
+// BatchOperator is the object responsible for uploading data in batch to Database
 type BatchOperator struct {
 	DBClient db.DB
 	Model    models.Model
 }
 
-// NewBatchOperator returns the object responsible for uploading the data in batch to Aerospike
+// NewBatchOperator returns the object responsible for uploading the data in batch to Database
 func NewBatchOperator(dbc db.DB, m models.Model) *BatchOperator {
 	return &BatchOperator{
 		DBClient: dbc,
@@ -49,7 +49,7 @@ func NewBatchOperator(dbc db.DB, m models.Model) *BatchOperator {
 	}
 }
 
-// UploadDataFromFile reads from a file and upload line-by-line to aerospike on a particular BatchID
+// UploadDataFromFile reads from a file and upload line-by-line to Database on a particular BatchID
 func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string) {
 	start := time.Now()
 
@@ -103,7 +103,7 @@ func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string)
 	log.Info().Msgf("Uploading took %s", elapsed)
 }
 
-// UploadDataDirectly does an insert directly to aerospike
+// UploadDataDirectly does an insert directly to Database
 func (bo *BatchOperator) UploadDataDirectly(bd []BatchData) (string, DataUploadedError, error) {
 	var ln, ne int = 0, 0
 	var vl bool = false
@@ -212,7 +212,7 @@ func (bo *BatchOperator) UploadRecord(batchID string, rs chan *models.RecordQueu
 	}
 }
 
-// StoreErrors stores the errors in Aerospike from the channel in input
+// StoreErrors stores the errors in Database from the channel in input
 func (bo *BatchOperator) StoreErrors(batchID string, le chan models.LineError) int {
 	allErrors := []models.LineError{}
 	i := 0
