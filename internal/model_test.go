@@ -2,6 +2,8 @@ package internal
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/rtlnl/phoenix/models"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -30,14 +32,15 @@ func createManagementModelRequest(name, concatenator string, signalOrder []strin
 
 func TestGetModel(t *testing.T) {
 	// get client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("getter", "", []string{"articleId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/?name=collaborative", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/?name=getter", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -48,7 +51,7 @@ func TestGetModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"model\":{\"name\":\"collaborative\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"articleId\"],\"concatenator\":\"\"},\"message\":\"model fetched\"}", string(b))
+	assert.Equal(t, "{\"model\":{\"name\":\"getter\",\"signalOrder\":[\"articleId\"],\"concatenator\":\"\"},\"message\":\"model fetched\"}", string(b))
 }
 
 func TestGetModelEmptyParams(t *testing.T) {
@@ -67,7 +70,7 @@ func TestGetModelEmptyParams(t *testing.T) {
 }
 
 func TestGetModelNotExist(t *testing.T) {
-	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/?publicationPoint=rtl_nieuws&campaign=panini&name=collaborative", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/?publicationPoint=rtl_nieuws&campaign=panini&name=ocean", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -78,19 +81,20 @@ func TestGetModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model collaborative not found\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model with name ocean not found\"}", string(b))
 }
 
 func TestCreateModelAlreadyExists(t *testing.T) {
 	// get client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"grapeId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("already", "", []string{"grapeId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	r, err := createManagementModelRequest("collaborative", "", []string{"grapeId"})
+	r, err := createManagementModelRequest("already", "", []string{"grapeId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -105,8 +109,8 @@ func TestCreateModelAlreadyExists(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"model\":{\"name\":\"collaborative\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"grapeId\"],\"concatenator\":\"\"},\"message\":\"model created\"}", string(b))
+	assert.Equal(t, http.StatusUnprocessableEntity, code)
+	assert.Equal(t, "{\"message\":\"model with name already already exists\"}", string(b))
 }
 
 func TestCreateModelFailValidation(t *testing.T) {
@@ -133,14 +137,16 @@ func TestCreateModelFailValidation(t *testing.T) {
 
 func TestEmptyModel(t *testing.T) {
 	// get client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
 	// create model
-	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"appleId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("empty", "", []string{"appleId"}, dbc); err != nil {
+		fmt.Print(err.Error())
+		t.FailNow()
+	}
 
-	r, err := createManagementModelRequest("collaborative", "", []string{"appleId"})
+	r, err := createManagementModelRequest("empty", "", []string{"appleId"})
 	if err != nil {
 		t.Fail()
 	}
@@ -156,7 +162,7 @@ func TestEmptyModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"model\":{\"name\":\"collaborative\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"appleId\"],\"concatenator\":\"\"},\"message\":\"model empty\"}", string(b))
+	assert.Equal(t, "{\"model\":{\"name\":\"empty\",\"signalOrder\":[\"appleId\"],\"concatenator\":\"\"},\"message\":\"model empty\"}", string(b))
 }
 
 func TestEmptyModelNotExist(t *testing.T) {
@@ -176,125 +182,7 @@ func TestEmptyModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model goat not found\"}", string(b))
-}
-
-func TestPublishModelAlreadyPublished(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-
-	// create model
-	truncate := CreateTestModel(t, ac, "pears", "", []string{"appleId"}, true)
-	defer truncate()
-
-	r, err := createManagementModelRequest("pears", "", []string{"appleId"})
-	if err != nil {
-		t.Fail()
-	}
-
-	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/publish", r)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"model is already PUBLISHED\"}", string(b))
-}
-
-func TestPublishModelFailValidation(t *testing.T) {
-	r, err := createManagementModelRequest("", "", []string{"grapeId"})
-	if err != nil {
-		t.Fail()
-	}
-
-	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/publish", r)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	msg := string(b)
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, true, strings.Contains(msg, "Error:Field validation for 'Name' failed on the 'required' tag"))
-}
-
-func TestPublishModelNotExist(t *testing.T) {
-	r, err := createManagementModelRequest("bear", "", []string{"pineappleId"})
-	if err != nil {
-		t.Fail()
-	}
-
-	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/publish", r)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model bear not found\"}", string(b))
-}
-
-func TestStageModelNotExist(t *testing.T) {
-	r, err := createManagementModelRequest("bear", "", []string{"pineappleId"})
-	if err != nil {
-		t.Fail()
-	}
-
-	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/stage", r)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model bear not found\"}", string(b))
-}
-
-func TestStageModelAlreadyStaged(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-
-	// create model
-	truncate := CreateTestModel(t, ac, "grapes", "", []string{"appleId"}, false)
-	defer truncate()
-
-	r, err := createManagementModelRequest("grapes", "", []string{"appleId"})
-	if err != nil {
-		t.Fail()
-	}
-
-	code, body, err := MockRequest(http.MethodPost, "/v1/management/models/stage", r)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"model is already STAGED\"}", string(b))
+	assert.Equal(t, "{\"message\":\"model with name goat not found\"}", string(b))
 }
 
 func TestConcatenatorFailValidation(t *testing.T) {
@@ -318,7 +206,7 @@ func TestConcatenatorFailValidation(t *testing.T) {
 }
 
 func TestConcatenatorPassValidation(t *testing.T) {
-	r, err := createManagementModelRequest("collaborative", "_", []string{"appleId", "bananasId"})
+	r, err := createManagementModelRequest("tech", "_", []string{"office", "floor"})
 	if err != nil {
 		t.Fail()
 	}
@@ -334,7 +222,7 @@ func TestConcatenatorPassValidation(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"model\":{\"name\":\"collaborative\",\"stage\":\"STAGED\",\"version\":\"0.1.0\",\"signalOrder\":[\"appleId\",\"bananasId\"],\"concatenator\":\"_\"},\"message\":\"model created\"}", string(b))
+	assert.Equal(t, "{\"model\":{\"name\":\"tech\",\"signalOrder\":[\"office\",\"floor\"],\"concatenator\":\"_\"},\"message\":\"model created\"}", string(b))
 }
 
 func TestConcatenatorMissing(t *testing.T) {

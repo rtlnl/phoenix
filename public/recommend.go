@@ -1,6 +1,7 @@
 package public
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -74,8 +75,15 @@ func Recommend(c *gin.Context) {
 	}
 
 	// model exists
-	if !models.ModelExists(modelName, dbc) {
+	m, err := models.GetModel(modelName, dbc)
+	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
+		return
+	}
+
+	// validate signal
+	if !m.CorrectSignalFormat(rr.SignalID) {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("signal is not formatted correctly"))
 		return
 	}
 

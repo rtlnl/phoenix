@@ -55,7 +55,7 @@ func (db *Redis) Health() error {
 func (db *Redis) GetOne(table, key string) (string, error) {
 	val, err := db.Client.HGet(table, key).Result()
 	if err == redis.Nil {
-		return "", fmt.Errorf("table %s not found", table)
+		return "", fmt.Errorf("key %s not found", key)
 	} else if err != nil {
 		return "", err
 	}

@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -27,6 +28,12 @@ func NewModel(name, concatenator string, signalOrder []string, dbc db.DB) (Model
 	if ModelExists(name, dbc) {
 		return Model{}, fmt.Errorf("model with name %s already exists", name)
 	}
+
+	// validate model's parameters
+	if len(signalOrder) > 1 && concatenator == "" {
+		return Model{}, errors.New("multiple signals are being specified but no concatenator. concatenator is missing")
+	}
+
 	// create model object
 	model := Model{
 		Name:         name,
@@ -129,6 +136,9 @@ func (m *Model) RequireSignalFormat() bool {
 func (m *Model) CorrectSignalFormat(s string) bool {
 	res := strings.FieldsFunc(s, func(c rune) bool {
 		r := []rune(m.Concatenator)
+		if len(r) == 0 {
+			return false
+		}
 		return c == r[0]
 	})
 	return len(m.SignalOrder) == len(res)
@@ -142,7 +152,7 @@ func GetAllModels(dbc db.DB) ([]Model, error) {
 		return nil, fmt.Errorf("error in returning all the models from the database. error: %s", err.Error())
 	}
 	// iterate through all the records
-	for modelName, _ := range records {
+	for modelName := range records {
 		m, err := GetModel(modelName, dbc)
 		if err != nil {
 			return nil, err

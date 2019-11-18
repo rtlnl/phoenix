@@ -38,7 +38,7 @@ func tearUp() {
 	router.RedirectTrailingSlash = true
 
 	// instantiate Redis client
-	redisClient, err := db.NewRedisClient(testDBHost, nil)
+	redisClient, err := db.NewRedisClient(testDBHost)
 	if err != nil {
 		panic(err)
 	}
@@ -54,18 +54,28 @@ func tearUp() {
 func tearDown() {
 	router = nil
 
-	redisClient, err := db.NewRedisClient(testDBHost, nil)
+	dbc, c := GetTestRedisClient()
+	defer c()
+
+	if err := dbc.DropTable("tableModels"); err != nil {
+		panic(err.Error())
+	}
+
+	if err := dbc.DropTable("tableContainers"); err != nil {
+		panic(err.Error())
+	}
+}
+
+func GetTestRedisClient() (db.DB, func()) {
+	dbc, err := db.NewRedisClient(testDBHost)
 	if err != nil {
 		panic(err)
 	}
-	defer redisClient.Close()
-
-	if err := redisClient.DropTable("tableModels"); err != nil {
-		panic(err.Error())
-	}
-
-	if err := redisClient.DropTable("tableContainers"); err != nil {
-		panic(err.Error())
+	return dbc, func() {
+		err := dbc.Close()
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
