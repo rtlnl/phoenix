@@ -34,22 +34,6 @@ func StringInSlice(str string, list []string) bool {
 	return false
 }
 
-// ConvertInterfaceToList converts the objects coming from Aerospike have type []interface{}.
-// This function converts the Bins in the appropriate type for consistency
-func ConvertInterfaceToList(bins interface{}) []string {
-	if bins == nil {
-		return nil
-	}
-
-	var list []string
-	if newBins, ok := bins.([]interface{}); ok {
-		for _, bin := range newBins {
-			list = append(list, bin.(string))
-		}
-	}
-	return list
-}
-
 // StripS3URL returns the bucket and the key from a s3 url location
 func StripS3URL(URL string) (string, string) {
 	bucketTmp := strings.Replace(URL, "s3://", "", -1)
@@ -75,15 +59,6 @@ func IsStringEmpty(m string) bool {
 		return true
 	}
 	return false
-}
-
-// ConvertBinToString returns empty string in case of failure or the actual value
-// converted to string
-func ConvertBinToString(bin interface{}) string {
-	if v, ok := bin.(string); ok {
-		return v
-	}
-	return ""
 }
 
 // SerializeObject returns the JSON string representation of the object

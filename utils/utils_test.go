@@ -25,13 +25,6 @@ func TestStringInSlice(t *testing.T) {
 	assert.Equal(t, false, StringInSlice("banana", l))
 }
 
-func TestConvertInterfaceToList(t *testing.T) {
-	l := []interface{}{"hello", "world"}
-	ls := []string{"hello", "world"}
-
-	assert.ElementsMatch(t, ls, ConvertInterfaceToList(l))
-}
-
 func TestGetDefault(t *testing.T) {
 	tests := map[string]struct {
 		input    string
@@ -80,33 +73,6 @@ func TestIsStringEmpty(t *testing.T) {
 	for testName, test := range tests {
 		t.Logf("Running test case %s", testName)
 		o := IsStringEmpty(test.input)
-
-		assert.Equal(t, test.expected, o)
-	}
-}
-
-func TestConvertBinToString(t *testing.T) {
-	tests := map[string]struct {
-		input    interface{}
-		expected string
-	}{
-		"not empty": {
-			input:    "hello",
-			expected: "hello",
-		},
-		"empty": {
-			input:    "",
-			expected: "",
-		},
-		"nil": {
-			input:    nil,
-			expected: "",
-		},
-	}
-
-	for testName, test := range tests {
-		t.Logf("Running test case %s", testName)
-		o := ConvertBinToString(test.input)
 
 		assert.Equal(t, test.expected, o)
 	}
