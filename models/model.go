@@ -12,7 +12,6 @@ import (
 
 const (
 	tableModels = "models"
-	maxEntries  = 100
 )
 
 // Model is the object that acts as container for the metadata of each model
@@ -174,11 +173,8 @@ func (m *Model) GetDataPreview(dbc db.DB) ([]*SingleEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error in returning the data preview from the database. error: %s", err.Error())
 	}
-	counter := 0
+
 	for signal, recommendations := range records {
-		if counter == maxEntries {
-			break
-		}
 		// deserialize recommendations
 		isArr, err := DeserializeItemScoreArray(recommendations)
 		if err != nil {
@@ -189,7 +185,6 @@ func (m *Model) GetDataPreview(dbc db.DB) ([]*SingleEntry, error) {
 			SignalID:    signal,
 			Recommended: isArr,
 		})
-		counter++
 	}
 
 	return data, nil

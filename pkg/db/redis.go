@@ -2,8 +2,8 @@ package db
 
 import (
 	"fmt"
-
 	"github.com/go-redis/redis"
+	"github.com/rs/zerolog/log"
 )
 
 // Redis is a wrapper struct around Redis official package
@@ -92,11 +92,23 @@ func (db *Redis) DropTable(table string) error {
 // GetAllRecords returns all the records from that table
 // the map[string]string represents the signalID -> recommendations encoded
 func (db *Redis) GetAllRecords(table string) (map[string]string, error) {
-	elems, err := db.Client.HGetAll(table).Result()
-	if err == redis.Nil {
-		return nil, fmt.Errorf("table %s not found", table)
-	} else if err != nil {
-		return nil, err
+	elems := map[string]string{}
+	iter := db.Client.HScan(table, 0, "*", maxEntries).Iterator()
+
+	counter := 0
+	key := ""
+	for iter.Next() {
+		if iter.Err() != nil {
+			log.Error().Msgf("error found: %s",iter.Err().Error())
+			continue
+		}
+		val := iter.Val()
+		if counter % 2 == 0 {
+			key = val
+		} else {
+			elems[key] = val
+		}
+		counter++
 	}
 	return elems, nil
 }

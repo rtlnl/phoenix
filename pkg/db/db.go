@@ -11,3 +11,8 @@ type DB interface {
 	Close() error
 	Health() error
 }
+
+const (
+	// maximum number of entries when previewing the data
+	maxEntries = 100
+)
