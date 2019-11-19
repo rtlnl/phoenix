@@ -129,7 +129,7 @@ func TestModelDeleteFromContainer(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	_, err = NewContainer("pp","cmp",[]string{"test4"}, dbc)
+	_, err = NewContainer("pp", "cmp", []string{"test4"}, dbc)
 	if err != nil {
 		t.FailNow()
 	}
@@ -138,7 +138,7 @@ func TestModelDeleteFromContainer(t *testing.T) {
 		t.FailNow()
 	}
 
-	cont, err := GetContainer("pp","cmp", dbc)
+	cont, err := GetContainer("pp", "cmp", dbc)
 	if err != nil {
 		t.FailNow()
 	}

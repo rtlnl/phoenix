@@ -20,10 +20,10 @@ type ManagementContainerRequest struct {
 // ManagementContainerResponse handles the response object to the client
 type ManagementContainerResponse struct {
 	Container models.Container `json:"container"`
-	Message   string            `json:"message"`
+	Message   string           `json:"message"`
 }
 
-// GetContainer returns an already existsing container
+// GetContainer returns an already existing container
 func GetContainer(c *gin.Context) {
 	dbc := c.MustGet("DB").(db.DB)
 
@@ -138,7 +138,7 @@ func LinkModel(c *gin.Context) {
 // ManagementContainersResponse handles the response when there are multiple containers
 type ManagementContainersResponse struct {
 	Containers []models.Container `json:"containers"`
-	Message    string              `json:"message"`
+	Message    string             `json:"message"`
 }
 
 // GetAllContainers returns all the containers in the database

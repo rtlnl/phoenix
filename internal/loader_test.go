@@ -109,7 +109,7 @@ func TestStreamingBadSignal(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
 
-	if _, err := models.NewModel("hybrid", "_", []string{"articleId","userId"}, dbc); err != nil {
+	if _, err := models.NewModel("hybrid", "_", []string{"articleId", "userId"}, dbc); err != nil {
 		t.FailNow()
 	}
 
@@ -443,7 +443,7 @@ func TestBatchUploadDirectWithErrors(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
 
-	if _, err := models.NewModel("ham", "_", []string{"articleId","userId"}, dbc); err != nil {
+	if _, err := models.NewModel("ham", "_", []string{"articleId", "userId"}, dbc); err != nil {
 		t.FailNow()
 	}
 
@@ -675,7 +675,7 @@ func TestBadBatchUploadS3(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
 
-	if _, err := models.NewModel("badbatch", "_", []string{"articleId","userId"}, dbc); err != nil {
+	if _, err := models.NewModel("badbatch", "_", []string{"articleId", "userId"}, dbc); err != nil {
 		t.FailNow()
 	}
 
@@ -734,7 +734,7 @@ func TestCorrectSignalFormat(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
 
-	if _, err := models.NewModel("signalFormat", "_", []string{"articleId","userId"}, dbc); err != nil {
+	if _, err := models.NewModel("signalFormat", "_", []string{"articleId", "userId"}, dbc); err != nil {
 		t.FailNow()
 	}
 

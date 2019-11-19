@@ -93,7 +93,7 @@ func TestGetAllContainers(t *testing.T) {
 }
 
 func TestContainerUniqueName(t *testing.T) {
-	un := ContainerUniqueName("hello","world")
+	un := ContainerUniqueName("hello", "world")
 	assert.Equal(t, "hello:world", un)
 }
 
@@ -125,7 +125,7 @@ func TestLinkModel(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = container.LinkModel([]string{"model1","model2"}, dbc)
+	err = container.LinkModel([]string{"model1", "model2"}, dbc)
 	if err != nil {
 		t.FailNow()
 	}

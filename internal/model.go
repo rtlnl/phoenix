@@ -24,7 +24,7 @@ type ManagementModelRequest struct {
 // ManagementModelResponse is the object that represents the payload of the response for the /management/model endpoints
 type ManagementModelResponse struct {
 	Model   models.Model `json:"model" description:"model object that is being returned to the client"`
-	Message string        `json:"message" description:"summary of the action just taken"`
+	Message string       `json:"message" description:"summary of the action just taken"`
 }
 
 var (
@@ -150,7 +150,7 @@ func EmptyModel(c *gin.Context) {
 // ManagementModelsResponse handles the response when multiple models
 type ManagementModelsResponse struct {
 	Models  []models.Model `json:"models"`
-	Message string          `json:"message"`
+	Message string         `json:"message"`
 }
 
 // GetAllModels returns all the models in the database

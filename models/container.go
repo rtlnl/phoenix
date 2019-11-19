@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	tableContainers = "containers"
+	tableContainers           = "containers"
 	uniqueContainerNameFormat = "%s:%s"
 )
 

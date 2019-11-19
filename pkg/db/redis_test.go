@@ -30,14 +30,14 @@ func TestRedisGetOne(t *testing.T) {
 
 	var m []map[string]string
 	m = append(m, map[string]string{
-		"item":"5",
-		"score":"0.2",
-		"type":"movie",
+		"item":  "5",
+		"score": "0.2",
+		"type":  "movie",
 	})
 	m = append(m, map[string]string{
-		"item":"6",
-		"score":"0.3",
-		"type":"series",
+		"item":  "6",
+		"score": "0.3",
+		"type":  "series",
 	})
 
 	// serialize
@@ -80,14 +80,14 @@ func TestRedisAddOne(t *testing.T) {
 
 	var m []map[string]string
 	m = append(m, map[string]string{
-		"item":"5",
-		"score":"0.2",
-		"type":"movie",
+		"item":  "5",
+		"score": "0.2",
+		"type":  "movie",
 	})
 	m = append(m, map[string]string{
-		"item":"6",
-		"score":"0.3",
-		"type":"series",
+		"item":  "6",
+		"score": "0.3",
+		"type":  "series",
 	})
 
 	// serialize
@@ -117,14 +117,14 @@ func TestRedisDeleteOne(t *testing.T) {
 
 	var m []map[string]string
 	m = append(m, map[string]string{
-		"item":"5",
-		"score":"0.2",
-		"type":"movie",
+		"item":  "5",
+		"score": "0.2",
+		"type":  "movie",
 	})
 	m = append(m, map[string]string{
-		"item":"6",
-		"score":"0.3",
-		"type":"series",
+		"item":  "6",
+		"score": "0.3",
+		"type":  "series",
 	})
 
 	// serialize
@@ -166,14 +166,14 @@ func TestRedisDropTable(t *testing.T) {
 
 	var m []map[string]string
 	m = append(m, map[string]string{
-		"item":"5",
-		"score":"0.2",
-		"type":"movie",
+		"item":  "5",
+		"score": "0.2",
+		"type":  "movie",
 	})
 	m = append(m, map[string]string{
-		"item":"6",
-		"score":"0.3",
-		"type":"series",
+		"item":  "6",
+		"score": "0.3",
+		"type":  "series",
 	})
 
 	// serialize
@@ -223,14 +223,14 @@ func TestRedisGetAllRecords(t *testing.T) {
 
 	var m []map[string]string
 	m = append(m, map[string]string{
-		"item":"5",
-		"score":"0.2",
-		"type":"movie",
+		"item":  "5",
+		"score": "0.2",
+		"type":  "movie",
 	})
 	m = append(m, map[string]string{
-		"item":"6",
-		"score":"0.3",
-		"type":"series",
+		"item":  "6",
+		"score": "0.3",
+		"type":  "series",
 	})
 
 	// serialize
