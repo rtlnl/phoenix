@@ -118,44 +118,6 @@
 			"response": []
 		},
 		{
-			"name": "Stage model",
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Content-Type",
-						"name": "Content-Type",
-						"value": "application/json",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"name\": \"collaborative\",\n\t\"signalOrder\": [\"articleId\"]\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{phoenix_url_internal}}/management/models/stage",
-					"host": [
-						"{{phoenix_url_internal}}"
-					],
-					"path": [
-						"management",
-						"models",
-						"stage"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Batch data from S3",
 			"request": {
 				"method": "POST",
@@ -225,36 +187,6 @@
 					],
 					"path": [
 						"streaming"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Publish model",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"name": "Content-Type",
-						"value": "application/json",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"name\": \"collaborative\",\n\t\"signalOrder\":[\"articleId\"]\n}"
-				},
-				"url": {
-					"raw": "{{phoenix_url_internal}}/management/models/publish",
-					"host": [
-						"{{phoenix_url_internal}}"
-					],
-					"path": [
-						"management",
-						"models",
-						"publish"
 					]
 				}
 			},

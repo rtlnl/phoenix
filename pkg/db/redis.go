@@ -54,6 +54,9 @@ func (db *Redis) Health() error {
 // GetOne returns the value associated with that key
 func (db *Redis) GetOne(table, key string) (string, error) {
 	val, err := db.Client.HGet(table, key).Result()
+	// There is a difference between the err == redis.Nil and err != nil.
+	// In the first case, nothing failed but simply the Key was not found.
+	// In the other case something actually went wrong somewhere
 	if err == redis.Nil {
 		return "", fmt.Errorf("key %s not found", key)
 	} else if err != nil {
@@ -70,6 +73,9 @@ func (db *Redis) AddOne(table, key string, values string) error {
 // DeleteOne deletes a key from a table
 func (db *Redis) DeleteOne(table, key string) error {
 	err := db.Client.HDel(table, key).Err()
+	// There is a difference between the err == redis.Nil and err != nil.
+	// In the first case, nothing failed but simply the Key was not found.
+	// In the other case something actually went wrong somewhere
 	if err == redis.Nil {
 		return fmt.Errorf("table %s not found", table)
 	} else if err != nil {
@@ -81,6 +87,9 @@ func (db *Redis) DeleteOne(table, key string) error {
 // DropTable deletes all the keys and the table itself
 func (db *Redis) DropTable(table string) error {
 	err := db.Client.Del(table).Err()
+	// There is a difference between the err == redis.Nil and err != nil.
+	// In the first case, nothing failed but simply the Key was not found.
+	// In the other case something actually went wrong somewhere
 	if err == redis.Nil {
 		return fmt.Errorf("table %s not found", table)
 	} else if err != nil {
