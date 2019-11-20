@@ -263,3 +263,63 @@ func TestConcatenatorUneeded(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "{\"message\":\"for one signalOrder no concatenator character is required\"}", string(b))
 }
+
+func TestGetDataPreview(t *testing.T) {
+	// get client
+	dbc, c := GetTestRedisClient()
+	defer c()
+
+	//create model
+	if _, err := models.NewModel("preview", "", []string{"userId"}, dbc); err != nil {
+		fmt.Print(err.Error())
+		t.FailNow()
+	}
+
+	bd := make([]BatchData, 1)
+	d := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
+	bd[0] = map[string][]models.ItemScore{
+		"123": d,
+	}
+
+	rb, err := createBatchRequestDirect("preview", bd)
+	if err != nil {
+		t.Fail()
+	}
+
+	// upload data
+	status, _, err := MockRequest(http.MethodPost, "/v1/batch", rb)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, status)
+
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/preview?name=items", nil)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusOK, code)
+	assert.Equal(t,"{\"preview\":[{\"signalId\":\"123\",\"recommended\":[{\"item\":\"111\",\"score\":\"0.6\",\"type\":\"movie\"},{\"item\":\"222\",\"score\":\"0.4\",\"type\":\"movie\"},{\"item\":\"555\",\"score\":\"0.16\",\"type\":\"series\"}]}]}", string(b))
+}

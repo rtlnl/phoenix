@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"strings"
 
@@ -172,7 +173,7 @@ func GetAllModels(c *gin.Context) {
 
 // ManagementDataPreviewResponse handles the data preview response
 type ManagementDataPreviewResponse struct {
-	Preview []*models.SingleEntry `json:"preview"`
+	Preview []models.SingleEntry `json:"preview"`
 }
 
 // GetDataPreview returns a preview of the dataset
@@ -195,6 +196,8 @@ func GetDataPreview(c *gin.Context) {
 		return
 	}
 
+	log.Info().Msgf("model %v", m)
+
 	// fetch data preview
 	data, err := m.GetDataPreview(dbc)
 	if err != nil {
@@ -202,5 +205,17 @@ func GetDataPreview(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusOK, &ManagementDataPreviewResponse{Preview: data})
+	log.Info().Msgf("data %v", data)
+
+	// deserialize data
+	seArr, err := models.DeserializeSingleEntryArray(data)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	log.Info().Msgf("deserialized singleEntryArray %v", seArr)
+
+
+	utils.Response(c, http.StatusOK, &ManagementDataPreviewResponse{Preview:seArr})
 }

@@ -1,11 +1,14 @@
 package models
 
 import (
-	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/rs/zerolog/log"
 )
 
 var (
 	reservedNames = []string{"models", "containers"}
+	// used to fast unmarshal json strings
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 // ItemScore is the object containing the recommended item and its score
@@ -47,4 +50,22 @@ func DeserializeLineErrorArray(s string) ([]LineError, error) {
 		return nil, err
 	}
 	return leArr, nil
+}
+
+// DeserializeSingleEntryArray returns an array of single entries object based on the data preview
+func DeserializeSingleEntryArray(preview map[string]string) ([]SingleEntry, error) {
+	var seArr []SingleEntry
+	for signalID, vals := range preview {
+		var is []ItemScore
+		err := json.UnmarshalFromString(vals, &is)
+		if err != nil {
+			log.Error().Msgf("could not deserialize value. error: %s", err.Error())
+			continue
+		}
+		seArr = append(seArr, SingleEntry{
+			SignalID:    signalID,
+			Recommended: is,
+		})
+	}
+	return seArr, nil
 }

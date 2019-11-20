@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -38,12 +39,15 @@ func tearUp() {
 	router.RedirectTrailingSlash = true
 
 	// instantiate Redis client
-	redisClient, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost)
 	if err != nil {
 		panic(err)
 	}
+	if err := dbc.Client.FlushAll().Err(); err != nil {
+		panic(err)
+	}
 
-	router.Use(middleware.DB(redisClient))
+	router.Use(middleware.DB(dbc))
 	router.Use(middleware.RecommendationLogs(logs.NewStdoutLog()))
 
 	// subscribe route Recommend here due to multiple tests on this route
@@ -54,15 +58,12 @@ func tearUp() {
 func tearDown() {
 	router = nil
 
-	dbc, c := GetTestRedisClient()
-	defer c()
-
-	if err := dbc.DropTable("tableModels"); err != nil {
-		panic(err.Error())
+	dbc, err := db.NewRedisClient(testDBHost)
+	if err != nil {
+		panic(err)
 	}
-
-	if err := dbc.DropTable("tableContainers"); err != nil {
-		panic(err.Error())
+	if err := dbc.Client.FlushAll().Err(); err != nil {
+		panic(err)
 	}
 }
 
@@ -136,7 +137,10 @@ func MockRequest(method, path string, body io.Reader) (int, *bytes.Buffer, error
 
 // MockRequestBenchmark will send a request to the server. Used for benchamrking purposes
 func MockRequestBenchmark(b *testing.B, method, path string, body io.Reader) {
-	req, _ := http.NewRequest(method, path, body)
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		log.Error().Err(err)
+	}
 
 	// Create a response recorder so you can inspect the response
 	w := httptest.NewRecorder()

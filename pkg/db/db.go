@@ -13,6 +13,12 @@ type DB interface {
 }
 
 const (
-	// maximum number of entries when previewing the data
-	maxEntries = 100
+	// maximum number of entries when previewing the data. Since Redis returns the key on the first iteration
+	// then the value on the second one, and so on, we need to make sure that if we want to have 'x' amount
+	// of complete k/v pairs, we need to double the amount of 'x'. For example, we want to have 25 complete k/v entries
+	// hence maxEntries = 50
+	maxEntries = 50
+	// maximum number of elements return per scan in Redis. A large amount of Scan elements values, benefits the database
+	// query system
+	maxScan = 1000
 )

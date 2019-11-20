@@ -158,16 +158,16 @@ func BenchmarkRecommend(b *testing.B) {
 	defer c()
 
 	// Test object creation
-	if _, err := models.NewModel("model", "", []string{"signal"}, dbc); err != nil {
+	if _, err := models.NewModel("benchmark", "", []string{"signal"}, dbc); err != nil {
 		b.FailNow()
 	}
 
-	if _, err := models.NewContainer("publication1", "campaign", []string{"model"}, dbc); err != nil {
+	if _, err := models.NewContainer("publication1", "campaign", []string{"benchmark"}, dbc); err != nil {
 		b.FailNow()
 	}
 
 	// upload data to model
-	UploadTestData(nil, dbc, "testdata/test_published_model_data.jsonl", "model")
+	UploadTestData(nil, dbc, "testdata/test_published_model_data.jsonl", "benchmark")
 
 	for i := 0; i < b.N; i++ {
 		MockRequestBenchmark(b, http.MethodGet, "/v1/recommend?publicationPoint=publication1&campaign=campaign&signalId=500083", nil)

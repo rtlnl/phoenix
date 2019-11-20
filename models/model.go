@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -167,27 +166,12 @@ func GetAllModels(dbc db.DB) ([]Model, error) {
 }
 
 // GetDataPreview returns a limited amount of data as preview for a single model
-func (m *Model) GetDataPreview(dbc db.DB) ([]*SingleEntry, error) {
-	var data []*SingleEntry
+func (m *Model) GetDataPreview(dbc db.DB) (map[string]string, error) {
 	records, err := dbc.GetAllRecords(m.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error in returning the data preview from the database. error: %s", err.Error())
 	}
-
-	for signal, recommendations := range records {
-		// deserialize recommendations
-		isArr, err := DeserializeItemScoreArray(recommendations)
-		if err != nil {
-			return nil, err
-		}
-		// append the data
-		data = append(data, &SingleEntry{
-			SignalID:    signal,
-			Recommended: isArr,
-		})
-	}
-
-	return data, nil
+	return records, nil
 }
 
 // DeserializeModel takes a JSON string in input and try to convert it to a Model object

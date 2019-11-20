@@ -31,17 +31,11 @@ func TestMain(m *testing.M) {
 }
 
 func tearUp() {
-	// clean up
-	dbc, c := GetTestRedisClient()
-	defer c()
-
-	err := dbc.DropTable("models")
+	dbc, err := db.NewRedisClient(testDBHost)
 	if err != nil {
 		panic(err)
 	}
-
-	err = dbc.DropTable("containers")
-	if err != nil {
+	if err := dbc.Client.FlushAll().Err(); err != nil {
 		panic(err)
 	}
 
@@ -51,12 +45,7 @@ func tearUp() {
 	router = gin.Default()
 	router.RedirectTrailingSlash = true
 
-	redisClient, err := db.NewRedisClient(testDBHost)
-	if err != nil {
-		panic(err)
-	}
-
-	router.Use(middleware.DB(redisClient))
+	router.Use(middleware.DB(dbc))
 	router.Use(middleware.AWSSession(testRegion, testEndpoint, testDisableSSL))
 
 	// subscribe routes here due to multiple tests on the same endpoint
@@ -83,19 +72,15 @@ func tearUp() {
 	mm.GET("/", GetModel)
 	mm.POST("/", CreateModel)
 	mm.DELETE("/", EmptyModel)
+	mm.GET("/preview", GetDataPreview)
 }
 
 func tearDown() {
-	dbc, c := GetTestRedisClient()
-	defer c()
-
-	err := dbc.DropTable("models")
+	dbc, err := db.NewRedisClient(testDBHost)
 	if err != nil {
 		panic(err)
 	}
-
-	err = dbc.DropTable("containers")
-	if err != nil {
+	if err := dbc.Client.FlushAll().Err(); err != nil {
 		panic(err)
 	}
 }

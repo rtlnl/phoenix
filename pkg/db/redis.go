@@ -93,11 +93,15 @@ func (db *Redis) DropTable(table string) error {
 // the map[string]string represents the signalID -> recommendations encoded
 func (db *Redis) GetAllRecords(table string) (map[string]string, error) {
 	elems := map[string]string{}
-	iter := db.Client.HScan(table, 0, "*", maxEntries).Iterator()
+	iter := db.Client.HScan(table, 0, "*", maxScan).Iterator()
 
 	counter := 0
 	key := ""
 	for iter.Next() {
+		// stop iterating
+		if counter == maxEntries + 1 {
+			return elems, nil
+		}
 		if iter.Err() != nil {
 			log.Error().Msgf("error found: %s",iter.Err().Error())
 			continue

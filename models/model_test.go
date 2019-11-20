@@ -22,31 +22,21 @@ func TestMain(m *testing.M) {
 }
 
 func tearUp() {
-	dbc, c := GetTestRedisClient()
-	defer c()
-
-	err := dbc.DropTable(tableModels)
+	dbc, err := db.NewRedisClient(testDBHost)
 	if err != nil {
 		panic(err)
 	}
-
-	err = dbc.DropTable(tableContainers)
-	if err != nil {
+	if err := dbc.Client.FlushAll().Err(); err != nil {
 		panic(err)
 	}
 }
 
 func tearDown() {
-	dbc, c := GetTestRedisClient()
-	defer c()
-
-	err := dbc.DropTable(tableModels)
+	dbc, err := db.NewRedisClient(testDBHost)
 	if err != nil {
 		panic(err)
 	}
-
-	err = dbc.DropTable(tableContainers)
-	if err != nil {
+	if err := dbc.Client.FlushAll().Err(); err != nil {
 		panic(err)
 	}
 }

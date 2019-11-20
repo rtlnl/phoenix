@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/utils"
