@@ -91,7 +91,7 @@ func (c *Container) LinkModel(models []string, dbc db.DB) error {
 	// serialize object
 	container, err := utils.SerializeObject(c)
 	if err != nil {
-		return fmt.Errorf("failed to serialize contianer. error: %s", err.Error())
+		return fmt.Errorf("failed to serialize container. error: %s", err.Error())
 	}
 	// update database
 	err = dbc.AddOne(tableContainers, ContainerUniqueName(c.PublicationPoint, c.Campaign), container)
