@@ -2,7 +2,10 @@ package db
 
 import (
 	"bytes"
+	"github.com/rs/zerolog/log"
+	"github.com/rtlnl/phoenix/utils"
 	"io"
+	"os"
 	"testing"
 
 	paws "github.com/rtlnl/phoenix/pkg/aws"
@@ -14,19 +17,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	s3TestEndpoint = "localhost:4572"
+var (
+	s3TestEndpoint = utils.GetDefault(os.Getenv("S3_ENDPOINT"),"localhost:4572")
 	s3TestBucket   = "test"
 	s3TestRegion   = "eu-west-1"
-	s3TestKey      = "/foo/bar.txt"
-	s3TestACL      = "public-read-write"
 )
 
 // CreateTestS3Bucket returns a bucket and defer a drop
 func CreateTestS3Bucket(t *testing.T, bucket *S3Bucket, sess *session.Session) func() {
 	s := NewS3Client(bucket, sess)
-	s.CreateS3Bucket(&S3Bucket{Bucket: bucket.Bucket})
-	return func() { s.DeleteS3Bucket(bucket) }
+	if ok, err := s.CreateS3Bucket(&S3Bucket{Bucket: bucket.Bucket}); !ok || err != nil {
+		log.Error().Msg(err.Error())
+		t.FailNow()
+	}
+	return func() {
+		if ok, err := s.DeleteS3Bucket(bucket); !ok || err != nil {
+			log.Error().Msg(err.Error())
+			t.FailNow()
+		}
+	}
 }
 
 func TestNewS3Client(t *testing.T) {
@@ -81,7 +90,7 @@ func TestGetObjectFails(t *testing.T) {
 
 	f, err := s.GetObject("foo/bar2.txt")
 	if err == nil {
-		t.Failed()
+		t.Fail()
 	}
 
 	assert.Equal(t, (*io.ReadCloser)(nil), f)
