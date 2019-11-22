@@ -8,11 +8,10 @@ import (
 )
 
 func TestNewBatchOperator(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	bo := NewBatchOperator(ac, &models.Model{})
+	bo := NewBatchOperator(dbc, models.Model{})
 
 	assert.NotNil(t, bo)
 }

@@ -7,7 +7,7 @@ The Project is divided in two main parts:
 
 ## How to start
 
-Assuming that you have `go`, `docker` and `docker-compose` installed in your machine, run `docker-compose up -d` to spin up aerospike and localstack (for local S3).
+Assuming that you have `go`, `docker` and `docker-compose` installed in your machine, run `docker-compose up -d` to spin up Redis and localstack (for local S3).
 
 After having the services up and running, assuming that you have your Go environment in your `PATH`, you should be able to start directly with `go run main.go --help`. This command should print the `help` message.
 
@@ -34,16 +34,12 @@ if you change some tests. Better without cache.
 
 For manual testing of endpoints on the different environments, a [Postman collection](docs/postman/Phoenix.postman_collection.json) has been included in the `docs` directory.
 
-## Aerospike
-
-For testing we use two different namespaces specified in the `./conf/aerospike.conf` file. We use a custom settings-file to create a secondary namespace a logically divide testing from development.
-
 ## Batch Upload
 
-The APIs gives the possibility to read a file from S3 and upload it to Aerospike. To avoid timeouts and having the client hanging waiting for the response, the APIs has a simple `checking` mechanism. The picture below explain how the process works
+The APIs gives the possibility to read a file from S3 and upload it to Redis. To avoid timeouts and having the client hanging waiting for the response, the APIs has a simple `checking` mechanism. The picture below explain how the process works
 
 ![](/docs/images/batch_upload.png)
 
-The process of uploading the file from S3 to Aerospike is delegated to a separate `go routine`. The client should store the `batchID` that is returned from the initial request `(POST /v1/batch)` and ask for the status with `GET /v1/batch/status/:id`.
+The process of uploading the file from S3 to Redis is delegated to a separate `go routine`. The client should store the `batchID` that is returned from the initial request `(POST /v1/batch)` and ask for the status with `GET /v1/batch/status/:id`.
 
 Time taken to upload **1.6M unique keys** from S3 is `3m 33secs`. Check this [PR](https://github.com/rtlnl/phoenix/pull/5) for more information

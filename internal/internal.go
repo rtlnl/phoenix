@@ -52,8 +52,6 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 	mm.DELETE("/", EmptyModel)
 	mm.GET("/preview", GetDataPreview)
 	mm.GET("/all", GetAllModels)
-	mm.POST("/publish", PublishModel)
-	mm.POST("/stage", StageModel)
 
 	// Docs
 	v1.Static("/docs", "docs/swagger-internal")
