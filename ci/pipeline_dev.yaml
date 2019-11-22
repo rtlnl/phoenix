@@ -66,7 +66,7 @@ jobs:
                 docker tag "$(cat localstack/image-id)" "$(cat localstack/repository):$(cat localstack/tag)"
 
                 # Run the container with tests and its dependencies.
-                docker-compose -f git-repo/ci/integration.yaml up
+                docker-compose -f git-repo/ci/integration.yaml run phoenix
 
                 # Cleanup.
                 docker volume rm $(docker volume ls -q)

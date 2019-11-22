@@ -6,13 +6,14 @@ services:
     image: localstack/localstack
     ports:
       - "4572:4572"
-      - "8080:8080"
     environment:
       - SERVICES=s3
       - DEFAULT_REGION=eu-west-1
       - DEBUG=1
       - DATA_DIR=/tmp/localstack/data
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOSTNAME=localstack
+      - HOSTNAME_EXTERNAL=localstack
     volumes:
       - ./.localstack:/tmp/localstack
 
@@ -28,6 +29,11 @@ services:
       context: ../
       dockerfile: Dockerfile.tests
     container_name: phoenix
+    environment:
+      - DB_HOST=redis:6379
+      - S3_ENDPOINT=localstack:4572
+      - AWS_ACCESS_KEY_ID=foo
+      - AWS_SECRET_ACCESS_KEY=bar
     depends_on:
       - redis
       - localstack
