@@ -24,7 +24,9 @@ services:
       - "6379:6379"
 
   phoenix:
-    image: 451291743503.dkr.ecr.eu-west-1.amazonaws.com/phoenix:tmp-dev
+    build:
+      context: ../
+      dockerfile: $PWD/Dockerfile.tests
     container_name: phoenix
     depends_on:
       - redis

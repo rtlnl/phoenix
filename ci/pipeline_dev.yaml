@@ -7,14 +7,6 @@ resources:
       branch: ci_integration
       private_key: ((github_private_key))
 
-  - name: ecr-docker-tmp-dev
-    type: docker-image
-    source:
-      aws_access_key_id: ((ecr_access_key_id))
-      aws_secret_access_key: ((ecr_secret_access_key))
-      repository: ((ecr_repository))/phoenix
-      tag: tmp-dev
-
   - name: ecr-docker
     type: docker-image
     source:
@@ -36,60 +28,48 @@ resources:
       tag: 0.10.5
 
 jobs:
-  - name: build-tmp-image
-    plan:
-      - get: git-repo
-        trigger: true
-      - put: ecr-docker-tmp-dev
-        params:
-          build: git-repo
-          dockerfile: git-repo/Dockerfile.tests
   - name: integration
     plan:
-      - aggregate:
+      - in_parallel:
         - get: git-repo
-          passed: [build-tmp-image]
           trigger: true
         - get: redis
           params: {save: true}
         - get: localstack
           params: {save: true}
-        - task: Run integration tests
-          privileged: true
-          config:
-            platform: linux
-            image_resource:
-              type: docker-image
-              source:
-                repository: amidos/dcind
-            inputs:
-              - name: git-repo
-              - name: redis
-              - name: localstack
-            run:
-              path: bash
-              args:
-                - -exc
-                - |
-                  source /docker-lib.sh
-                  start_docker
+      - task: Run integration tests
+        privileged: true
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: amidos/dcind
+              tag: 2.0.0
+          inputs:
+            - name: git-repo
+            - name: redis
+            - name: localstack
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                source /docker-lib.sh
+                start_docker
 
-                  # Preloading of Docker images
-                  docker load -i redis/image
-                  docker tag "$(cat redis/image-id)" "$(cat redis/repository):$(cat redis/tag)"
+                # Preloading of Docker images
+                docker load -i redis/image
+                docker tag "$(cat redis/image-id)" "$(cat redis/repository):$(cat redis/tag)"
 
-                  docker load -i localstack/image
-                  docker tag "$(cat localstack/image-id)" "$(cat localstack/repository):$(cat localstack/tag)"
+                docker load -i localstack/image
+                docker tag "$(cat localstack/image-id)" "$(cat localstack/repository):$(cat localstack/tag)"
 
-                  # This is just to visually check in the log that images have been loaded successfully
-                  docker images
+                # Run the container with tests and its dependencies.
+                docker-compose up -f git-repo/ci/integration.yaml
 
-                  # Run the container with tests and its dependencies.
-                  docker-compose -f git-repo/ci/integration.yaml run tests
-
-                  # Cleanup.
-                  docker volume rm $(docker volume ls -q)
-        # release the image if the tests are successful
-        - put: ecr-docker
-          params:
-            build: git-repo
+                # Cleanup.
+                docker volume rm $(docker volume ls -q)
+      - put: ecr-docker
+        params:
+          build: git-repo
