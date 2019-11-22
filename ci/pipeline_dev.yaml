@@ -4,10 +4,18 @@ resources:
     icon: github-circle
     source:
       uri: git@github.com:rtlnl/phoenix.git
-      branch: master
+      branch: ci_integration
       private_key: ((github_private_key))
 
-  - name: ecr-docker-reg
+  - name: ecr-docker-tmp-dev
+    type: docker-image
+    source:
+      aws_access_key_id: ((ecr_access_key_id))
+      aws_secret_access_key: ((ecr_secret_access_key))
+      repository: ((ecr_repository))/phoenix
+      tag: tmp-dev
+
+  - name: ecr-docker
     type: docker-image
     source:
       aws_access_key_id: ((ecr_access_key_id))
@@ -15,33 +23,73 @@ resources:
       repository: ((ecr_repository))/phoenix
       tag: dev
 
+  - name: redis
+    type: docker-image
+    source:
+      repository: redis
+      tag: alpine
+
+  - name: localstack
+    type: docker-image
+    source:
+      repository: localstack/localstack
+      tag: 0.10.5
+
 jobs:
-  - name: build-and-test
+  - name: build-tmp-image
     plan:
       - get: git-repo
         trigger: true
-      - task: build
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: golang, tag: 1.12 }
-          inputs:
-            - name: git-repo
-              path: /go/src/github.com/rtlnl/phoenix
-          run:
-            path: /bin/sh
-            # TODO: find a way to have Redis and localstack in concourse
-            args:
-              - -c
-              - |
-                SRCPATH=$PWD/go/src/github.com/rtlnl/phoenix
-                GOPATH=$PWD/go
-                cd $SRCPATH
-                export GO111MODULE=on
-                go get -t -v ./...
-                # go test -v ./...
-      # release the image if the tests are successful
-      - put: ecr-docker-reg
+      - put: ecr-docker-tmp-dev
         params:
           build: git-repo
+          dockerfile: git-repo/Dockerfile.tests
+  - name: integration
+    plan:
+      - aggregate:
+        - get: git-repo
+          passed: [build-tmp-image]
+          trigger: true
+        - get: redis
+          params: {save: true}
+        - get: localstack
+          params: {save: true}
+        - task: Run integration tests
+          privileged: true
+          config:
+            platform: linux
+            image_resource:
+              type: docker-image
+              source:
+                repository: amidos/dcind
+            inputs:
+              - name: git-repo
+              - name: redis
+              - name: localstack
+            run:
+              path: bash
+              args:
+                - -exc
+                - |
+                  source /docker-lib.sh
+                  start_docker
+
+                  # Preloading of Docker images
+                  docker load -i redis/image
+                  docker tag "$(cat redis/image-id)" "$(cat redis/repository):$(cat redis/tag)"
+
+                  docker load -i localstack/image
+                  docker tag "$(cat localstack/image-id)" "$(cat localstack/repository):$(cat localstack/tag)"
+
+                  # This is just to visually check in the log that images have been loaded successfully
+                  docker images
+
+                  # Run the container with tests and its dependencies.
+                  docker-compose -f git-repo/ci/integration.yaml run tests
+
+                  # Cleanup.
+                  docker volume rm $(docker volume ls -q)
+        # release the image if the tests are successful
+        - put: ecr-docker
+          params:
+            build: git-repo
