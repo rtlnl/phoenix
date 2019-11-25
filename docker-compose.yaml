@@ -2,7 +2,7 @@ version: "3"
 services:
   localstack:
     container_name: localstack
-    image: localstack/localstack
+    image: localstack/localstack:0.10.5
     ports:
       - "4572:4572"
       - "8080:8080"

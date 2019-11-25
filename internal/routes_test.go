@@ -2,15 +2,16 @@ package internal
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
-	"github.com/rtlnl/phoenix/middleware"
-	"github.com/rtlnl/phoenix/pkg/db"
-	"github.com/rtlnl/phoenix/utils"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/rtlnl/phoenix/middleware"
+	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 var (

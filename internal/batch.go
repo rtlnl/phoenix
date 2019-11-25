@@ -100,7 +100,7 @@ func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string)
 	wg.Wait()
 
 	elapsed := time.Since(start)
-	log.Info().Msgf("Uploading took %s", elapsed)
+	log.Debug().Msgf("Uploading took %s", elapsed)
 }
 
 // UploadDataDirectly does an insert directly to Database

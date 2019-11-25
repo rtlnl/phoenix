@@ -60,10 +60,10 @@ jobs:
 
                 # Preloading of Docker images
                 docker load -i redis/image
-                docker tag "$(cat redis/image-id)" "$(cat redis/repository):$(cat redis/tag)"
+                # docker tag "$(cat redis/image-id)" "$(cat redis/repository):$(cat redis/tag)"
 
                 docker load -i localstack/image
-                docker tag "$(cat localstack/image-id)" "$(cat localstack/repository):$(cat localstack/tag)"
+                # docker tag "$(cat localstack/image-id)" "$(cat localstack/repository):$(cat localstack/tag)"
 
                 # Run the container with tests and its dependencies.
                 docker-compose -f git-repo/ci/integration.yaml run --rm phoenix

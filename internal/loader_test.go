@@ -2,14 +2,15 @@ package internal
 
 import (
 	"bytes"
-	"github.com/rs/zerolog/log"
-	"github.com/rtlnl/phoenix/utils"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	"github.com/rtlnl/phoenix/utils"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	paws "github.com/rtlnl/phoenix/pkg/aws"
@@ -583,7 +584,7 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 // CreateTestS3Bucket returns a bucket and defer a drop
 func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session) func() {
 	s := db.NewS3Client(bucket, sess)
-	if ok, err := s.CreateS3Bucket(&db.S3Bucket{Bucket: bucket.Bucket}); !ok || err != nil {
+	if _, err := s.CreateS3Bucket(&db.S3Bucket{Bucket: bucket.Bucket}); err != nil {
 		t.FailNow()
 	}
 	return func() {
@@ -593,10 +594,11 @@ func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session
 	}
 }
 
-func
-TestBatchUploadS3(t *testing.T) {
+func TestBatchUploadS3(t *testing.T) {
+	t.Skip("Localstack is not really reliable")
+
 	var (
-		s3TestEndpoint = utils.GetDefault(os.Getenv("S3_ENDPOINT"),"localhost:4572")
+		s3TestEndpoint = utils.GetDefault(os.Getenv("S3_ENDPOINT"), "localhost:4572")
 		s3TestBucket   = "test1"
 		s3TestRegion   = "eu-west-1"
 		fileTest       = "testdata/test_bulk_1key.jsonl"
@@ -611,32 +613,33 @@ TestBatchUploadS3(t *testing.T) {
 	defer c()
 
 	if _, err := models.NewModel("batch", "", []string{"articleId"}, dbc); err != nil {
-		t.FailNow()
+		log.Info().Msg(err.Error())
+		t.Fail()
 	}
 
 	drop := CreateTestS3Bucket(t, bucket, sess)
 	defer drop()
 
 	if err := s.UploadS3File(fileTest, bucket); err != nil {
-		log.Error().Err(err)
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
 	rb, err := createBatchRequestLocation("batch", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
-		log.Error().Err(err)
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
 	_, brsBody, err := MockRequest(http.MethodPost, "/v1/batch", rb)
 	if err != nil {
-		log.Error().Err(err)
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
 	var brs BatchBulkResponse
 	if err := json.Unmarshal(brsBody.Bytes(), &brs); err != nil {
-		log.Error().Err(err)
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
@@ -649,12 +652,12 @@ TestBatchUploadS3(t *testing.T) {
 	var srs BatchStatusResponse
 	srsCode, srsBody, err := MockRequest(http.MethodGet, "/v1/batch/status/"+brs.BatchID, nil)
 	if err != nil {
-		log.Error().Err(err)
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
 	if err := json.Unmarshal(srsBody.Bytes(), &srs); err != nil {
-		log.Error().Err(err)
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
@@ -671,8 +674,10 @@ TestBatchUploadS3(t *testing.T) {
 }
 
 func TestBadBatchUploadS3(t *testing.T) {
+	t.Skip("Localstack is not really reliable")
+
 	var (
-		s3TestEndpoint = utils.GetDefault(os.Getenv("S3_ENDPOINT"),"localhost:4572")
+		s3TestEndpoint = utils.GetDefault(os.Getenv("S3_ENDPOINT"), "localhost:4572")
 		s3TestBucket   = "test1"
 		s3TestRegion   = "eu-west-1"
 		fileTest       = "testdata/test_bulk_1key.jsonl"
@@ -720,7 +725,7 @@ func TestBadBatchUploadS3(t *testing.T) {
 	// wait for the upload to finish
 	// due to the async goroutine, if we do not sleep the test
 	// will loose the thread created by the endpoint
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	// do checks
 	var srs BatchStatusResponse
