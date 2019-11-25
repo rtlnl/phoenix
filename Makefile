@@ -15,7 +15,7 @@ build:
  
 test:
 	@go clean -testcache
-	@go test $(PKGS)
+	@go test -race -count=1 $(PKGS)
 
 long-tests:
 	@for i in $(SEQ); do go test $(PKGS); done

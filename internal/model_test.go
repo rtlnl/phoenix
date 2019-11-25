@@ -310,7 +310,7 @@ func TestGetDataPreview(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, status)
 
-	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/preview?name=items", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/management/models/preview?name=preview", nil)
 	if err != nil {
 		t.Fail()
 	}

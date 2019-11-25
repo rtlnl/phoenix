@@ -2,13 +2,15 @@ package db
 
 import (
 	"encoding/json"
+	"github.com/rtlnl/phoenix/utils"
+	"os"
 	"testing"
 )
 
 import "github.com/stretchr/testify/assert"
 
-const (
-	testRedisHost = "127.0.0.1:6379"
+var (
+	testRedisHost = utils.GetDefault(os.Getenv("DB_HOST"),"127.0.0.1:6379")
 )
 
 func TestNewRedis(t *testing.T) {
