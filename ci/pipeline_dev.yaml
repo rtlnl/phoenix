@@ -4,7 +4,7 @@ resources:
     icon: github-circle
     source:
       uri: git@github.com:rtlnl/phoenix.git
-      branch: ci_integration
+      branch: development
       private_key: ((github_private_key))
 
   - name: ecr-docker
@@ -31,12 +31,12 @@ jobs:
   - name: integration
     plan:
       - in_parallel:
-        - get: git-repo
-          trigger: true
-        - get: redis
-          params: {save: true}
-        - get: localstack
-          params: {save: true}
+          - get: git-repo
+            trigger: true
+          - get: redis
+            params: { save: true }
+          - get: localstack
+            params: { save: true }
       - task: Run integration tests
         privileged: true
         config:
@@ -60,10 +60,7 @@ jobs:
 
                 # Preloading of Docker images
                 docker load -i redis/image
-                # docker tag "$(cat redis/image-id)" "$(cat redis/repository):$(cat redis/tag)"
-
                 docker load -i localstack/image
-                # docker tag "$(cat localstack/image-id)" "$(cat localstack/repository):$(cat localstack/tag)"
 
                 # Run the container with tests and its dependencies.
                 docker-compose -f git-repo/ci/integration.yaml run --rm phoenix

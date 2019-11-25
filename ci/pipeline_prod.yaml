@@ -7,7 +7,7 @@ resources:
       branch: master
       private_key: ((github_private_key))
 
-  - name: ecr-docker-reg
+  - name: ecr-docker
     type: docker-image
     source:
       aws_access_key_id: ((ecr_access_key_id))
@@ -15,33 +15,59 @@ resources:
       repository: ((ecr_repository))/phoenix
       tag: latest
 
+  - name: redis
+    type: docker-image
+    source:
+      repository: redis
+      tag: alpine
+
+  - name: localstack
+    type: docker-image
+    source:
+      repository: localstack/localstack
+      tag: 0.10.5
+
 jobs:
-  - name: build-and-test
+  - name: integration
     plan:
-      - get: git-repo
-        trigger: true
-      - task: build
+      - in_parallel:
+          - get: git-repo
+            trigger: true
+          - get: redis
+            params: { save: true }
+          - get: localstack
+            params: { save: true }
+      - task: Run integration tests
+        privileged: true
         config:
           platform: linux
           image_resource:
-            type: registry-image
-            source: { repository: golang, tag: 1.12 }
+            type: docker-image
+            source:
+              repository: amidos/dcind
+              tag: 2.0.0
           inputs:
             - name: git-repo
-              path: /go/src/github.com/rtlnl/phoenix
+            - name: redis
+            - name: localstack
           run:
-            path: /bin/sh
-            # TODO: find a way to have Redis and localstack in concourse
+            path: bash
             args:
-              - -c
+              - -exc
               - |
-                SRCPATH=$PWD/go/src/github.com/rtlnl/phoenix
-                GOPATH=$PWD/go
-                cd $SRCPATH
-                export GO111MODULE=on
-                go get -t -v ./...
-                # go test -v ./...
-        # release the image if the tests are successful
-      - put: ecr-docker-reg
+                source /docker-lib.sh
+                start_docker
+
+                # Preloading of Docker images
+                docker load -i redis/image
+                docker load -i localstack/image
+
+                # Run the container with tests and its dependencies.
+                docker-compose -f git-repo/ci/integration.yaml run --rm phoenix
+
+                # Cleanup.
+                docker-compose -f git-repo/ci/integration.yaml down
+                docker volume rm $(docker volume ls -q)
+      - put: ecr-docker
         params:
           build: git-repo
