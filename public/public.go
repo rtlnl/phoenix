@@ -1,6 +1,7 @@
 package public
 
 import (
+	ginprometheus "github.com/banzaicloud/go-gin-prometheus"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,6 +22,11 @@ func NewPublicAPI(middlewares ...gin.HandlerFunc) (*Public, error) {
 	for _, m := range middlewares {
 		r.Use(m)
 	}
+
+	// add metrics to the application
+	p := ginprometheus.NewPrometheus("phoenix_public", []string{})
+	p.SetListenAddress(":9900")
+	p.Use(r, "/metrics")
 
 	// Base path for health checks
 	r.GET("/", LongVersion)
