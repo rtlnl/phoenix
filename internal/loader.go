@@ -29,7 +29,7 @@ const (
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
 type StreamingRequest struct {
-	Signal          string             `json:"signal" binding:"required"`
+	SignalID        string             `json:"signalId" binding:"required"`
 	ModelName       string             `json:"modelName" binding:"required"`
 	Recommendations []models.ItemScore `json:"recommendations" binding:"required"`
 }
@@ -55,7 +55,7 @@ func CreateStreaming(c *gin.Context) {
 		return
 	}
 	// validate input
-	if m.RequireSignalFormat() && !m.CorrectSignalFormat(sr.Signal) {
+	if m.RequireSignalFormat() && !m.CorrectSignalFormat(sr.SignalID) {
 		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("the expected signal format must be %s", strings.Join(m.SignalOrder, m.Concatenator)))
 		return
 	}
@@ -66,13 +66,13 @@ func CreateStreaming(c *gin.Context) {
 		return
 	}
 	// store data in the database
-	if err := dbc.AddOne(sr.ModelName, sr.Signal, ser); err != nil {
+	if err := dbc.AddOne(sr.ModelName, sr.SignalID, ser); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.Response(c, http.StatusCreated, &StreamingResponse{
-		Message: fmt.Sprintf("signal %s created", sr.Signal),
+		Message: fmt.Sprintf("signal %s created", sr.SignalID),
 	})
 }
 
@@ -92,7 +92,7 @@ func UpdateStreaming(c *gin.Context) {
 		return
 	}
 	// validate input
-	if m.RequireSignalFormat() && !m.CorrectSignalFormat(sr.Signal) {
+	if m.RequireSignalFormat() && !m.CorrectSignalFormat(sr.SignalID) {
 		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("the expected signal format must be %s", strings.Join(m.SignalOrder, m.Concatenator)))
 		return
 	}
@@ -103,13 +103,13 @@ func UpdateStreaming(c *gin.Context) {
 		return
 	}
 	// The AddOne method does an UPSERT
-	if err := dbc.AddOne(sr.ModelName, sr.Signal, ser); err != nil {
+	if err := dbc.AddOne(sr.ModelName, sr.SignalID, ser); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 
 	}
 	utils.Response(c, http.StatusOK, &StreamingResponse{
-		Message: fmt.Sprintf("signal %s updated", sr.Signal),
+		Message: fmt.Sprintf("signal %s updated", sr.SignalID),
 	})
 }
 
@@ -129,13 +129,13 @@ func DeleteStreaming(c *gin.Context) {
 		return
 	}
 	// delete record
-	if err := dbc.DeleteOne(sr.ModelName, sr.Signal); err != nil {
-		utils.ResponseError(c, http.StatusInternalServerError, err)
+	if err := dbc.DeleteOne(sr.ModelName, sr.SignalID); err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	utils.Response(c, http.StatusOK, &StreamingResponse{
-		Message: fmt.Sprintf("signal %s deleted", sr.Signal),
+		Message: fmt.Sprintf("signal %s deleted", sr.SignalID),
 	})
 }
 

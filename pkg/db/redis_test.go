@@ -73,6 +73,20 @@ func TestRedisGetOne(t *testing.T) {
 	}
 }
 
+func TestRedisGetOneNotExists(t *testing.T) {
+	c, err := NewRedisClient(testRedisHost)
+	if err != nil {
+		t.Fail()
+	}
+	defer c.Close()
+
+	val, err := c.GetOne("i", "dont-exist")
+
+	assert.Equal(t, "", val)
+	assert.NotNil(t, err)
+	assert.Equal(t, "key dont-exist not found", err.Error())
+}
+
 func TestRedisAddOne(t *testing.T) {
 	c, err := NewRedisClient(testRedisHost)
 	if err != nil {

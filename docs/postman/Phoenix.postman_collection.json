@@ -178,7 +178,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signal\": \"11\",\n\t\"recommendations\": [{\"item\":\"1\",\"score\":\"0.8\",\"type\":\"article\"}]\n}"
+					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signalId\": \"11\",\n\t\"recommendations\": [{\"item\":\"1\",\"score\":\"0.8\",\"type\":\"article\"}]\n}"
 				},
 				"url": {
 					"raw": "{{phoenix_url_internal}}/streaming",

@@ -20,9 +20,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createStreamingRequest(modelName, signal string, recommendations []models.ItemScore) (*bytes.Reader, error) {
+func createStreamingRequest(modelName, signalID string, recommendations []models.ItemScore) (*bytes.Reader, error) {
 	rr := &StreamingRequest{
-		Signal:          signal,
+		SignalID:        signalID,
 		ModelName:       modelName,
 		Recommendations: recommendations,
 	}
@@ -177,7 +177,7 @@ func TestStreamingBadPayload(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.Signal' Error:Field validation for 'Signal' failed on the 'required' tag"))
+	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.SignalID' Error:Field validation for 'SignalID' failed on the 'required' tag"))
 }
 
 func TestStreamingUpdateBadPayload(t *testing.T) {
@@ -202,7 +202,7 @@ func TestStreamingUpdateBadPayload(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.Signal' Error:Field validation for 'Signal' failed on the 'required' tag"))
+	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.SignalID' Error:Field validation for 'SignalID' failed on the 'required' tag"))
 }
 
 func TestStreamingDeleteBadPayload(t *testing.T) {
@@ -227,7 +227,7 @@ func TestStreamingDeleteBadPayload(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.Signal' Error:Field validation for 'Signal' failed on the 'required' tag"))
+	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.SignalID' Error:Field validation for 'SignalID' failed on the 'required' tag"))
 }
 
 func TestStreamingModelNotExist(t *testing.T) {
@@ -425,7 +425,8 @@ func TestStreamingDeleteData(t *testing.T) {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming", rb)
+	// create signal
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
@@ -435,8 +436,27 @@ func TestStreamingDeleteData(t *testing.T) {
 		t.Fail()
 	}
 
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"signal 890 created\"}", string(b))
+
+	// now delete it
+	rb, err = createStreamingRequest("alcatraz", signal, recommendationItems)
+	if err != nil {
+		t.Fail()
+	}
+
+	code, bodyDel, err := MockRequest(http.MethodDelete, "/v1/streaming", rb)
+	if err != nil {
+		t.Fail()
+	}
+
+	bRead, err := ioutil.ReadAll(bodyDel)
+	if err != nil {
+		t.Fail()
+	}
+
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"message\":\"signal 890 deleted\"}", string(b))
+	assert.Equal(t, "{\"message\":\"signal 890 deleted\"}", string(bRead))
 }
 
 func TestBatchUploadDirectWithErrors(t *testing.T) {
