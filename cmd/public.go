@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"github.com/Shopify/sarama"
+	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/gin-gonic/gin"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/spf13/cobra"
@@ -104,6 +106,9 @@ func init() {
 	viper.BindEnv(recommendationLogsFlag, "REC_LOGS_TYPE")
 	viper.BindEnv(recommendationKafkaBrokersFlag, "REC_LOGS_BROKERS")
 	viper.BindEnv(recommendationKafkaTopicFlag, "REC_LOGS_TOPIC")
+	viper.BindEnv(recommendationKafkaSASLMechanismFlag, "REC_LOGS_SASLMECHANISM")
+	viper.BindEnv(recommendationUsernameFlag, "REC_LOGS_USERNAME")
+	viper.BindEnv(recommendationPasswordFlag, "REC_LOGS_PASSWORD")
 
 	viper.BindPFlags(f)
 }
@@ -111,24 +116,36 @@ func init() {
 func setRecommendationLogging(logType string) (logs.RecommendationLog, error) {
 	switch logType {
 	case "kafka":
+		var kafkaOptions []func(*sarama.Config)
+
 		brokers := viper.GetString(recommendationKafkaBrokersFlag)
 		topic := viper.GetString(recommendationKafkaTopicFlag)
 		username := viper.GetString(recommendationUsernameFlag)
 		password := viper.GetString(recommendationPasswordFlag)
 		saslMechanism := viper.GetString(recommendationKafkaSASLMechanismFlag)
-		kup := logs.KafkaCredentials(username, password)
-		sm := logs.KafkaSASLMechanism(saslMechanism)
 
-		return logs.NewKafkaLogs(brokers, topic, kup, sm)
+		if username != "" && password != "" {
+			kafkaOptions = append(kafkaOptions, logs.KafkaCredentials(username, password))
+		}
+
+		if saslMechanism != "" {
+			kafkaOptions = append(kafkaOptions, logs.KafkaSASLMechanism(saslMechanism))
+		}
+
+		return logs.NewKafkaLogs(brokers, topic, kafkaOptions...)
 	case "es":
+		var esConfig []func(*elasticsearch.Config)
+
 		hosts := viper.GetString(recommendationESHostsFlag)
 		index := viper.GetString(recommendationESIndexFlag)
 		username := viper.GetString(recommendationUsernameFlag)
 		password := viper.GetString(recommendationPasswordFlag)
 
-		eup := logs.ESCredentials(username, password)
+		if username != "" && password != "" {
+			esConfig = append(esConfig, logs.ESCredentials(username, password))
+		}
 
-		return logs.NewElasticSearchLogs(hosts, index, eup)
+		return logs.NewElasticSearchLogs(hosts, index, esConfig...)
 	case "stdout":
 		return logs.NewStdoutLog(), nil
 	default:
