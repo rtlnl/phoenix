@@ -3,6 +3,7 @@ package public
 import (
 	"errors"
 	"fmt"
+	"github.com/rtlnl/phoenix/pkg/logs"
 	"net/http"
 	"strings"
 	"sync"
@@ -39,7 +40,7 @@ var rrPool = sync.Pool{
 // Recommend will take care of fetching the personalized content for a specific user
 func Recommend(c *gin.Context) {
 	dbc := c.MustGet("DB").(db.DB)
-	//lt := c.MustGet("RecommendationLog").(logs.RecommendationLog)
+	lt := c.MustGet("RecommendationLog").(logs.RecommendationLog)
 
 	// get a new object from the pool and then dispose it
 	rr := rrPool.Get().(*RecommendRequest)
@@ -98,18 +99,18 @@ func Recommend(c *gin.Context) {
 	}
 
 	// write logs in a separate thread for not blocking the server
-	//go func() {
-	//	err := lt.Write(logs.RowLog{
-	//		PublicationPoint: rr.PublicationPoint,
-	//		Campaign:         rr.Campaign,
-	//		SignalID:         rr.SignalID,
-	//		ItemScores:       itemsScore,
-	//	})
-	//	// log error if it fails the logging
-	//	if err != nil {
-	//		zerolog.Error().Msg(err.Error())
-	//	}
-	//}()
+	go func() {
+		err = lt.Write(logs.RowLog{
+			PublicationPoint: rr.PublicationPoint,
+			Campaign:         rr.Campaign,
+			SignalID:         rr.SignalID,
+			ItemScores:       itemsScore,
+		})
+		// log error if it fails the logging
+		if err != nil {
+			zerolog.Error().Msg(err.Error())
+		}
+	}()
 
 	utils.Response(c, http.StatusOK, &RecommendResponse{
 		ModelName:       modelName,

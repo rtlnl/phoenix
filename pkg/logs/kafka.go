@@ -16,6 +16,7 @@ type KakfaLog struct {
 // Values accepted: "OAUTHBEARER", "PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512", "GSSAPI"
 func KafkaSASLMechanism(m string) func(*sarama.Config) {
 	return func(cfg *sarama.Config) {
+		cfg.Net.SASL.Enable = true
 		cfg.Net.SASL.Mechanism = sarama.SASLMechanism(m)
 	}
 }
@@ -34,8 +35,10 @@ func KafkaCredentials(username, password string) func(*sarama.Config) {
 func NewKafkaLogs(brokers, topic string, options ...func(*sarama.Config)) (KakfaLog, error) {
 	bs := strings.Split(brokers, ",")
 
-	// call option functions on instance to set options on it
-	cfg := &sarama.Config{}
+	cfg := sarama.NewConfig()
+	cfg.Producer.Return.Errors = true
+	cfg.Producer.Return.Successes = true
+
 	for _, opt := range options {
 		opt(cfg)
 	}
