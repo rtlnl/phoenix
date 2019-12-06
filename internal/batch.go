@@ -33,6 +33,10 @@ const (
 var (
 	// MaxNumberOfWorkers is the max number of concurrent goroutines for uploading data
 	MaxNumberOfWorkers = runtime.NumCPU()
+	// FlushIntervalInSec is the amount of time before executing the Pipeline in case the buffer is not full
+	FlushIntervalInSec = 5
+	// MaxNumberOfCommandsInPipeline is the amount of commands that the Pipeline can executes in one step
+	MaxNumberOfCommandsInPipeline = 10000
 )
 
 // BatchOperator is the object responsible for uploading data in batch to Database
@@ -195,20 +199,76 @@ func (bo *BatchOperator) IterateFile(rd *bufio.Reader, setName string, rs chan<-
 
 // UploadRecord store each message from the channel to DB
 func (bo *BatchOperator) UploadRecord(batchID string, rs chan *models.RecordQueue) {
-	// upload record to DB when it arrives
-	for r := range rs {
-		ser, err := utils.SerializeObject(r.Entry.Recommended)
-		if err != nil {
-			log.Error().Msgf("cold not serialize recommendations. error: %s", err.Error())
-			continue
+	var buffer []string
+	var fflush time.Time
+
+	flushInterval := time.Duration(FlushIntervalInSec) * time.Second
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+Loop:
+	for {
+		if buffer == nil {
+			buffer = make([]string, 0)
 		}
-		if err := bo.DBClient.AddOne(r.Table, r.Entry.SignalID, ser); err != nil {
-			// write to DB that it failed
-			if err := bo.DBClient.AddOne(tableBulkStatus, batchID, BulkFailed); err != nil {
-				log.Panic().Msg(err.Error())
+
+		// either wait for message or grab the ticker
+		select {
+		case <-ticker.C:
+			// Refresh pipe
+			tt := time.Now()
+			if tt.After(fflush) {
+				log.Debug().Msg("Force flush (interval) triggered")
+				// executes the pipeline
+				bo.flushPipeline(batchID)
+				// reset buffer
+				buffer = nil
+				fflush = tt.Add(flushInterval)
+				log.Debug().Msg("Force flush (interval) finished")
 			}
-			return
+		case r := <-rs:
+			// channel closed, finishing up
+			if r == nil {
+				log.Debug().Msg("Force flush (closed) triggered")
+				// executes the pipeline
+				bo.flushPipeline(batchID)
+				// reset buffer
+				buffer = nil
+				log.Debug().Msg("Force flush (closed) finished")
+				break Loop
+			}
+
+			// received message, continuing
+			ser, err := utils.SerializeObject(r.Entry.Recommended)
+			if err != nil {
+				log.Error().Msgf("cold not serialize recommendations. error: %s", err.Error())
+				continue
+			}
+			bo.DBClient.PipelineAddOne(r.Table, r.Entry.SignalID, ser)
+
+			// append to buffer
+			buffer = append(buffer, ser)
+
+			if len(buffer) > MaxNumberOfCommandsInPipeline {
+				log.Debug().Msg("Force flush (filled) triggered")
+				// executes the pipeline
+				bo.flushPipeline(batchID)
+				// reset buffer
+				buffer = nil
+				log.Debug().Msg("Force flush (filled) finished")
+			}
 		}
+	}
+}
+
+// flushPipeline executes the pipeline
+func (bo *BatchOperator) flushPipeline(batchID string) {
+	if err := bo.DBClient.PipelineExec(); err != nil {
+		// write to DB that it failed
+		if err := bo.DBClient.AddOne(tableBulkStatus, batchID, BulkFailed); err != nil {
+			log.Error().Msg(err.Error())
+		}
+		log.Error().Msg(err.Error())
 	}
 }
 

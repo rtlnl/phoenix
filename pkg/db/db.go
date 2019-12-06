@@ -8,6 +8,8 @@ type DB interface {
 	GetAllRecords(table string) (map[string]string, error)
 	DeleteOne(table string, key string) error
 	DropTable(table string) error
+	PipelineAddOne(table, key string, values string)
+	PipelineExec() error
 	Close() error
 	Health() error
 }
