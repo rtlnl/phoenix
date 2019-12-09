@@ -34,9 +34,9 @@ var (
 	// MaxNumberOfWorkers is the max number of concurrent goroutines for uploading data
 	MaxNumberOfWorkers = runtime.NumCPU()
 	// FlushIntervalInSec is the amount of time before executing the Pipeline in case the buffer is not full
-	FlushIntervalInSec = 30
+	FlushIntervalInSec = 10
 	// MaxNumberOfCommandsInPipeline is the amount of commands that the Pipeline can executes in one step
-	MaxNumberOfCommandsInPipeline = 10000
+	MaxNumberOfCommandsInPipeline = 1000
 )
 
 // BatchOperator is the object responsible for uploading data in batch to Database
@@ -104,7 +104,7 @@ func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string)
 	wg.Wait()
 
 	elapsed := time.Since(start)
-	log.Debug().Msgf("Uploading took %s", elapsed)
+	log.Info().Msgf("Uploading took %s", elapsed)
 }
 
 // UploadDataDirectly does an insert directly to Database
