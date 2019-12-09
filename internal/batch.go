@@ -34,7 +34,7 @@ var (
 	// MaxNumberOfWorkers is the max number of concurrent goroutines for uploading data
 	MaxNumberOfWorkers = runtime.NumCPU()
 	// FlushIntervalInSec is the amount of time before executing the Pipeline in case the buffer is not full
-	FlushIntervalInSec = 5
+	FlushIntervalInSec = 30
 	// MaxNumberOfCommandsInPipeline is the amount of commands that the Pipeline can executes in one step
 	MaxNumberOfCommandsInPipeline = 10000
 )
