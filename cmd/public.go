@@ -4,6 +4,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -37,6 +38,13 @@ APIs for serving the personalized content.`,
 		dbHost := viper.GetString(dbHostPublicFlag)
 		logType := viper.GetString(recommendationLogsFlag)
 		tucsonAddress := viper.GetString(tucsonGRPCAddressFlag)
+		logDebug := viper.GetBool(logDebugFlag)
+
+		// log level debug
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		if logDebug {
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		}
 
 		// instantiate Redis client
 		redisClient, err := db.NewRedisClient(dbHost)
@@ -86,6 +94,7 @@ func init() {
 	// mandatory parameters
 	f.StringP(addressPublicFlag, "a", ":8082", "server address")
 	f.StringP(dbHostPublicFlag, "d", "127.0.0.1:6379", "database host")
+	f.Bool(logDebugFlag, false, "sets log level to debug")
 
 	// optional parameters
 	f.StringP(recommendationLogsFlag, "l", "stdout", "[LOGS] where to store the recommendation logs. Accepted type: stdout,kafka,es")
@@ -102,6 +111,7 @@ func init() {
 
 	viper.BindEnv(addressPublicFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostPublicFlag, "DB_HOST")
+	viper.BindEnv(logDebugFlag, "LOG_DEBUG")
 	viper.BindEnv(tucsonGRPCAddressFlag, "TUCSON_ADDRESS")
 	viper.BindEnv(recommendationLogsFlag, "REC_LOGS_TYPE")
 	viper.BindEnv(recommendationKafkaBrokersFlag, "REC_LOGS_BROKERS")

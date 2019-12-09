@@ -3,7 +3,6 @@ package internal
 import (
 	"bufio"
 	"fmt"
-	"github.com/rtlnl/phoenix/utils"
 	"io"
 	"runtime"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/rtlnl/phoenix/utils"
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/db"
 )

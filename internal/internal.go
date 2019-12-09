@@ -59,9 +59,6 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 	mm.GET("/preview", GetDataPreview)
 	mm.GET("/all", GetAllModels)
 
-	// Docs
-	v1.Static("/docs", "docs/swagger-internal")
-
 	return &Internal{
 		App: r,
 	}, nil
