@@ -36,7 +36,7 @@ var (
 	// FlushIntervalInSec is the amount of time before executing the Pipeline in case the buffer is not full
 	FlushIntervalInSec = 10
 	// MaxNumberOfCommandsInPipeline is the amount of commands that the Pipeline can executes in one step
-	MaxNumberOfCommandsInPipeline = 1000
+	MaxNumberOfCommandsInPipeline = 10000
 )
 
 // BatchOperator is the object responsible for uploading data in batch to Database
