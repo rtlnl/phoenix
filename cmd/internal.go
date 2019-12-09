@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -28,6 +29,13 @@ var internalCmd = &cobra.Command{
 		s3Region := viper.GetString(s3RegionFlag)
 		s3Endpoint := viper.GetString(s3EndpointFlag)
 		s3DisableSSL := viper.GetBool(s3DisableSSLFlag)
+		logDebug := viper.GetBool(logDebugFlag)
+
+		// log level debug
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		if logDebug {
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		}
 
 		// instantiate Redis client
 		redisClient, err := db.NewRedisClient(dbHost)
@@ -62,12 +70,14 @@ func init() {
 	f.String(s3RegionFlag, "eu-west-1", "s3 region")
 	f.String(s3EndpointFlag, "localhost:4572", "s3 endpoint")
 	f.Bool(s3DisableSSLFlag, true, "disable SSL verification for s3")
+	f.Bool(logDebugFlag, false, "sets log level to debug")
 
 	viper.BindEnv(addressInternalFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostInternalFlag, "DB_HOST")
 	viper.BindEnv(s3RegionFlag, "S3_REGION")
 	viper.BindEnv(s3EndpointFlag, "S3_ENDPOINT")
 	viper.BindEnv(s3DisableSSLFlag, "S3_DISABLE_SSL")
+	viper.BindEnv(logDebugFlag, "LOG_DEBUG")
 
 	viper.BindPFlags(f)
 }

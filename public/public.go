@@ -36,9 +36,6 @@ func NewPublicAPI(middlewares ...gin.HandlerFunc) (*Public, error) {
 	v1 := r.Group("v1")
 	v1.GET("/recommend", Recommend)
 
-	// Docs
-	v1.Static("/docs", "docs/swagger-public")
-
 	return &Public{
 		App: r,
 	}, nil

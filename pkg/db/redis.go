@@ -9,6 +9,7 @@ import (
 // Redis is a wrapper struct around Redis official package
 type Redis struct {
 	*redis.Client
+	Pipeliner redis.Pipeliner
 }
 
 // NewRedisClient creates and open a new connection to Redis
@@ -30,7 +31,7 @@ func NewRedisClient(addr string, opts ...func(*redis.Options)) (*Redis, error) {
 		return nil, err
 	}
 
-	return &Redis{client}, nil
+	return &Redis{client, client.TxPipeline()}, nil
 }
 
 // Password functional option
@@ -109,4 +110,16 @@ func (db *Redis) GetAllRecords(table string) (map[string]string, error) {
 		counter++
 	}
 	return elems, nil
+}
+
+// PipelineAddOne queues the HSET operation to the pipeline
+func (db *Redis) PipelineAddOne(table, key string, values string) {
+	db.Pipeliner.HSet(table, key, values)
+}
+
+// PipelineExec executes the commands in the Pipeline
+func (db *Redis) PipelineExec() error {
+	// we care only about the error and not the actual result of the command
+	_, err := db.Pipeliner.Exec()
+	return err
 }
