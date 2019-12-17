@@ -66,7 +66,7 @@ func TestGetModelEmptyParams(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"missing parameters in url for searching the model\"}", string(b))
+	assert.Equal(t, "{\"error\":\"missing parameters in url for searching the model\"}", string(b))
 }
 
 func TestGetModelNotExist(t *testing.T) {
@@ -81,7 +81,7 @@ func TestGetModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model with name ocean not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model with name ocean not found\"}", string(b))
 }
 
 func TestCreateModelAlreadyExists(t *testing.T) {
@@ -110,7 +110,7 @@ func TestCreateModelAlreadyExists(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusUnprocessableEntity, code)
-	assert.Equal(t, "{\"message\":\"model with name already already exists\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model with name already already exists\"}", string(b))
 }
 
 func TestCreateModelFailValidation(t *testing.T) {
@@ -182,7 +182,7 @@ func TestEmptyModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model with name goat not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model with name goat not found\"}", string(b))
 }
 
 func TestConcatenatorFailValidation(t *testing.T) {
@@ -202,7 +202,7 @@ func TestConcatenatorFailValidation(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"for two or more signalOrder, a concatenator character from this list is mandatory: ["+strings.Join(concatenatorList, ", ")+"]\"}", string(b))
+	assert.Equal(t, "{\"error\":\"for two or more signalOrder, a concatenator character from this list is mandatory: ["+strings.Join(concatenatorList, ", ")+"]\"}", string(b))
 }
 
 func TestConcatenatorPassValidation(t *testing.T) {
@@ -242,7 +242,7 @@ func TestConcatenatorMissing(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"for two or more signalOrder, a concatenator character from this list is mandatory: ["+strings.Join(concatenatorList, ", ")+"]\"}", string(b))
+	assert.Equal(t, "{\"error\":\"for two or more signalOrder, a concatenator character from this list is mandatory: ["+strings.Join(concatenatorList, ", ")+"]\"}", string(b))
 }
 func TestConcatenatorUneeded(t *testing.T) {
 	r, err := createManagementModelRequest("collaborative", "0", []string{"pineappleId"})
@@ -261,7 +261,7 @@ func TestConcatenatorUneeded(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"for one signalOrder no concatenator character is required\"}", string(b))
+	assert.Equal(t, "{\"error\":\"for one signalOrder no concatenator character is required\"}", string(b))
 }
 
 func TestGetDataPreview(t *testing.T) {
@@ -321,5 +321,5 @@ func TestGetDataPreview(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t,"{\"preview\":[{\"signalId\":\"123\",\"recommended\":[{\"item\":\"111\",\"score\":\"0.6\",\"type\":\"movie\"},{\"item\":\"222\",\"score\":\"0.4\",\"type\":\"movie\"},{\"item\":\"555\",\"score\":\"0.16\",\"type\":\"series\"}]}]}", string(b))
+	assert.Equal(t, "{\"preview\":[{\"signalId\":\"123\",\"recommended\":[{\"item\":\"111\",\"score\":\"0.6\",\"type\":\"movie\"},{\"item\":\"222\",\"score\":\"0.4\",\"type\":\"movie\"},{\"item\":\"555\",\"score\":\"0.16\",\"type\":\"series\"}]}]}", string(b))
 }

@@ -152,7 +152,7 @@ func TestStreamingBadSignal(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"the expected signal format must be articleId_userId\"}", string(b))
+	assert.Equal(t, "{\"error\":\"the expected signal format must be articleId_userId\"}", string(b))
 }
 
 func TestStreamingBadPayload(t *testing.T) {
@@ -266,7 +266,7 @@ func TestStreamingModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model with name rintintin not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model with name rintintin not found\"}", string(b))
 }
 
 func TestStreamingUpdateModelNotExist(t *testing.T) {
@@ -305,7 +305,7 @@ func TestStreamingUpdateModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model with name titan not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model with name titan not found\"}", string(b))
 }
 
 func TestStreamingDeleteModelNotExist(t *testing.T) {
@@ -344,7 +344,7 @@ func TestStreamingDeleteModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model pine not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model pine not found\"}", string(b))
 }
 
 func TestStreamingUpdateData(t *testing.T) {
@@ -598,7 +598,7 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model with name karate not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model with name karate not found\"}", string(b))
 }
 
 // CreateTestS3Bucket returns a bucket and defer a drop
