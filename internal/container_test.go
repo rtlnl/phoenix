@@ -55,14 +55,6 @@ func TestGetContainer(t *testing.T) {
 }
 
 func TestGetContainerEmptyParams(t *testing.T) {
-	// instantiate Redis client
-	//dbc, c := GetTestRedisClient()
-	//defer c()
-	//
-	//if _, err := models.NewContainer("", "", []string{"collaborative"}, dbc); err != nil {
-	//	t.FailNow()
-	//}
-
 	code, body, err := MockRequest(http.MethodGet, "/v1/management/containers/?campaign=homepage", nil)
 	if err != nil {
 		t.Fail()
@@ -74,7 +66,7 @@ func TestGetContainerEmptyParams(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"missing parameters in url for searching the container\"}", string(b))
+	assert.Equal(t, "{\"error\":\"missing parameters in url for searching the container\"}", string(b))
 }
 
 func TestGetContainerNotExist(t *testing.T) {
@@ -89,7 +81,7 @@ func TestGetContainerNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"container with publication point ciao and campaign panini not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"container with publication point ciao and campaign panini not found\"}", string(b))
 }
 
 func TestCreateContainerAlreadyExists(t *testing.T) {
@@ -122,7 +114,7 @@ func TestCreateContainerAlreadyExists(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusUnprocessableEntity, code)
-	assert.Equal(t, "{\"message\":\"container with publication point dog and campaign vizsla already exists\"}", string(b))
+	assert.Equal(t, "{\"error\":\"container with publication point dog and campaign vizsla already exists\"}", string(b))
 }
 
 func TestCreateContainerFailValidationCampaign(t *testing.T) {
@@ -262,7 +254,7 @@ func TestEmptyContainerNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"container with publication point rtl and campaign clock not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"container with publication point rtl and campaign clock not found\"}", string(b))
 }
 
 func TestLinkModel(t *testing.T) {

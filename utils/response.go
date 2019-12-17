@@ -6,7 +6,7 @@ import (
 
 // RespError represents the response structu when an error occurs
 type RespError struct {
-	Message string `json:"message" example:"status bad request"`
+	Message string `json:"error" example:"status bad request"`
 }
 
 // ResponseError will return the error message

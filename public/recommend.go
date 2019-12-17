@@ -3,16 +3,17 @@ package public
 import (
 	"errors"
 	"fmt"
-	"github.com/rtlnl/phoenix/pkg/logs"
 	"net/http"
-	"strings"
 	"sync"
+
+	"github.com/rtlnl/phoenix/pkg/logs"
 
 	"github.com/gin-gonic/gin"
 	zerolog "github.com/rs/zerolog/log"
 
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/db"
+
 	//"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/pkg/tucson"
 	"github.com/rtlnl/phoenix/utils"
@@ -173,23 +174,8 @@ func getDefaultModelName(container models.Container) string {
 }
 
 func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {
-	var mp []string
-
-	// TODO: improve this in somehow
-	if publicationPoint == "" {
-		mp = append(mp, "publicationPoint")
-	}
-
-	if campaign == "" {
-		mp = append(mp, "campaign")
-	}
-
-	if signalID == "" {
-		mp = append(mp, "signalId")
-	}
-
-	if len(mp) > 0 {
-		return fmt.Errorf("missing %s in the URL query", strings.Join(mp[:], ","))
+	if publicationPoint == "" || signalID == "" || campaign == "" {
+		return errors.New("Request format error: publicationPoint, campaign or signalId are missing")
 	}
 
 	// update values

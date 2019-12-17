@@ -52,7 +52,7 @@ func TestRecommendFailValidation1(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing publicationPoint in the URL query\"}")
+	assert.Equal(t, msg, "{\"error\":\"Request format error: publicationPoint, campaign or signalId are missing\"}")
 }
 
 func TestRecommendFailValidation2(t *testing.T) {
@@ -69,7 +69,7 @@ func TestRecommendFailValidation2(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing campaign in the URL query\"}")
+	assert.Equal(t, msg, "{\"error\":\"Request format error: publicationPoint, campaign or signalId are missing\"}")
 }
 
 func TestRecommendFailValidation3(t *testing.T) {
@@ -86,7 +86,7 @@ func TestRecommendFailValidation3(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing signalId in the URL query\"}")
+	assert.Equal(t, msg, "{\"error\":\"Request format error: publicationPoint, campaign or signalId are missing\"}")
 }
 
 func TestRecommendFailValidation4(t *testing.T) {
@@ -103,7 +103,7 @@ func TestRecommendFailValidation4(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"missing publicationPoint,signalId in the URL query\"}", msg)
+	assert.Equal(t, "{\"error\":\"Request format error: publicationPoint, campaign or signalId are missing\"}", msg)
 }
 
 func TestRecommendNoModel(t *testing.T) {
@@ -118,7 +118,7 @@ func TestRecommendNoModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"container with publication point tuna and campaign hello not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"container with publication point tuna and campaign hello not found\"}", string(b))
 }
 
 func TestRecommendWrongSignal(t *testing.T) {
@@ -147,7 +147,7 @@ func TestRecommendWrongSignal(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key jjkk_767 not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"key jjkk_767 not found\"}", string(b))
 }
 
 func BenchmarkRecommend(b *testing.B) {
