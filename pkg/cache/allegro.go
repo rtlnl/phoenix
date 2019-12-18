@@ -2,6 +2,7 @@ package cache
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/allegro/bigcache"
@@ -49,6 +50,13 @@ func MaxEntrySize(m int) func(*bigcache.Config) {
 	}
 }
 
+// CleanWindow functional option
+func CleanWindow(l time.Duration) func(*bigcache.Config) {
+	return func(c *bigcache.Config) {
+		c.CleanWindow = l
+	}
+}
+
 // NewAllegroBigCache returns a new AllegroCache object
 func NewAllegroBigCache(opts ...func(*bigcache.Config)) (*AllegroBigCache, error) {
 	c := &bigcache.Config{}
@@ -60,6 +68,7 @@ func NewAllegroBigCache(opts ...func(*bigcache.Config)) (*AllegroBigCache, error
 
 	cache, err := bigcache.NewBigCache(*c)
 	if err != nil {
+		log.Error().Str("CACHE", "failed to create client").Str("MSG", err.Error())
 		return nil, err
 	}
 	return &AllegroBigCache{cache}, nil
@@ -69,9 +78,11 @@ func NewAllegroBigCache(opts ...func(*bigcache.Config)) (*AllegroBigCache, error
 func (ac *AllegroBigCache) Set(key string, value []models.ItemScore) bool {
 	v, err := json.Marshal(value)
 	if err != nil {
+		log.Error().Str("CACHE", fmt.Sprintf("set key %s failed", key)).Str("MSG", err.Error())
 		return false
 	}
 	if err := ac.BigCache.Set(key, []byte(v)); err != nil {
+		log.Error().Str("CACHE", fmt.Sprintf("set key %s failed", key)).Str("MSG", err.Error())
 		return false
 	}
 	return true
@@ -81,12 +92,13 @@ func (ac *AllegroBigCache) Set(key string, value []models.ItemScore) bool {
 func (ac *AllegroBigCache) Get(key string) ([]models.ItemScore, bool) {
 	v, err := ac.BigCache.Get(key)
 	if err != nil {
+		log.Error().Str("CACHE", fmt.Sprintf("get key %s failed", key)).Str("MSG", err.Error())
 		return nil, false
 	}
 
 	var value []models.ItemScore
 	if err := json.Unmarshal(v, &value); err != nil {
-		log.Error().Msgf("key %s not unmarshalled correctly", key)
+		log.Error().Str("CACHE", fmt.Sprintf("get key %s failed", key)).Str("MSG", err.Error())
 		return nil, false
 	}
 	return value, true
@@ -95,6 +107,7 @@ func (ac *AllegroBigCache) Get(key string) ([]models.ItemScore, bool) {
 // Del deletes the entry from the cache layer
 func (ac *AllegroBigCache) Del(key string) bool {
 	if err := ac.BigCache.Delete(key); err != nil {
+		log.Error().Str("CACHE", fmt.Sprintf("delete key %s failed", key)).Str("MSG", err.Error())
 		return false
 	}
 	return true
@@ -103,6 +116,7 @@ func (ac *AllegroBigCache) Del(key string) bool {
 // Empty clears the cache
 func (ac *AllegroBigCache) Empty() bool {
 	if err := ac.BigCache.Reset(); err != nil {
+		log.Error().Str("CACHE", "empty failed").Str("MSG", err.Error())
 		return false
 	}
 	return true
@@ -111,6 +125,6 @@ func (ac *AllegroBigCache) Empty() bool {
 // Close closes the cache once it is not necessary anymore
 func (ac *AllegroBigCache) Close() {
 	if err := ac.BigCache.Close(); err != nil {
-		log.Error().Msgf("could not close the cache %v", err)
+		log.Error().Str("CACHE", "could not close the cache").Str("MSG", err.Error())
 	}
 }

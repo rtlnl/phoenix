@@ -12,6 +12,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/utils"
 )
@@ -41,8 +42,9 @@ var (
 
 // BatchOperator is the object responsible for uploading data in batch to Database
 type BatchOperator struct {
-	DBClient db.DB
-	Model    models.Model
+	DBClient    db.DB
+	CacheClient cache.Cache
+	Model       models.Model
 }
 
 // NewBatchOperator returns the object responsible for uploading the data in batch to Database
@@ -102,6 +104,9 @@ func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string)
 
 	// wait until done
 	wg.Wait()
+
+	// empty cache
+	bo.CacheClient.Empty()
 
 	elapsed := time.Since(start)
 	log.Info().Str("BATCH", fmt.Sprintf("upload in %s", elapsed))
@@ -279,13 +284,15 @@ func (bo *BatchOperator) StoreErrors(batchID string, le chan models.LineError) i
 		}
 		break
 	}
-	// save to DB the errors list
-	ser, err := utils.SerializeObject(allErrors)
-	if err != nil {
-		log.Error().Msgf("could not serialize error objects. error: %s", err.Error())
-	}
-	if err := bo.DBClient.AddOne(tableBulkErrors, batchID, ser); err != nil {
-		log.Panic().Msg(err.Error())
+	// save to DB the errors list if any
+	if len(allErrors) > 0 {
+		ser, err := utils.SerializeObject(allErrors)
+		if err != nil {
+			log.Error().Msgf("could not serialize error objects. error: %s", err.Error())
+		}
+		if err := bo.DBClient.AddOne(tableBulkErrors, batchID, ser); err != nil {
+			log.Panic().Msg(err.Error())
+		}
 	}
 	return i
 }

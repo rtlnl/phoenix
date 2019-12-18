@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"time"
-	
+
 	"github.com/Shopify/sarama"
 	"github.com/elastic/go-elasticsearch/v7"
 
@@ -58,7 +58,8 @@ APIs for serving the personalized content.`,
 
 		// set caching layer
 		cacheClient, err := cache.NewAllegroBigCache(cache.Shards(1024),
-			cache.LifeWindow(time.Minute*10),
+			cache.LifeWindow(time.Minute*30), // mark an entry as "dead" after 30 minutes
+			cache.CleanWindow(time.Minute*5), // clean "dead" entries every 5 minutes
 			cache.MaxEntriesInWindow(1000*10*60),
 			cache.MaxEntrySize(500),
 		)
