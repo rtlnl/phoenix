@@ -5,7 +5,6 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/elastic/go-elasticsearch/v7"
-
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rtlnl/phoenix/pkg/db"
