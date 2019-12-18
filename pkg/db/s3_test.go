@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	s3TestEndpoint = utils.GetDefault(os.Getenv("S3_ENDPOINT"),"localhost:4572")
+	s3TestEndpoint = utils.GetDefault(os.Getenv("S3_ENDPOINT"), "localhost:4572")
 	s3TestBucket   = "test"
 	s3TestRegion   = "eu-west-1"
 )
@@ -26,7 +26,7 @@ var (
 // CreateTestS3Bucket returns a bucket and defer a drop
 func CreateTestS3Bucket(t *testing.T, bucket *S3Bucket, sess *session.Session) func() {
 	s := NewS3Client(bucket, sess)
-	if ok, err := s.CreateS3Bucket(&S3Bucket{Bucket: bucket.Bucket}); !ok || err != nil {
+	if _, err := s.CreateS3Bucket(&S3Bucket{Bucket: bucket.Bucket}); err != nil {
 		log.Error().Msg(err.Error())
 		t.FailNow()
 	}

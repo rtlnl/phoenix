@@ -10,7 +10,7 @@ import (
 import "github.com/stretchr/testify/assert"
 
 var (
-	testRedisHost = utils.GetDefault(os.Getenv("DB_HOST"),"127.0.0.1:6379")
+	testRedisHost = utils.GetDefault(os.Getenv("DB_HOST"), "127.0.0.1:6379")
 )
 
 func TestNewRedis(t *testing.T) {
@@ -159,12 +159,13 @@ func TestRedisDeleteOne(t *testing.T) {
 		t.Fail()
 	}
 
-	v, err := c.GetAllRecords("hello")
+	v, count, err := c.GetAllRecords("hello")
 	if err != nil {
 		t.Fail()
 	}
 
 	assert.Equal(t, 0, len(v))
+	assert.Equal(t, 0, count)
 
 	// clean up
 	err = c.DropTable("hello")
@@ -222,12 +223,13 @@ func TestRedisDropTable(t *testing.T) {
 	assert.Equal(t, "", val)
 
 	// it should be empty indeed
-	vals, err := c.GetAllRecords("hello")
+	vals, count, err := c.GetAllRecords("hello")
 	if err != nil {
 		t.Fail()
 	}
 
 	assert.Equal(t, 0, len(vals))
+	assert.Equal(t, 0, count)
 }
 
 func TestRedisGetAllRecords(t *testing.T) {
@@ -265,10 +267,11 @@ func TestRedisGetAllRecords(t *testing.T) {
 		t.Fail()
 	}
 
-	values, err := c.GetAllRecords("hello")
+	values, count, err := c.GetAllRecords("hello")
 	if err != nil {
 		t.Fail()
 	}
 
 	assert.Equal(t, 2, len(values))
+	assert.Equal(t, 2, count)
 }

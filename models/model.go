@@ -87,7 +87,7 @@ func (m *Model) DeleteModel(dbc db.DB) error {
 		return fmt.Errorf("error in deleting the data of the model. error: %s", err.Error())
 	}
 	// remove from containers
-	containers, err := GetAllContainers(dbc)
+	containers, _, err := GetAllContainers(dbc)
 	if err != nil {
 		return fmt.Errorf("error in retrieving the containers. error: %s", err.Error())
 	}
@@ -148,30 +148,30 @@ func (m *Model) CorrectSignalFormat(s string) bool {
 }
 
 // GetAllModels is a convenient functions to get all the models from DB
-func GetAllModels(dbc db.DB) ([]Model, error) {
+func GetAllModels(dbc db.DB) ([]Model, int, error) {
 	var models []Model
-	records, err := dbc.GetAllRecords(tableModels)
+	records, count, err := dbc.GetAllRecords(tableModels)
 	if err != nil {
-		return nil, fmt.Errorf("error in returning all the models from the database. error: %s", err.Error())
+		return nil, -1, fmt.Errorf("error in returning all the models from the database. error: %s", err.Error())
 	}
 	// iterate through all the records
 	for modelName := range records {
 		m, err := GetModel(modelName, dbc)
 		if err != nil {
-			return nil, err
+			return nil, -1, err
 		}
 		models = append(models, m)
 	}
-	return models, nil
+	return models, count, nil
 }
 
 // GetDataPreview returns a limited amount of data as preview for a single model
-func (m *Model) GetDataPreview(dbc db.DB) (map[string]string, error) {
-	records, err := dbc.GetAllRecords(m.Name)
+func (m *Model) GetDataPreview(dbc db.DB) (map[string]string, int, error) {
+	records, count, err := dbc.GetAllRecords(m.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error in returning the data preview from the database. error: %s", err.Error())
+		return nil, -1, fmt.Errorf("error in returning the data preview from the database. error: %s", err.Error())
 	}
-	return records, nil
+	return records, count, nil
 }
 
 // DeserializeModel takes a JSON string in input and try to convert it to a Model object

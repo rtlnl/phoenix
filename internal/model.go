@@ -149,6 +149,7 @@ func EmptyModel(c *gin.Context) {
 
 // ManagementModelsResponse handles the response when multiple models
 type ManagementModelsResponse struct {
+	Count   int            `json:"count"`
 	Models  []models.Model `json:"models"`
 	Message string         `json:"message"`
 }
@@ -158,13 +159,14 @@ func GetAllModels(c *gin.Context) {
 	dbc := c.MustGet("DB").(db.DB)
 
 	// fetch models
-	ms, err := models.GetAllModels(dbc)
+	ms, count, err := models.GetAllModels(dbc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	utils.Response(c, http.StatusOK, &ManagementModelsResponse{
+		Count:   count,
 		Models:  ms,
 		Message: "models fetched",
 	})
@@ -172,6 +174,7 @@ func GetAllModels(c *gin.Context) {
 
 // ManagementDataPreviewResponse handles the data preview response
 type ManagementDataPreviewResponse struct {
+	Count   int                  `json:"count"`
 	Preview []models.SingleEntry `json:"preview"`
 }
 
@@ -196,7 +199,7 @@ func GetDataPreview(c *gin.Context) {
 	}
 
 	// fetch data preview
-	data, err := m.GetDataPreview(dbc)
+	data, count, err := m.GetDataPreview(dbc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
@@ -209,5 +212,5 @@ func GetDataPreview(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusOK, &ManagementDataPreviewResponse{Preview:seArr})
+	utils.Response(c, http.StatusOK, &ManagementDataPreviewResponse{Count: count, Preview: seArr})
 }
