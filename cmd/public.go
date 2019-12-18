@@ -2,8 +2,13 @@ package cmd
 
 import (
 	"time"
+	
+	"github.com/Shopify/sarama"
+	"github.com/elastic/go-elasticsearch/v7"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
+	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -35,10 +40,21 @@ APIs for serving the personalized content.`,
 		// read parameters in input
 		addr := viper.GetString(addressPublicFlag)
 		dbHost := viper.GetString(dbHostPublicFlag)
-		dbPort := viper.GetInt(dbPortPublicFlag)
-		dbNamespace := viper.GetString(dbNamespacePublicFlag)
 		logType := viper.GetString(recommendationLogsFlag)
 		tucsonAddress := viper.GetString(tucsonGRPCAddressFlag)
+		logDebug := viper.GetBool(logDebugFlag)
+
+		// log level debug
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		if logDebug {
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		}
+
+		// instantiate Redis client
+		redisClient, err := db.NewRedisClient(dbHost)
+		if err != nil {
+			panic(err)
+		}
 
 		// set caching layer
 		cacheClient, err := cache.NewAllegroBigCache(cache.Shards(1024),
@@ -63,7 +79,7 @@ APIs for serving the personalized content.`,
 
 		// append all the middlewares here
 		var middlewares []gin.HandlerFunc
-		middlewares = append(middlewares, md.Aerospike(dbHost, dbNamespace, dbPort))
+		middlewares = append(middlewares, md.DB(redisClient))
 		middlewares = append(middlewares, md.RecommendationLogs(recLogs))
 		middlewares = append(middlewares, md.Cache(cacheClient))
 
@@ -92,9 +108,8 @@ func init() {
 
 	// mandatory parameters
 	f.StringP(addressPublicFlag, "a", ":8082", "server address")
-	f.StringP(dbHostPublicFlag, "d", "127.0.0.1", "database host")
-	f.StringP(dbNamespacePublicFlag, "n", "phoenix", "namespace of the database")
-	f.IntP(dbPortPublicFlag, "p", 3000, "database port")
+	f.StringP(dbHostPublicFlag, "d", "127.0.0.1:6379", "database host")
+	f.Bool(logDebugFlag, false, "sets log level to debug")
 
 	// optional parameters
 	f.StringP(recommendationLogsFlag, "l", "stdout", "[LOGS] where to store the recommendation logs. Accepted type: stdout,kafka,es")
@@ -111,12 +126,14 @@ func init() {
 
 	viper.BindEnv(addressPublicFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostPublicFlag, "DB_HOST")
-	viper.BindEnv(dbPortPublicFlag, "DB_PORT")
-	viper.BindEnv(dbNamespacePublicFlag, "DB_NAMESPACE")
+	viper.BindEnv(logDebugFlag, "LOG_DEBUG")
 	viper.BindEnv(tucsonGRPCAddressFlag, "TUCSON_ADDRESS")
 	viper.BindEnv(recommendationLogsFlag, "REC_LOGS_TYPE")
 	viper.BindEnv(recommendationKafkaBrokersFlag, "REC_LOGS_BROKERS")
 	viper.BindEnv(recommendationKafkaTopicFlag, "REC_LOGS_TOPIC")
+	viper.BindEnv(recommendationKafkaSASLMechanismFlag, "REC_LOGS_SASLMECHANISM")
+	viper.BindEnv(recommendationUsernameFlag, "REC_LOGS_USERNAME")
+	viper.BindEnv(recommendationPasswordFlag, "REC_LOGS_PASSWORD")
 
 	viper.BindPFlags(f)
 }
@@ -124,24 +141,36 @@ func init() {
 func setRecommendationLogging(logType string) (logs.RecommendationLog, error) {
 	switch logType {
 	case "kafka":
+		var kafkaOptions []func(*sarama.Config)
+
 		brokers := viper.GetString(recommendationKafkaBrokersFlag)
 		topic := viper.GetString(recommendationKafkaTopicFlag)
 		username := viper.GetString(recommendationUsernameFlag)
 		password := viper.GetString(recommendationPasswordFlag)
 		saslMechanism := viper.GetString(recommendationKafkaSASLMechanismFlag)
-		kup := logs.KafkaCredentials(username, password)
-		sm := logs.KafkaSASLMechanism(saslMechanism)
 
-		return logs.NewKafkaLogs(brokers, topic, kup, sm)
+		if username != "" && password != "" {
+			kafkaOptions = append(kafkaOptions, logs.KafkaCredentials(username, password))
+		}
+
+		if saslMechanism != "" {
+			kafkaOptions = append(kafkaOptions, logs.KafkaSASLMechanism(saslMechanism))
+		}
+
+		return logs.NewKafkaLogs(brokers, topic, kafkaOptions...)
 	case "es":
+		var esConfig []func(*elasticsearch.Config)
+
 		hosts := viper.GetString(recommendationESHostsFlag)
 		index := viper.GetString(recommendationESIndexFlag)
 		username := viper.GetString(recommendationUsernameFlag)
 		password := viper.GetString(recommendationPasswordFlag)
 
-		eup := logs.ESCredentials(username, password)
+		if username != "" && password != "" {
+			esConfig = append(esConfig, logs.ESCredentials(username, password))
+		}
 
-		return logs.NewElasticSearchLogs(hosts, index, eup)
+		return logs.NewElasticSearchLogs(hosts, index, esConfig...)
 	case "stdout":
 		return logs.NewStdoutLog(), nil
 	default:

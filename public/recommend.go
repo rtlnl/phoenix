@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
+
+	"github.com/rtlnl/phoenix/pkg/logs"
 
 	"github.com/gin-gonic/gin"
 	zerolog "github.com/rs/zerolog/log"
@@ -13,13 +14,10 @@ import (
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
-	"github.com/rtlnl/phoenix/pkg/logs"
+
+	//"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/pkg/tucson"
 	"github.com/rtlnl/phoenix/utils"
-)
-
-const (
-	binKey = "items"
 )
 
 // RecommendRequest is the object that represents the payload of the request for the recommend endpoint
@@ -36,14 +34,14 @@ type RecommendResponse struct {
 }
 
 // rrPool is in charged of Pooling eventual requests in coming. This will help to reduce the alloc/s
-// and effeciently improve the garbage collection operations. rr is short for recommend-request
+// and efficiently improve the garbage collection operations. rr is short for recommend-request
 var rrPool = sync.Pool{
 	New: func() interface{} { return new(RecommendRequest) },
 }
 
 // Recommend will take care of fetching the personalized content for a specific user
 func Recommend(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	// get a new object from the pool and then dispose it
 	rr := rrPool.Get().(*RecommendRequest)
@@ -60,10 +58,10 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// get container from Aerospike
-	container, err := models.GetExistingContainer(rr.PublicationPoint, rr.Campaign, ac)
-	if container == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s is not found", pp, cp))
+	// get container from DB
+	container, err := models.GetContainer(rr.PublicationPoint, rr.Campaign, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
@@ -74,16 +72,16 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// get model from aerospike
-	m, err := models.GetExistingModel(modelName, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", modelName))
+	// model exists
+	m, err := models.GetModel(modelName, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
-	// if the model is staged, the clients cannot access it
-	if m.IsStaged() {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("model is staged. Clients cannot access staged models"))
+	// validate signal
+	if !m.CorrectSignalFormat(rr.SignalID) {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("signal is not formatted correctly"))
 		return
 	}
 
@@ -112,14 +110,18 @@ func Recommend(c *gin.Context) {
 	}
 
 	// get the recommended values
-	r, err := ac.GetOne(modelName, rr.SignalID)
+	r, err := dbc.GetOne(modelName, rr.SignalID)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
-	// convert single entry from interface{} to []models.ItemScore
-	itemsScore := convertSingleEntry(r.Bins[binKey])
+	// convert single entry from string to []models.ItemScore
+	itemsScore, err := models.DeserializeItemScoreArray(r)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, fmt.Errorf("could not deserialize object. error: %s", err.Error()))
+		return
+	}
 
 	// store in cache
 	if ok := cc.Set(key, itemsScore); !ok {
@@ -127,13 +129,19 @@ func Recommend(c *gin.Context) {
 		zerolog.Error().Msgf("failed to store key %s in cache", key)
 	}
 
-	// write logs to the logging system
-	lt.Write(logs.RowLog{
-		PublicationPoint: rr.PublicationPoint,
-		Campaign:         rr.Campaign,
-		SignalID:         rr.SignalID,
-		ItemScores:       itemsScore,
-	})
+	// write logs in a separate thread for not blocking the server
+	go func() {
+		err = lt.Write(logs.RowLog{
+			PublicationPoint: rr.PublicationPoint,
+			Campaign:         rr.Campaign,
+			SignalID:         rr.SignalID,
+			ItemScores:       itemsScore,
+		})
+		// log error if it fails the logging
+		if err != nil {
+			zerolog.Error().Msg(err.Error())
+		}
+	}()
 
 	utils.Response(c, http.StatusOK, &RecommendResponse{
 		ModelName:       modelName,
@@ -141,7 +149,7 @@ func Recommend(c *gin.Context) {
 	})
 }
 
-func getModelName(c *gin.Context, container *models.Container) (string, error) {
+func getModelName(c *gin.Context, container models.Container) (string, error) {
 	// check tucson
 	modelName := getModelFromTucson(c, container.PublicationPoint, container.Campaign)
 	if !utils.IsStringEmpty(modelName) {
@@ -164,7 +172,7 @@ func getModelName(c *gin.Context, container *models.Container) (string, error) {
 	return "", fmt.Errorf("model %s not available in publicationPoint %s and campaign %s", modelName, container.PublicationPoint, container.Campaign)
 }
 
-func getModelFromURL(modelName string, container *models.Container) string {
+func getModelFromURL(modelName string, container models.Container) string {
 	if modelName != "" {
 		// check if there are models available in the container
 		if len(container.Models) > 0 && utils.StringInSlice(modelName, container.Models) {
@@ -186,7 +194,7 @@ func getModelFromTucson(c *gin.Context, publicationPoint, campaign string) strin
 	return ""
 }
 
-func getDefaultModelName(container *models.Container) string {
+func getDefaultModelName(container models.Container) string {
 	if len(container.Models) > 0 {
 		// TODO: define potential default model in the future
 		// return the first for now
@@ -196,23 +204,8 @@ func getDefaultModelName(container *models.Container) string {
 }
 
 func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {
-	var mp []string
-
-	// TODO: improve this in somehow
-	if publicationPoint == "" {
-		mp = append(mp, "publicationPoint")
-	}
-
-	if campaign == "" {
-		mp = append(mp, "campaign")
-	}
-
-	if signalID == "" {
-		mp = append(mp, "signalId")
-	}
-
-	if len(mp) > 0 {
-		return fmt.Errorf("missing %s in the URL query", strings.Join(mp[:], ","))
+	if publicationPoint == "" || signalID == "" || campaign == "" {
+		return errors.New("Request format error: publicationPoint, campaign or signalId are missing")
 	}
 
 	// update values
@@ -221,22 +214,4 @@ func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, ca
 	rr.SignalID = signalID
 
 	return nil
-}
-
-// ConvertSingleEntry This function converts the Bins in the appropriate type for consistency
-// The objects coming from Aerospike that have type []interface{}.
-func convertSingleEntry(bins interface{}) []models.ItemScore {
-	var itemsScore []models.ItemScore
-	newBins := bins.([]interface{})
-	for _, bin := range newBins {
-		b := bin.(map[interface{}]interface{})
-		item := make(models.ItemScore)
-		for k, v := range b {
-			it := fmt.Sprintf("%v", k)
-			score := fmt.Sprintf("%v", v)
-			item[it] = score
-		}
-		itemsScore = append(itemsScore, item)
-	}
-	return itemsScore
 }

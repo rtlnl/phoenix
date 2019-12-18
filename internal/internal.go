@@ -1,6 +1,7 @@
 package internal
 
 import (
+	ginprometheus "github.com/banzaicloud/go-gin-prometheus"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,6 +22,11 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 	for _, m := range middlewares {
 		r.Use(m)
 	}
+
+	// metrics with prometheus
+	p := ginprometheus.NewPrometheus("phoenix_internal", []string{})
+	p.SetListenAddress(":9900")
+	p.Use(r, "/metrics")
 
 	// Base path
 	r.GET("/", LongVersion)
@@ -52,11 +58,6 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 	mm.DELETE("/", EmptyModel)
 	mm.GET("/preview", GetDataPreview)
 	mm.GET("/all", GetAllModels)
-	mm.POST("/publish", PublishModel)
-	mm.POST("/stage", StageModel)
-
-	// Docs
-	v1.Static("/docs", "docs/swagger-internal")
 
 	return &Internal{
 		App: r,

@@ -11,11 +11,11 @@ OS ?= linux
 ARCH ?= amd64
 
 build:
-	GOOS=$(OS) GOARCH=$(ARCH) go build -o bin/turing -a -tags netgo -ldflags $(LDFLAGS)
+	GOOS=$(OS) GOARCH=$(ARCH) go build -o bin/phoenix -a -tags netgo -ldflags $(LDFLAGS)
  
 test:
 	@go clean -testcache
-	@go test $(PKGS)
+	@go test -race -count=1 $(PKGS)
 
 long-tests:
 	@for i in $(SEQ); do go test $(PKGS); done
@@ -27,9 +27,9 @@ vet:
 	@go vet $(PKGS)
 
 coverage:
-	@go test ./server -coverprofile=./coverage/coverage.out -o ./coverage/coverage.html
+	@go test ./... -coverprofile=./coverage/coverage.out -o ./coverage/coverage.html
 	@go tool cover -html=./coverage/coverage.out
-	@go test ./server -covermode=count -coverprofile=./coverage/count.out fmt
+	@go test ./... -covermode=count -coverprofile=./coverage/count.out fmt
 	@go tool cover -func=./coverage/count.out
 
 docker-all: docker-build docker-image

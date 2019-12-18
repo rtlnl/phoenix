@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 
 	"github.com/rtlnl/phoenix/middleware"
 	"github.com/rtlnl/phoenix/models"
@@ -23,9 +23,7 @@ import (
 )
 
 var (
-	testDBHost    = utils.GetEnv("DB_HOST", "127.0.0.1")
-	testDBPort    = utils.GetEnv("DB_PORT", "3000")
-	testNamespace = "test"
+	testDBHost = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
 )
 
 var router *gin.Engine
@@ -43,15 +41,23 @@ func tearUp() {
 	router = gin.New()
 	router.RedirectTrailingSlash = true
 
-	p, _ := strconv.Atoi(testDBPort)
-
 	cacheClient, _ := cache.NewAllegroBigCache(cache.Shards(1024),
 		cache.LifeWindow(time.Minute*10),
 		cache.MaxEntriesInWindow(1000*10*60),
 		cache.MaxEntrySize(500),
 	)
 
-	router.Use(middleware.Aerospike(testDBHost, testNamespace, p))
+	// instantiate Redis client
+	dbc, err := db.NewRedisClient(testDBHost)
+	if err != nil {
+		panic(err)
+	}
+	if err := dbc.Client.FlushAll().Err(); err != nil {
+		panic(err)
+	}
+
+	router.Use(middleware.DB(dbc))
+
 	router.Use(middleware.RecommendationLogs(logs.NewStdoutLog()))
 	router.Use(middleware.Cache(cacheClient))
 
@@ -63,19 +69,36 @@ func tearUp() {
 func tearDown() {
 	router = nil
 
-	ac, _ := GetTestAerospikeClient()
-	ac.TruncateNamespace("test")
-	time.Sleep(2 * time.Second)
+	dbc, err := db.NewRedisClient(testDBHost)
+	if err != nil {
+		panic(err)
+	}
+	if err := dbc.Client.FlushAll().Err(); err != nil {
+		panic(err)
+	}
 }
 
-func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelName string) func() {
+func GetTestRedisClient() (db.DB, func()) {
+	dbc, err := db.NewRedisClient(testDBHost)
+	if err != nil {
+		panic(err)
+	}
+	return dbc, func() {
+		err := dbc.Close()
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func UploadTestData(t *testing.T, dbc db.DB, testDataPath, modelName string) {
 	f, err := os.OpenFile(testDataPath, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	m, err := models.GetExistingModel(modelName, ac)
+	m, err := models.GetModel(modelName, dbc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,57 +115,18 @@ func UploadTestData(t *testing.T, ac *db.AerospikeClient, testDataPath, modelNam
 			t.Fatal("fixtures contains the wrong type of json")
 		}
 
-		if err := ac.AddOne(m.Name, entry.SignalID, binKey, entry.Recommended); err != nil {
+		ser, err := utils.SerializeObject(entry.Recommended)
+		if err != nil {
+			t.FailNow()
+		}
+
+		if err := dbc.AddOne(m.Name, entry.SignalID, ser); err != nil {
 			t.Fatal(err)
 		}
 		i++
 	}
 	if err := sc.Err(); err != nil {
 		t.Fatal(err)
-	}
-	return func() {
-		ac.TruncateSet(modelName)
-		time.Sleep(2 * time.Second)
-	}
-}
-
-// GetTestAerospikeClient returns the client used for tests
-func GetTestAerospikeClient() (*db.AerospikeClient, func()) {
-	p, _ := strconv.Atoi(testDBPort)
-	ac := db.NewAerospikeClient(testDBHost, testNamespace, p)
-
-	return ac, func() { ac.Close() }
-}
-
-// CreateTestModel returns a model and defer a truncate
-func CreateTestModel(t *testing.T, ac *db.AerospikeClient, modelName, concatenator string, signalType []string, publish bool) func() {
-	m, _ := models.NewModel(modelName, concatenator, signalType, ac)
-	if m == nil {
-		m, _ = models.GetExistingModel(modelName, ac)
-	}
-
-	if publish {
-		if err := m.PublishModel(ac); err != nil {
-			t.FailNow()
-		}
-	}
-
-	return func() {
-		ac.TruncateSet(modelName)
-		time.Sleep(2 * time.Second)
-	}
-}
-
-// CreateTestContainer returns a container and defer a truncate
-func CreateTestContainer(t *testing.T, ac *db.AerospikeClient, publicationPoint, campaign string, modelsName []string) func() {
-	c, _ := models.NewContainer(publicationPoint, campaign, modelsName, ac)
-	if c == nil {
-		c, _ = models.GetExistingContainer(publicationPoint, campaign, ac)
-	}
-
-	return func() {
-		ac.TruncateSet(publicationPoint)
-		time.Sleep(2 * time.Second)
 	}
 }
 
@@ -164,7 +148,10 @@ func MockRequest(method, path string, body io.Reader) (int, *bytes.Buffer, error
 
 // MockRequestBenchmark will send a request to the server. Used for benchamrking purposes
 func MockRequestBenchmark(b *testing.B, method, path string, body io.Reader) {
-	req, _ := http.NewRequest(method, path, body)
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		log.Error().Err(err)
+	}
 
 	// Create a response recorder so you can inspect the response
 	w := httptest.NewRecorder()

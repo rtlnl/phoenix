@@ -7,14 +7,11 @@ import (
 )
 
 var (
-	addressPublicFlag       = "address-host-public"
-	dbHostPublicFlag        = "db-host-public"
-	dbPortPublicFlag        = "db-port-public"
-	dbNamespacePublicFlag   = "db-namespace-public"
-	addressInternalFlag     = "address-host-internal"
-	dbHostInternalFlag      = "db-host-internal"
-	dbPortInternalFlag      = "db-port-internal"
-	dbNamespaceInternalFlag = "db-namespace-internal"
+	addressPublicFlag   = "address-host-public"
+	dbHostPublicFlag    = "db-host-public"
+	addressInternalFlag = "address-host-internal"
+	dbHostInternalFlag  = "db-host-internal"
+	logDebugFlag 	 	= "debug"
 )
 
 // rootCmd represents the base command when called without any subcommands

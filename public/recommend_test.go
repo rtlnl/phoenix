@@ -1,6 +1,7 @@
 package public
 
 import (
+	"github.com/rtlnl/phoenix/models"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -9,22 +10,21 @@ import (
 )
 
 func TestRecommend(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	// create model
-	truncateModel := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, true)
-	defer truncateModel()
+	// Test object creation
+	if _, err := models.NewModel("model", "", []string{"signal"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	// create container
-	truncateContainer := CreateTestContainer(t, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
-	defer truncateContainer()
+	if _, err := models.NewContainer("publication", "campaign", []string{"model"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	truncateTestData := UploadTestData(t, ac, "testdata/test_published_model_data.jsonl", "collaborative")
-	defer truncateTestData()
+	UploadTestData(t, dbc, "testdata/test_published_model_data.jsonl", "model")
 
-	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=rtl_nieuws&campaign=homepage&model=collaborative&signalId=500083", nil)
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=publication&campaign=campaign&model=model&signalId=500083", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -35,7 +35,7 @@ func TestRecommend(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"modelName\":\"collaborative\",\"recommendations\":[{\"item\":\"6456\",\"score\":\"0.6\"},{\"item\":\"1252\",\"score\":\"0.345\"},{\"item\":\"7876\",\"score\":\"0.987\"}]}", string(b))
+	assert.Equal(t, "{\"modelName\":\"model\",\"recommendations\":[{\"item\":\"6456\",\"score\":\"0.6\"},{\"item\":\"1252\",\"score\":\"0.345\"},{\"item\":\"7876\",\"score\":\"0.987\"}]}", string(b))
 }
 
 func TestRecommendFailValidation1(t *testing.T) {
@@ -52,7 +52,7 @@ func TestRecommendFailValidation1(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing publicationPoint in the URL query\"}")
+	assert.Equal(t, msg, "{\"error\":\"Request format error: publicationPoint, campaign or signalId are missing\"}")
 }
 
 func TestRecommendFailValidation2(t *testing.T) {
@@ -69,7 +69,7 @@ func TestRecommendFailValidation2(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing campaign in the URL query\"}")
+	assert.Equal(t, msg, "{\"error\":\"Request format error: publicationPoint, campaign or signalId are missing\"}")
 }
 
 func TestRecommendFailValidation3(t *testing.T) {
@@ -86,7 +86,7 @@ func TestRecommendFailValidation3(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, msg, "{\"message\":\"missing signalId in the URL query\"}")
+	assert.Equal(t, msg, "{\"error\":\"Request format error: publicationPoint, campaign or signalId are missing\"}")
 }
 
 func TestRecommendFailValidation4(t *testing.T) {
@@ -103,7 +103,7 @@ func TestRecommendFailValidation4(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"missing publicationPoint,signalId in the URL query\"}", msg)
+	assert.Equal(t, "{\"error\":\"Request format error: publicationPoint, campaign or signalId are missing\"}", msg)
 }
 
 func TestRecommendNoModel(t *testing.T) {
@@ -118,23 +118,25 @@ func TestRecommendNoModel(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"container with publication point tuna and campaign hello is not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"container with publication point tuna and campaign hello not found\"}", string(b))
 }
 
 func TestRecommendWrongSignal(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	// create model
-	truncateModel := CreateTestModel(t, ac, "ciao", "", []string{"articleId"}, true)
-	defer truncateModel()
+	// Test object creation
+	if _, err := models.NewModel("wrongsig", "", []string{"signal"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	// create container
-	truncateContainer := CreateTestContainer(t, ac, "curry", "homepage", []string{"ciao"})
-	defer truncateContainer()
+	if _, err := models.NewContainer("wrong", "campaign", []string{"wrongsig"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=curry&campaign=homepage&model=ciao&signalId=jjkk_767", nil)
+	UploadTestData(t, dbc, "testdata/test_published_model_data.jsonl", "wrongsig")
+
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=wrong&campaign=campaign&model=wrongsig&signalId=jjkk_767", nil)
 	if err != nil {
 		t.Fail()
 	}
@@ -145,56 +147,29 @@ func TestRecommendWrongSignal(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"key jjkk_767 does not exist\"}", string(b))
-}
-
-func TestRecommendModelStaged(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-
-	// create model
-	truncateModel := CreateTestModel(t, ac, "sloth", "", []string{"articleId"}, false)
-	defer truncateModel()
-
-	// create container
-	truncateContainer := CreateTestContainer(t, ac, "fruits", "banana", []string{"sloth"})
-	defer truncateContainer()
-
-	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=fruits&campaign=banana&model=sloth&signalId=500083", nil)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"model is staged. Clients cannot access staged models\"}", string(b))
+	assert.Equal(t, "{\"error\":\"key jjkk_767 not found\"}", string(b))
 }
 
 func BenchmarkRecommend(b *testing.B) {
 	b.StopTimer()
 
-	// get client
-	ac, c := GetTestAerospikeClient()
+	// instantiate Redis client
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	// create model
-	truncateModel := CreateTestModel(nil, ac, "collaborative", "", []string{"articleId"}, false)
-	defer truncateModel()
+	// Test object creation
+	if _, err := models.NewModel("benchmark", "", []string{"signal"}, dbc); err != nil {
+		b.FailNow()
+	}
 
-	// create container
-	truncateContainer := CreateTestContainer(nil, ac, "rtl_nieuws", "homepage", []string{"collaborative"})
-	defer truncateContainer()
+	if _, err := models.NewContainer("publication1", "campaign", []string{"benchmark"}, dbc); err != nil {
+		b.FailNow()
+	}
 
 	// upload data to model
-	truncateTestData := UploadTestData(nil, ac, "testdata/test_published_model_data.jsonl", "collaborative")
-	defer truncateTestData()
+	UploadTestData(nil, dbc, "testdata/test_published_model_data.jsonl", "benchmark")
 
 	for i := 0; i < b.N; i++ {
-		MockRequestBenchmark(b, http.MethodGet, "/v1/recommend?publicationPoint=rtl_nieuws&campaign=homepage&signalId=500083", nil)
+		MockRequestBenchmark(b, http.MethodGet, "/v1/recommend?publicationPoint=publication1&campaign=campaign&signalId=500083", nil)
 	}
 }

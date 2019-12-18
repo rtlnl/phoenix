@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -20,22 +19,17 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
-	// name of the key of the bins containing the recommended items
-	// Max 15 characters due to Aerospike limitation
-	binKey = "items"
-	// name of the setName for storing all the batchIDs
-	bulkStatusSetName = "bulkStatus"
-	// name of the key to retrieve the status of the bulk upload
-	statusBinKey = "status"
-	// name of the key to insert the errors of failed uplaoded lines
-	lineBinError = "lineError"
+	// name of the table for storing all the batchIDs
+	tableBulkStatus = "bulkStatus"
+	// name of the error tables for storing all the errors of a specific batch
+	tableBulkErrors = "bulkErrors"
 	// numberErrors
 	maxErrorLines = 50
 )
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
 type StreamingRequest struct {
-	Signal          string             `json:"signal" binding:"required"`
+	SignalID        string             `json:"signalId" binding:"required"`
 	ModelName       string             `json:"modelName" binding:"required"`
 	Recommendations []models.ItemScore `json:"recommendations" binding:"required"`
 }
@@ -47,103 +41,101 @@ type StreamingResponse struct {
 
 // CreateStreaming creates a new record in the selected campaign
 func CreateStreaming(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	var sr StreamingRequest
 	if err := c.BindJSON(&sr); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
-
-	m, err := models.GetExistingModel(sr.ModelName, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", sr.ModelName))
+	// get the model
+	m, err := models.GetModel(sr.ModelName, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
-
-	// cannot add data to published models
-	if m.IsPublished() {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot add data on already published models. stage it first"))
-		return
-	}
-
-	if m.RequireSignalFormat() && !m.CorrectSignalFormat(sr.Signal) {
+	// validate input
+	if m.RequireSignalFormat() && !m.CorrectSignalFormat(sr.SignalID) {
 		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("the expected signal format must be %s", strings.Join(m.SignalOrder, m.Concatenator)))
 		return
 	}
-
-	if err := ac.AddOne(sr.ModelName, sr.Signal, binKey, sr.Recommendations); err != nil {
+	// serialize recommendations
+	ser, err := utils.SerializeObject(sr.Recommendations)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+	// store data in the database
+	if err := dbc.AddOne(sr.ModelName, sr.SignalID, ser); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.Response(c, http.StatusCreated, &StreamingResponse{
-		Message: fmt.Sprintf("signal %s created", sr.Signal),
+		Message: fmt.Sprintf("signal %s created", sr.SignalID),
 	})
 }
 
 // UpdateStreaming updates a single record in the selected campaign
 func UpdateStreaming(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	var sr StreamingRequest
 	if err := c.BindJSON(&sr); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
-
-	m, err := models.GetExistingModel(sr.ModelName, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", sr.ModelName))
+	// get model
+	m, err := models.GetModel(sr.ModelName, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
-
-	// cannot update data to published models
-	if m.IsPublished() {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot update data on already published models. stage it first"))
+	// validate input
+	if m.RequireSignalFormat() && !m.CorrectSignalFormat(sr.SignalID) {
+		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("the expected signal format must be %s", strings.Join(m.SignalOrder, m.Concatenator)))
 		return
 	}
-
+	// serialize recommendations
+	ser, err := utils.SerializeObject(sr.Recommendations)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
 	// The AddOne method does an UPSERT
-	if err := ac.AddOne(sr.ModelName, sr.Signal, binKey, sr.Recommendations); err != nil {
+	if err := dbc.AddOne(sr.ModelName, sr.SignalID, ser); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 
 	}
 	utils.Response(c, http.StatusOK, &StreamingResponse{
-		Message: fmt.Sprintf("signal %s updated", sr.Signal),
+		Message: fmt.Sprintf("signal %s updated", sr.SignalID),
 	})
 }
 
 // DeleteStreaming deletes a single record in the selected campaign
 func DeleteStreaming(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	var sr StreamingRequest
 	if err := c.BindJSON(&sr); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
-
-	m, err := models.GetExistingModel(sr.ModelName, ac)
-	if m == nil || err != nil {
+	// get model
+	exists := models.ModelExists(sr.ModelName, dbc)
+	if !exists {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", sr.ModelName))
 		return
 	}
-
-	// cannot delete data to published models
-	if m.IsPublished() {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot delete data on already published models. stage it first"))
-		return
-	}
-
-	if err := ac.DeleteOne(sr.ModelName, sr.Signal); err != nil {
-		utils.ResponseError(c, http.StatusInternalServerError, err)
+	// delete record
+	if err := dbc.DeleteOne(sr.ModelName, sr.SignalID); err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	utils.Response(c, http.StatusOK, &StreamingResponse{
-		Message: fmt.Sprintf("signal %s deleted", sr.Signal),
+		Message: fmt.Sprintf("signal %s deleted", sr.SignalID),
 	})
 }
 
@@ -184,7 +176,7 @@ type DataUploadedError struct {
 
 // Batch will upload in batch a set to the database
 func Batch(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 	sess := c.MustGet("AWSSession").(*session.Session)
 
 	var br BatchRequest
@@ -194,20 +186,14 @@ func Batch(c *gin.Context) {
 	}
 
 	// retrieve the model
-	m, err := models.GetExistingModel(br.ModelName, ac)
-	if m == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("model %s not found", br.ModelName))
-		return
-	}
-
-	// cannot uplaod data to published models
-	if m.IsPublished() {
-		utils.ResponseError(c, http.StatusBadRequest, errors.New("you cannot upload data on already published models. stage it first"))
+	m, err := models.GetModel(br.ModelName, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	// upload data from request itself
-	bo := NewBatchOperator(ac, m)
+	bo := NewBatchOperator(dbc, m)
 	if len(br.Data) > 0 && br.Data != nil {
 		ln, due, err := bo.UploadDataDirectly(br.Data)
 		if err != nil {
@@ -219,7 +205,7 @@ func Batch(c *gin.Context) {
 	}
 
 	// truncate eventual old data
-	if err := ac.TruncateSet(br.ModelName); err != nil {
+	if err := dbc.DropTable(br.ModelName); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -257,43 +243,33 @@ type BatchStatusResponse struct {
 
 // BatchStatus returns the current status of the batch upload
 func BatchStatus(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
-
+	dbc := c.MustGet("DB").(db.DB)
 	batchID := c.Param("id")
 
-	r, err := ac.GetOne(bulkStatusSetName, batchID)
+	// get the status of the batch
+	status, err := dbc.GetOne(tableBulkStatus, batchID)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("batch job with ID %s not found", batchID))
 		return
 	}
 
-	// save the status in a variable
-	status := r.Bins[statusBinKey].(string)
-
 	switch status {
 	case BulkPartialUpload:
-		errs := convertLineError(r.Bins[lineBinError])
+		// get from table errors
+		ser, err := dbc.GetOne(tableBulkErrors, batchID)
+		if err != nil {
+			utils.ResponseError(c, http.StatusInternalServerError, err)
+			return
+		}
+		// deserialize object
+		errs, err := models.DeserializeLineErrorArray(ser)
+		if err != nil {
+			utils.ResponseError(c, http.StatusInternalServerError, err)
+			return
+		}
 		utils.Response(c, http.StatusOK, &BatchStatusResponse{Status: status, Errors: errs})
 		break
 	default:
 		utils.Response(c, http.StatusOK, &BatchStatusResponse{Status: status})
 	}
-}
-
-// convertLineError converts the objects coming from Aerospike have type []interface{}.
-// This function converts the Bins in the appropriate type for consistency
-func convertLineError(bins interface{}) []models.LineError {
-	var linesError []models.LineError
-	newBins := bins.([]interface{})
-	for _, bin := range newBins {
-		b := bin.(map[interface{}]interface{})
-		le := make(models.LineError)
-		for k, v := range b {
-			it := fmt.Sprintf("%v", k)
-			score := fmt.Sprintf("%v", v)
-			le[it] = score
-		}
-		linesError = append(linesError, le)
-	}
-	return linesError
 }

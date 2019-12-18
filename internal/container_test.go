@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bytes"
+	"github.com/rtlnl/phoenix/models"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -26,17 +27,18 @@ func createManagementContainerRequest(publicationPoint, campaign string, models 
 }
 
 func TestGetContainer(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
+	// instantiate Redis client
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	// create model
-	truncateModel := CreateTestModel(t, ac, "quattro-formaggi", "", []string{"gorgonzola"}, false)
-	defer truncateModel()
+	// Test object creation
+	if _, err := models.NewModel("quattro-formaggi", "", []string{"gorgonzola"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	// create container
-	truncate := CreateTestContainer(t, ac, "food", "pizza", []string{"quattro-formaggi"})
-	defer truncate()
+	if _, err := models.NewContainer("food", "pizza", []string{"quattro-formaggi"}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	code, body, err := MockRequest(http.MethodGet, "/v1/management/containers/?publicationPoint=food&campaign=pizza", nil)
 	if err != nil {
@@ -53,14 +55,6 @@ func TestGetContainer(t *testing.T) {
 }
 
 func TestGetContainerEmptyParams(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-
-	// create model
-	truncate := CreateTestContainer(t, ac, "videoland", "homepage", []string{"collaborative"})
-	defer truncate()
-
 	code, body, err := MockRequest(http.MethodGet, "/v1/management/containers/?campaign=homepage", nil)
 	if err != nil {
 		t.Fail()
@@ -72,7 +66,7 @@ func TestGetContainerEmptyParams(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"missing parameters in url for searching the container\"}", string(b))
+	assert.Equal(t, "{\"error\":\"missing parameters in url for searching the container\"}", string(b))
 }
 
 func TestGetContainerNotExist(t *testing.T) {
@@ -87,21 +81,22 @@ func TestGetContainerNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"container with publication point ciao and campaign panini not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"container with publication point ciao and campaign panini not found\"}", string(b))
 }
 
 func TestCreateContainerAlreadyExists(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
+	// instantiate Redis client
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	// create model
-	truncateModel := CreateTestModel(t, ac, "animals", "", []string{"paw"}, false)
-	defer truncateModel()
+	// Test object creation
+	if _, err := models.NewModel("animals", "", []string{"paw"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	// create container
-	truncate := CreateTestContainer(t, ac, "dog", "vizsla", []string{"animals"})
-	defer truncate()
+	if _, err := models.NewContainer("dog", "vizsla", []string{"animals"}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	r, err := createManagementContainerRequest("dog", "vizsla", []string{"animals"})
 	if err != nil {
@@ -118,8 +113,8 @@ func TestCreateContainerAlreadyExists(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"container\":{\"publicationPoint\":\"dog\",\"campaign\":\"vizsla\",\"models\":[\"animals\"]},\"message\":\"container created\"}", string(b))
+	assert.Equal(t, http.StatusUnprocessableEntity, code)
+	assert.Equal(t, "{\"error\":\"container with publication point dog and campaign vizsla already exists\"}", string(b))
 }
 
 func TestCreateContainerFailValidationCampaign(t *testing.T) {
@@ -189,17 +184,17 @@ func TestCreateContainerFailValidation(t *testing.T) {
 }
 
 func TestEmptyContainer(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	// create model
-	truncateModel := CreateTestModel(t, ac, "egypt", "", []string{"god"}, false)
-	defer truncateModel()
+	// Test object creation
+	if _, err := models.NewModel("egypt", "", []string{"god"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	// create container
-	truncate := CreateTestContainer(t, ac, "cat", "anubi", []string{"egypt"})
-	defer truncate()
+	if _, err := models.NewContainer("cat", "anubi", []string{"egypt"}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	r, err := createManagementContainerRequest("cat", "anubi", []string{"egypt"})
 	if err != nil {
@@ -259,12 +254,11 @@ func TestEmptyContainerNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"container with publication point rtl and campaign clock not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"container with publication point rtl and campaign clock not found\"}", string(b))
 }
 
 func TestLinkModel(t *testing.T) {
-	// get client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
 	r, err := createManagementContainerRequest("channel", "dart", []string{"hello", "world"})
@@ -272,17 +266,19 @@ func TestLinkModel(t *testing.T) {
 		t.Fail()
 	}
 
-	// create model hello
-	truncateHello := CreateTestModel(t, ac, "hello", "", []string{"articleId"}, false)
-	defer truncateHello()
+	// Test object creation
+	if _, err := models.NewModel("hello", "", []string{"articleId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	// create model world
-	truncateWorld := CreateTestModel(t, ac, "world", "", []string{"articleId"}, false)
-	defer truncateWorld()
+	// Test object creation
+	if _, err := models.NewModel("world", "", []string{"articleId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	// create container
-	truncate := CreateTestContainer(t, ac, "channel", "dart", []string{""})
-	defer truncate()
+	if _, err = models.NewContainer("channel", "dart", []string{""}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	code, body, err := MockRequest(http.MethodPut, "/v1/management/containers/link-model", r)
 	if err != nil {

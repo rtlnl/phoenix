@@ -1,7 +1,6 @@
 package public
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -11,11 +10,14 @@ import (
 )
 
 func TestNewPublicAPI(t *testing.T) {
-	port, _ := strconv.Atoi(testDBPort)
 	rl := logs.NewStdoutLog()
 
+	// instantiate Redis client
+	dbc, c := GetTestRedisClient()
+	defer c()
+
 	var middlewares []gin.HandlerFunc
-	middlewares = append(middlewares, middleware.Aerospike(testDBHost, testNamespace, port))
+	middlewares = append(middlewares, middleware.DB(dbc))
 	middlewares = append(middlewares, middleware.RecommendationLogs(rl))
 
 	p, err := NewPublicAPI(middlewares...)

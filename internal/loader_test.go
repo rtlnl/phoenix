@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	"github.com/rtlnl/phoenix/utils"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	paws "github.com/rtlnl/phoenix/pkg/aws"
@@ -16,9 +20,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createStreamingRequest(modelName, signal string, recommendations []models.ItemScore) (*bytes.Reader, error) {
+func createStreamingRequest(modelName, signalID string, recommendations []models.ItemScore) (*bytes.Reader, error) {
 	rr := &StreamingRequest{
-		Signal:          signal,
+		SignalID:        signalID,
 		ModelName:       modelName,
 		Recommendations: recommendations,
 	}
@@ -60,12 +64,12 @@ func createBatchRequestLocation(modelName string, dataLocation string) (*bytes.R
 }
 
 func TestStreaming(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "streaming", "", []string{"articleId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("streaming", "", []string{"articleId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	signal := "100"
 	recommendationItems := []models.ItemScore{
@@ -106,12 +110,12 @@ func TestStreaming(t *testing.T) {
 }
 
 func TestStreamingBadSignal(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "hybrid", "_", []string{"articleId", "userId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("hybrid", "_", []string{"articleId", "userId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	signal := "100"
 	recommendationItems := []models.ItemScore{
@@ -148,7 +152,7 @@ func TestStreamingBadSignal(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"the expected signal format must be articleId_userId\"}", string(b))
+	assert.Equal(t, "{\"error\":\"the expected signal format must be articleId_userId\"}", string(b))
 }
 
 func TestStreamingBadPayload(t *testing.T) {
@@ -173,7 +177,7 @@ func TestStreamingBadPayload(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.Signal' Error:Field validation for 'Signal' failed on the 'required' tag"))
+	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.SignalID' Error:Field validation for 'SignalID' failed on the 'required' tag"))
 }
 
 func TestStreamingUpdateBadPayload(t *testing.T) {
@@ -198,7 +202,7 @@ func TestStreamingUpdateBadPayload(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.Signal' Error:Field validation for 'Signal' failed on the 'required' tag"))
+	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.SignalID' Error:Field validation for 'SignalID' failed on the 'required' tag"))
 }
 
 func TestStreamingDeleteBadPayload(t *testing.T) {
@@ -223,53 +227,7 @@ func TestStreamingDeleteBadPayload(t *testing.T) {
 	msg := string(b)
 
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.Signal' Error:Field validation for 'Signal' failed on the 'required' tag"))
-}
-
-func TestStreamingPublishedModel(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-
-	truncate := CreateTestModel(t, ac, "streaming", "", []string{"articleId"}, true)
-	defer truncate()
-
-	signal := "100"
-	recommendationItems := []models.ItemScore{
-		{
-			"item":  "111",
-			"score": "0.6",
-			"type":  "movie",
-		},
-		{
-			"item":  "222",
-			"score": "0.4",
-			"type":  "movie",
-		},
-		{
-			"item":  "555",
-			"score": "0.16",
-			"type":  "series",
-		},
-	}
-
-	rb, err := createStreamingRequest("streaming", signal, recommendationItems)
-	if err != nil {
-		t.Fail()
-	}
-
-	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"you cannot add data on already published models. stage it first\"}", string(b))
+	assert.Equal(t, true, strings.Contains(msg, "'StreamingRequest.SignalID' Error:Field validation for 'SignalID' failed on the 'required' tag"))
 }
 
 func TestStreamingModelNotExist(t *testing.T) {
@@ -308,7 +266,7 @@ func TestStreamingModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model rintintin not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model with name rintintin not found\"}", string(b))
 }
 
 func TestStreamingUpdateModelNotExist(t *testing.T) {
@@ -347,7 +305,7 @@ func TestStreamingUpdateModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model titan not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model with name titan not found\"}", string(b))
 }
 
 func TestStreamingDeleteModelNotExist(t *testing.T) {
@@ -386,16 +344,16 @@ func TestStreamingDeleteModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model pine not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model pine not found\"}", string(b))
 }
 
 func TestStreamingUpdateData(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("collaborative", "", []string{"articleId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	signal := "543"
 	recommendationItems := []models.ItemScore{
@@ -435,59 +393,13 @@ func TestStreamingUpdateData(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"signal 543 updated\"}", string(b))
 }
 
-func TestStreamingUpdateDataPublishedModel(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-
-	truncate := CreateTestModel(t, ac, "streaming", "", []string{"articleId"}, true)
-	defer truncate()
-
-	signal := "100"
-	recommendationItems := []models.ItemScore{
-		{
-			"item":  "111",
-			"score": "0.6",
-			"type":  "movie",
-		},
-		{
-			"item":  "222",
-			"score": "0.4",
-			"type":  "movie",
-		},
-		{
-			"item":  "555",
-			"score": "0.16",
-			"type":  "series",
-		},
-	}
-
-	rb, err := createStreamingRequest("streaming", signal, recommendationItems)
-	if err != nil {
-		t.Fail()
-	}
-
-	code, body, err := MockRequest(http.MethodPut, "/v1/streaming", rb)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"you cannot update data on already published models. stage it first\"}", string(b))
-}
-
 func TestStreamingDeleteData(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("alcatraz", "", []string{"prisoner"}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	signal := "890"
 	recommendationItems := []models.ItemScore{
@@ -508,82 +420,52 @@ func TestStreamingDeleteData(t *testing.T) {
 		},
 	}
 
-	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
+	rb, err := createStreamingRequest("alcatraz", signal, recommendationItems)
 	if err != nil {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming", rb)
+	// create signal
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
 	if err != nil {
 		t.Fail()
 	}
 
 	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"signal 890 created\"}", string(b))
+
+	// now delete it
+	rb, err = createStreamingRequest("alcatraz", signal, recommendationItems)
+	if err != nil {
+		t.Fail()
+	}
+
+	code, bodyDel, err := MockRequest(http.MethodDelete, "/v1/streaming", rb)
+	if err != nil {
+		t.Fail()
+	}
+
+	bRead, err := ioutil.ReadAll(bodyDel)
 	if err != nil {
 		t.Fail()
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"message\":\"signal 890 deleted\"}", string(b))
-}
-
-func TestStreamingDeleteDataPublishedModel(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-
-	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, true)
-	defer truncate()
-
-	signal := "100"
-	recommendationItems := []models.ItemScore{
-		{
-			"item":  "111",
-			"score": "0.6",
-			"type":  "movie",
-		},
-		{
-			"item":  "222",
-			"score": "0.4",
-			"type":  "movie",
-		},
-		{
-			"item":  "555",
-			"score": "0.16",
-			"type":  "series",
-		},
-	}
-
-	rb, err := createStreamingRequest("collaborative", signal, recommendationItems)
-	if err != nil {
-		t.Fail()
-	}
-
-	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming", rb)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"you cannot delete data on already published models. stage it first\"}", string(b))
-}
-
-func TestBatchUploadDirect(t *testing.T) {
-
+	assert.Equal(t, "{\"message\":\"signal 890 deleted\"}", string(bRead))
 }
 
 func TestBatchUploadDirectWithErrors(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "ham", "_", []string{"articleId", "userId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("ham", "_", []string{"articleId", "userId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	bd := make([]BatchData, 1)
 	d := []models.ItemScore{
@@ -628,12 +510,12 @@ func TestBatchUploadDirectWithErrors(t *testing.T) {
 }
 
 func TestBatchUploadDirectNoErrors(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "pizza", "", []string{"articleId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("pizza", "", []string{"articleId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
 	bd := make([]BatchData, 1)
 	d := []models.ItemScore{
@@ -677,55 +559,6 @@ func TestBatchUploadDirectNoErrors(t *testing.T) {
 	assert.Equal(t, "{\"numberoflines\":\"2\",\"ErrorRecords\":{\"numberoflinesfailed\":\"0\",\"error\":null}}", string(b))
 }
 
-func TestBatchUploadDirectModelPublished(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
-	defer c()
-
-	truncate := CreateTestModel(t, ac, "pepperoni", "", []string{"articleId"}, true)
-	defer truncate()
-
-	bd := make([]BatchData, 1)
-	d := []models.ItemScore{
-		{
-			"item":  "111",
-			"score": "0.6",
-			"type":  "movie",
-		},
-		{
-			"item":  "222",
-			"score": "0.4",
-			"type":  "movie",
-		},
-		{
-			"item":  "555",
-			"score": "0.16",
-			"type":  "series",
-		},
-	}
-	bd[0] = map[string][]models.ItemScore{
-		"123": d,
-	}
-
-	rb, err := createBatchRequestDirect("pepperoni", bd)
-	if err != nil {
-		t.Fail()
-	}
-
-	code, body, err := MockRequest(http.MethodPost, "/v1/batch", rb)
-	if err != nil {
-		t.Fail()
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fail()
-	}
-
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "{\"message\":\"you cannot upload data on already published models. stage it first\"}", string(b))
-}
-
 func TestBatchUploadDirectModelNotExist(t *testing.T) {
 	bd := make([]BatchData, 1)
 	d := []models.ItemScore{
@@ -749,7 +582,7 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 		"123": d,
 	}
 
-	rb, err := createBatchRequestDirect("collaborative", bd)
+	rb, err := createBatchRequestDirect("karate", bd)
 	if err != nil {
 		t.Fail()
 	}
@@ -765,55 +598,68 @@ func TestBatchUploadDirectModelNotExist(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, code)
-	assert.Equal(t, "{\"message\":\"model collaborative not found\"}", string(b))
+	assert.Equal(t, "{\"error\":\"model with name karate not found\"}", string(b))
 }
 
 // CreateTestS3Bucket returns a bucket and defer a drop
 func CreateTestS3Bucket(t *testing.T, bucket *db.S3Bucket, sess *session.Session) func() {
 	s := db.NewS3Client(bucket, sess)
-	s.CreateS3Bucket(&db.S3Bucket{Bucket: bucket.Bucket})
-	return func() { s.DeleteS3Bucket(bucket) }
+	if _, err := s.CreateS3Bucket(&db.S3Bucket{Bucket: bucket.Bucket}); err != nil {
+		t.FailNow()
+	}
+	return func() {
+		if ok, err := s.DeleteS3Bucket(bucket); !ok || err != nil {
+			t.FailNow()
+		}
+	}
 }
 
 func TestBatchUploadS3(t *testing.T) {
+	t.Skip("Localstack is not really reliable")
+
 	var (
-		s3TestEndpoint string = "localhost:4572"
-		s3TestBucket   string = "test1"
-		s3TestRegion   string = "eu-west-1"
-		fileTest       string = "testdata/test_bulk_1key.jsonl"
-		s3TestKey      string = "/" + fileTest
+		s3TestEndpoint = utils.GetDefault(os.Getenv("S3_ENDPOINT"), "localhost:4572")
+		s3TestBucket   = "test1"
+		s3TestRegion   = "eu-west-1"
+		fileTest       = "testdata/test_bulk_1key.jsonl"
+		s3TestKey      = "/" + fileTest
 	)
 
 	bucket := &db.S3Bucket{Bucket: s3TestBucket}
 	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
 	s := db.NewS3Client(bucket, sess)
 
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "collaborative", "", []string{"articleId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("batch", "", []string{"articleId"}, dbc); err != nil {
+		log.Info().Msg(err.Error())
+		t.Fail()
+	}
 
 	drop := CreateTestS3Bucket(t, bucket, sess)
 	defer drop()
 
 	if err := s.UploadS3File(fileTest, bucket); err != nil {
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
-	rb, err := createBatchRequestLocation("collaborative", "s3://"+s3TestBucket+s3TestKey)
+	rb, err := createBatchRequestLocation("batch", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
 	_, brsBody, err := MockRequest(http.MethodPost, "/v1/batch", rb)
 	if err != nil {
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
 	var brs BatchBulkResponse
 	if err := json.Unmarshal(brsBody.Bytes(), &brs); err != nil {
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
@@ -826,10 +672,12 @@ func TestBatchUploadS3(t *testing.T) {
 	var srs BatchStatusResponse
 	srsCode, srsBody, err := MockRequest(http.MethodGet, "/v1/batch/status/"+brs.BatchID, nil)
 	if err != nil {
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
 	if err := json.Unmarshal(srsBody.Bytes(), &srs); err != nil {
+		log.Info().Msg(err.Error())
 		t.Fail()
 	}
 
@@ -846,60 +694,69 @@ func TestBatchUploadS3(t *testing.T) {
 }
 
 func TestBadBatchUploadS3(t *testing.T) {
+	t.Skip("Localstack is not really reliable")
+
 	var (
-		s3TestEndpoint string = "localhost:4572"
-		s3TestBucket   string = "test1"
-		s3TestRegion   string = "eu-west-1"
-		fileTest       string = "testdata/test_bulk_1key.jsonl"
-		s3TestKey      string = "/" + fileTest
+		s3TestEndpoint = utils.GetDefault(os.Getenv("S3_ENDPOINT"), "localhost:4572")
+		s3TestBucket   = "test1"
+		s3TestRegion   = "eu-west-1"
+		fileTest       = "testdata/test_bulk_1key.jsonl"
+		s3TestKey      = "/" + fileTest
 	)
 
 	bucket := &db.S3Bucket{Bucket: s3TestBucket}
 	sess := paws.NewAWSSession(s3TestRegion, s3TestEndpoint, true)
 	s := db.NewS3Client(bucket, sess)
 
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "collaborative", "_", []string{"articleId", "userId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("badbatch", "_", []string{"articleId", "userId"}, dbc); err != nil {
+		log.Error().Err(err)
+		t.FailNow()
+	}
 
 	drop := CreateTestS3Bucket(t, bucket, sess)
 	defer drop()
 
 	if err := s.UploadS3File(fileTest, bucket); err != nil {
+		log.Error().Err(err)
 		t.Fail()
 	}
 
-	rb, err := createBatchRequestLocation("collaborative", "s3://"+s3TestBucket+s3TestKey)
+	rb, err := createBatchRequestLocation("badbatch", "s3://"+s3TestBucket+s3TestKey)
 	if err != nil {
+		log.Error().Err(err)
 		t.Fail()
 	}
 
 	_, brsBody, err := MockRequest(http.MethodPost, "/v1/batch", rb)
 	if err != nil {
+		log.Error().Err(err)
 		t.Fail()
 	}
 
 	var brs BatchBulkResponse
 	if err := json.Unmarshal(brsBody.Bytes(), &brs); err != nil {
+		log.Error().Err(err)
 		t.Fail()
 	}
 
 	// wait for the upload to finish
 	// due to the async goroutine, if we do not sleep the test
 	// will loose the thread created by the endpoint
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	// do checks
 	var srs BatchStatusResponse
 	srsCode, srsBody, err := MockRequest(http.MethodGet, "/v1/batch/status/"+brs.BatchID, nil)
 	if err != nil {
+		log.Error().Err(err)
 		t.Fail()
 	}
 
 	if err := json.Unmarshal(srsBody.Bytes(), &srs); err != nil {
+		log.Error().Err(err)
 		t.Fail()
 	}
 
@@ -917,14 +774,17 @@ func TestBadBatchUploadS3(t *testing.T) {
 }
 
 func TestCorrectSignalFormat(t *testing.T) {
-	// get aerospike client
-	ac, c := GetTestAerospikeClient()
+	dbc, c := GetTestRedisClient()
 	defer c()
 
-	truncate := CreateTestModel(t, ac, "collaborative", "_", []string{"articleId", "userId"}, false)
-	defer truncate()
+	if _, err := models.NewModel("signalFormat", "_", []string{"articleId", "userId"}, dbc); err != nil {
+		t.FailNow()
+	}
 
-	m, _ := models.GetExistingModel("collaborative", ac)
+	m, err := models.GetModel("signalFormat", dbc)
+	if err != nil {
+		t.FailNow()
+	}
 
 	tests := map[string]struct {
 		input    string

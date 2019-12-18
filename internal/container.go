@@ -2,7 +2,6 @@ package internal
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -20,13 +19,13 @@ type ManagementContainerRequest struct {
 
 // ManagementContainerResponse handles the response object to the client
 type ManagementContainerResponse struct {
-	Container *models.Container `json:"container"`
-	Message   string            `json:"message"`
+	Container models.Container `json:"container"`
+	Message   string           `json:"message"`
 }
 
-// GetContainer returns an already existsing container
+// GetContainer returns an already existing container
 func GetContainer(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	// read from params in url
 	pp := c.Query("publicationPoint")
@@ -39,9 +38,9 @@ func GetContainer(c *gin.Context) {
 	}
 
 	// fetch container
-	container, err := models.GetExistingContainer(pp, cmp, ac)
-	if container == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s not found", pp, cmp))
+	container, err := models.GetContainer(pp, cmp, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
@@ -53,7 +52,7 @@ func GetContainer(c *gin.Context) {
 
 // CreateContainer creates a new container for the given publication point and campaign
 func CreateContainer(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	var mc ManagementContainerRequest
 	if err := c.BindJSON(&mc); err != nil {
@@ -61,7 +60,7 @@ func CreateContainer(c *gin.Context) {
 		return
 	}
 
-	container, err := models.NewContainer(mc.PublicationPoint, mc.Campaign, mc.Models, ac)
+	container, err := models.NewContainer(mc.PublicationPoint, mc.Campaign, mc.Models, dbc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusUnprocessableEntity, err)
 		return
@@ -75,7 +74,7 @@ func CreateContainer(c *gin.Context) {
 
 // EmptyContainer truncate the container's data
 func EmptyContainer(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	var mc ManagementContainerRequest
 	if err := c.BindJSON(&mc); err != nil {
@@ -83,14 +82,14 @@ func EmptyContainer(c *gin.Context) {
 		return
 	}
 
-	container, err := models.GetExistingContainer(mc.PublicationPoint, mc.Campaign, ac)
-	if container == nil || err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s not found", mc.PublicationPoint, mc.Campaign))
+	container, err := models.GetContainer(mc.PublicationPoint, mc.Campaign, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	// empty model from database
-	if err := container.DeleteContainer(ac); err != nil {
+	if err := container.DeleteContainer(dbc); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -103,7 +102,7 @@ func EmptyContainer(c *gin.Context) {
 
 // LinkModel attaches the specified models in input to an existing container
 func LinkModel(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	var mc ManagementContainerRequest
 	if err := c.BindJSON(&mc); err != nil {
@@ -117,14 +116,14 @@ func LinkModel(c *gin.Context) {
 	}
 
 	// get the existing model
-	container, err := models.GetExistingContainer(mc.PublicationPoint, mc.Campaign, ac)
+	container, err := models.GetContainer(mc.PublicationPoint, mc.Campaign, dbc)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("container with publication point %s and campaign %s not found", mc.PublicationPoint, mc.Campaign))
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	// link the models internally
-	container, err = container.LinkModel(mc.Models, ac)
+	err = container.LinkModel(mc.Models, dbc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
@@ -138,18 +137,18 @@ func LinkModel(c *gin.Context) {
 
 // ManagementContainersResponse handles the response when there are multiple containers
 type ManagementContainersResponse struct {
-	Containers []*models.Container `json:"containers"`
-	Message    string              `json:"message"`
+	Containers []models.Container `json:"containers"`
+	Message    string             `json:"message"`
 }
 
 // GetAllContainers returns all the containers in the database
 func GetAllContainers(c *gin.Context) {
-	ac := c.MustGet("AerospikeClient").(*db.AerospikeClient)
+	dbc := c.MustGet("DB").(db.DB)
 
 	// fetch container
-	containers, err := models.GetAllContainers(ac)
+	containers, err := models.GetAllContainers(dbc)
 	if err != nil {
-		utils.ResponseError(c, http.StatusNotFound, errors.New("no containers found"))
+		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 

@@ -70,19 +70,16 @@ func (c *S3Client) ExistsObject(key string) bool {
 // It returns false if the bucket exists, true otherwise
 func (c *S3Client) CreateS3Bucket(bucket *S3Bucket) (bool, error) {
 	var err error
-
 	// create bucket if doesn't exist
 	if _, err = c.Service.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(bucket.Bucket),
 	}); err != nil {
-
 		_, err = c.Service.CreateBucket(&s3.CreateBucketInput{
 			Bucket: aws.String(bucket.Bucket),
 			ACL:    aws.String(bucket.ACL),
 		})
 		return true, err
 	}
-
 	return false, err
 }
 
@@ -90,28 +87,24 @@ func (c *S3Client) CreateS3Bucket(bucket *S3Bucket) (bool, error) {
 // It returns false if the bucket exists, true otherwise
 func (c *S3Client) DeleteS3Bucket(bucket *S3Bucket) (bool, error) {
 	var err error
-
 	// delete bucket if exists
 	if _, err = c.Service.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(bucket.Bucket),
 	}); err == nil {
-
 		// delete all objects
 		err = c.DeleteS3AllObjects(bucket)
 		if err != nil {
 			return true, err
 		}
-
 		_, err = c.Service.DeleteBucket(&s3.DeleteBucketInput{
 			Bucket: aws.String(bucket.Bucket),
 		})
 		return true, err
 	}
-
 	return false, err
 }
 
-// Delete all objects within a bucket (this is not the most efficient way)
+// DeleteS3AllObjects all objects within a bucket (this is not the most efficient way)
 func (c *S3Client) DeleteS3AllObjects(bucket *S3Bucket) error {
 
 	// setup BatchDeleteIterator to iterate through a list of objects.
@@ -129,7 +122,7 @@ func (c *S3Client) DeleteS3AllObjects(bucket *S3Bucket) error {
 	return nil
 }
 
-// Upload a file to S3
+// UploadS3File a file to S3
 func (c *S3Client) UploadS3File(fileDir string, bucket *S3Bucket) error {
 
 	// Open the file for use

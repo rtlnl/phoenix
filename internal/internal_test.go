@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -10,10 +9,7 @@ import (
 )
 
 func TestNewInternalAPI(t *testing.T) {
-	p, _ := strconv.Atoi(testDBPort)
-
 	var middlewares []gin.HandlerFunc
-	middlewares = append(middlewares, middleware.Aerospike(testDBHost, testNamespace, p))
 	middlewares = append(middlewares, middleware.AWSSession(testBucket, testEndpoint, testDisableSSL))
 
 	i, err := NewInternalAPI(middlewares...)

@@ -1,18 +1,8 @@
 version: "3"
 services:
-  aerospike:
-    image: aerospike/aerospike-server:4.7.0.2
-    container_name: aerospike
-    command: ["--config-file", "/opt/aerospike/etc/aerospike.conf"]
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./data:/opt/aerospike/data
-      - ./config/aerospike.test.conf:/opt/aerospike/etc/aerospike.conf
-
   localstack:
     container_name: localstack
-    image: localstack/localstack
+    image: localstack/localstack:0.10.5
     ports:
       - "4572:4572"
       - "8080:8080"
@@ -25,5 +15,11 @@ services:
     volumes:
       - ./.localstack:/tmp/localstack
 
-volumes:
-  aerospike-data:
+  redis:
+    image: redis
+    container_name: redis
+    command:
+      - "redis-server"
+      - "--appendonly yes"
+    ports:
+      - "6379:6379"
