@@ -2,6 +2,7 @@ package db
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -40,6 +41,8 @@ func (c *S3Client) GetObject(key string) (*io.ReadCloser, error) {
 		Bucket: aws.String(c.Bucket),
 		Key:    aws.String(key),
 	})
+
+	log.Info().Str("S3", fmt.Sprintf("reading file %s", key))
 
 	if err != nil {
 		return nil, err

@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/rs/zerolog/log"
 
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/db"
@@ -209,6 +210,7 @@ func Batch(c *gin.Context) {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
+	log.Info().Str("DELETE", fmt.Sprintf("table %s", br.ModelName))
 
 	// upload data from S3 file
 	bucket, key := utils.StripS3URL(br.DataLocation)
@@ -231,6 +233,8 @@ func Batch(c *gin.Context) {
 
 	// seprate thread
 	go bo.UploadDataFromFile(f, batchID)
+
+	log.Info().Str("BATCH", fmt.Sprintf("started batchId %s", batchID)).Str("MODEL", fmt.Sprintf("name %s", br.ModelName))
 
 	utils.Response(c, http.StatusCreated, &BatchBulkResponse{BatchID: batchID})
 }

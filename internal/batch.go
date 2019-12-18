@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/rtlnl/phoenix/utils"
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 // BulkStatus defines the status of the batch upload from S3
@@ -104,7 +104,7 @@ func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string)
 	wg.Wait()
 
 	elapsed := time.Since(start)
-	log.Info().Msgf("Uploading took %s", elapsed)
+	log.Info().Str("BATCH", fmt.Sprintf("upload in %s", elapsed))
 }
 
 // UploadDataDirectly does an insert directly to Database
@@ -155,18 +155,12 @@ func (bo *BatchOperator) UploadDataDirectly(bd []BatchData) (string, DataUploade
 // IterateFile will iterate each line in the reader object and push messages in the channels
 func (bo *BatchOperator) IterateFile(rd *bufio.Reader, setName string, rs chan<- *models.RecordQueue, le chan<- models.LineError) {
 	var ln int = 0
-	var vl bool = false
+	vl := bo.Model.RequireSignalFormat()
 
-	// check upfront if signal validation is required
-	if bo.Model.RequireSignalFormat() {
-		vl = true
-	}
-
-	eof := false
-	for !eof {
+	for {
 		line, err := rd.ReadString('\n')
 		if err == io.EOF {
-			eof = true
+			break
 		}
 
 		// string new-line character
@@ -179,9 +173,9 @@ func (bo *BatchOperator) IterateFile(rd *bufio.Reader, setName string, rs chan<-
 				"lineRaw": line,
 				"message": err.Error(),
 			}
+			log.Warn().Str("READ", fmt.Sprintf("could not serialize recommended object. error: %s", err.Error())).Str("LINE", line)
 			continue
 		}
-
 		// validate signal format
 		ln++
 		if vl && !bo.Model.CorrectSignalFormat(entry.SignalID) {
@@ -189,9 +183,9 @@ func (bo *BatchOperator) IterateFile(rd *bufio.Reader, setName string, rs chan<-
 				"line":    strconv.Itoa(ln),
 				"message": "signal not formatted correctly",
 			}
+			log.Warn().Str("READ", "signal not formatted correctly").Str("SIGNAL", entry.SignalID).Str("LINE", line)
 			continue
 		}
-
 		// add to channel
 		rs <- &models.RecordQueue{Table: setName, Entry: entry, Error: nil}
 	}
@@ -245,6 +239,7 @@ Loop:
 				continue
 			}
 			bo.DBClient.PipelineAddOne(r.Table, r.Entry.SignalID, ser)
+			log.Info().Str("INSERT", fmt.Sprintf("signalId %s", r.Entry.SignalID)).Str("MODEL", bo.Model.Name)
 
 			// append to buffer
 			buffer = append(buffer, ser)

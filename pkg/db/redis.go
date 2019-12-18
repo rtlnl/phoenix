@@ -94,15 +94,15 @@ func (db *Redis) GetAllRecords(table string) (map[string]string, error) {
 	key := ""
 	for iter.Next() {
 		// stop iterating
-		if counter == maxEntries + 1 {
+		if counter == maxEntries+1 {
 			return elems, nil
 		}
 		if iter.Err() != nil {
-			log.Error().Msgf("error found: %s",iter.Err().Error())
+			log.Error().Msgf("error found: %s", iter.Err().Error())
 			continue
 		}
 		val := iter.Val()
-		if counter % 2 == 0 {
+		if counter%2 == 0 {
 			key = val
 		} else {
 			elems[key] = val
