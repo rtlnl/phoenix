@@ -3,11 +3,8 @@ package public
 import (
 	"errors"
 	"fmt"
-	"github.com/rtlnl/phoenix/pkg/logs"
 	"net/http"
 	"sync"
-
-	"github.com/rtlnl/phoenix/pkg/logs"
 
 	"github.com/gin-gonic/gin"
 	zerolog "github.com/rs/zerolog/log"
@@ -15,6 +12,7 @@ import (
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/pkg/tucson"
 	"github.com/rtlnl/phoenix/utils"
 )
