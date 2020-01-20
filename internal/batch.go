@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/rs/zerolog/log"
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/cache"
@@ -175,8 +176,9 @@ func (bo *BatchOperator) IterateFile(rd *bufio.Reader, setName string, rs chan<-
 		var entry models.SingleEntry
 		if err := json.Unmarshal([]byte(l), &entry); err != nil {
 			le <- models.LineError{
-				"lineRaw": line,
-				"message": err.Error(),
+				"line":    strconv.Itoa(ln),
+				"lineRaw": l,
+				"message": spew.Sdump(entry),
 			}
 			log.Warn().Str("READ", fmt.Sprintf("could not serialize recommended object. error: %s", err.Error())).Str("LINE", line)
 			continue
@@ -264,6 +266,7 @@ Loop:
 // flushPipeline executes the pipeline
 func (bo *BatchOperator) flushPipeline(batchID string) {
 	if err := bo.DBClient.PipelineExec(); err != nil {
+		log.Error().Msg(err.Error())
 		// write to DB that it failed
 		if err := bo.DBClient.AddOne(tableBulkStatus, batchID, BulkFailed); err != nil {
 			log.Error().Msg(err.Error())
