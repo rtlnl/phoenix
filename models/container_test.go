@@ -84,12 +84,13 @@ func TestGetAllContainers(t *testing.T) {
 		t.FailNow()
 	}
 
-	containers, err := GetAllContainers(dbc)
+	containers, count, err := GetAllContainers(dbc)
 	if err != nil {
 		t.FailNow()
 	}
 
 	assert.Equal(t, 2, len(containers))
+	assert.Equal(t, 2, count)
 }
 
 func TestContainerUniqueName(t *testing.T) {

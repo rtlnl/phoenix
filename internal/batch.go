@@ -10,10 +10,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/rs/zerolog/log"
-	"github.com/rtlnl/phoenix/utils"
 	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/utils"
 )
 
 // BulkStatus defines the status of the batch upload from S3
@@ -41,8 +43,9 @@ var (
 
 // BatchOperator is the object responsible for uploading data in batch to Database
 type BatchOperator struct {
-	DBClient db.DB
-	Model    models.Model
+	DBClient    db.DB
+	CacheClient cache.Cache
+	Model       models.Model
 }
 
 // NewBatchOperator returns the object responsible for uploading the data in batch to Database
@@ -103,8 +106,11 @@ func (bo *BatchOperator) UploadDataFromFile(file *io.ReadCloser, batchID string)
 	// wait until done
 	wg.Wait()
 
+	// empty cache
+	bo.CacheClient.Empty()
+
 	elapsed := time.Since(start)
-	log.Info().Msgf("Uploading took %s", elapsed)
+	log.Info().Str("BATCH", fmt.Sprintf("upload in %s", elapsed))
 }
 
 // UploadDataDirectly does an insert directly to Database
@@ -155,18 +161,12 @@ func (bo *BatchOperator) UploadDataDirectly(bd []BatchData) (string, DataUploade
 // IterateFile will iterate each line in the reader object and push messages in the channels
 func (bo *BatchOperator) IterateFile(rd *bufio.Reader, setName string, rs chan<- *models.RecordQueue, le chan<- models.LineError) {
 	var ln int = 0
-	var vl bool = false
+	vl := bo.Model.RequireSignalFormat()
 
-	// check upfront if signal validation is required
-	if bo.Model.RequireSignalFormat() {
-		vl = true
-	}
-
-	eof := false
-	for !eof {
+	for {
 		line, err := rd.ReadString('\n')
 		if err == io.EOF {
-			eof = true
+			break
 		}
 
 		// string new-line character
@@ -176,12 +176,13 @@ func (bo *BatchOperator) IterateFile(rd *bufio.Reader, setName string, rs chan<-
 		var entry models.SingleEntry
 		if err := json.Unmarshal([]byte(l), &entry); err != nil {
 			le <- models.LineError{
-				"lineRaw": line,
-				"message": err.Error(),
+				"line":    strconv.Itoa(ln),
+				"lineRaw": l,
+				"message": spew.Sdump(entry),
 			}
+			log.Warn().Str("READ", fmt.Sprintf("could not serialize recommended object. error: %s", err.Error())).Str("LINE", line)
 			continue
 		}
-
 		// validate signal format
 		ln++
 		if vl && !bo.Model.CorrectSignalFormat(entry.SignalID) {
@@ -189,9 +190,9 @@ func (bo *BatchOperator) IterateFile(rd *bufio.Reader, setName string, rs chan<-
 				"line":    strconv.Itoa(ln),
 				"message": "signal not formatted correctly",
 			}
+			log.Warn().Str("READ", "signal not formatted correctly").Str("SIGNAL", entry.SignalID).Str("LINE", line)
 			continue
 		}
-
 		// add to channel
 		rs <- &models.RecordQueue{Table: setName, Entry: entry, Error: nil}
 	}
@@ -245,6 +246,7 @@ Loop:
 				continue
 			}
 			bo.DBClient.PipelineAddOne(r.Table, r.Entry.SignalID, ser)
+			log.Info().Str("INSERT", fmt.Sprintf("signalId %s", r.Entry.SignalID)).Str("MODEL", bo.Model.Name)
 
 			// append to buffer
 			buffer = append(buffer, ser)
@@ -264,6 +266,7 @@ Loop:
 // flushPipeline executes the pipeline
 func (bo *BatchOperator) flushPipeline(batchID string) {
 	if err := bo.DBClient.PipelineExec(); err != nil {
+		log.Error().Msg(err.Error())
 		// write to DB that it failed
 		if err := bo.DBClient.AddOne(tableBulkStatus, batchID, BulkFailed); err != nil {
 			log.Error().Msg(err.Error())
@@ -284,13 +287,15 @@ func (bo *BatchOperator) StoreErrors(batchID string, le chan models.LineError) i
 		}
 		break
 	}
-	// save to DB the errors list
-	ser, err := utils.SerializeObject(allErrors)
-	if err != nil {
-		log.Error().Msgf("could not serialize error objects. error: %s", err.Error())
-	}
-	if err := bo.DBClient.AddOne(tableBulkErrors, batchID, ser); err != nil {
-		log.Panic().Msg(err.Error())
+	// save to DB the errors list if any
+	if len(allErrors) > 0 {
+		ser, err := utils.SerializeObject(allErrors)
+		if err != nil {
+			log.Error().Msgf("could not serialize error objects. error: %s", err.Error())
+		}
+		if err := bo.DBClient.AddOne(tableBulkErrors, batchID, ser); err != nil {
+			log.Panic().Msg(err.Error())
+		}
 	}
 	return i
 }

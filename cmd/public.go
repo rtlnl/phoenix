@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/Shopify/sarama"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/gin-gonic/gin"
@@ -10,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 
 	md "github.com/rtlnl/phoenix/middleware"
+	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/public"
 )
@@ -52,6 +55,17 @@ APIs for serving the personalized content.`,
 			panic(err)
 		}
 
+		// set caching layer
+		cacheClient, err := cache.NewAllegroBigCache(cache.Shards(1024),
+			cache.LifeWindow(time.Minute*30), // mark an entry as "dead" after 30 minutes
+			cache.CleanWindow(time.Minute*5), // clean "dead" entries every 5 minutes
+			cache.MaxEntriesInWindow(1000*10*60),
+			cache.MaxEntrySize(500),
+		)
+		if err != nil {
+			panic(err)
+		}
+
 		// create recommendation logger
 		recLogs, err := setRecommendationLogging(logType)
 		if err != nil {
@@ -67,6 +81,7 @@ APIs for serving the personalized content.`,
 		var middlewares []gin.HandlerFunc
 		middlewares = append(middlewares, md.DB(redisClient))
 		middlewares = append(middlewares, md.RecommendationLogs(recLogs))
+		middlewares = append(middlewares, md.Cache(cacheClient))
 
 		// only if we pass the tucson flag in the CLI we inject the client
 		if tucsonAddress != "" {

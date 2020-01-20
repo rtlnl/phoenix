@@ -6,15 +6,13 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/rtlnl/phoenix/pkg/logs"
-
 	"github.com/gin-gonic/gin"
 	zerolog "github.com/rs/zerolog/log"
 
 	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
-
-	//"github.com/rtlnl/phoenix/pkg/logs"
+	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/pkg/tucson"
 	"github.com/rtlnl/phoenix/utils"
 )
@@ -41,7 +39,6 @@ var rrPool = sync.Pool{
 // Recommend will take care of fetching the personalized content for a specific user
 func Recommend(c *gin.Context) {
 	dbc := c.MustGet("DB").(db.DB)
-	lt := c.MustGet("RecommendationLog").(logs.RecommendationLog)
 
 	// get a new object from the pool and then dispose it
 	rr := rrPool.Get().(*RecommendRequest)
@@ -85,6 +82,30 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
+	// get caching layer client
+	cc := c.MustGet("CacheClient").(cache.Cache)
+	// get logging client
+	lt := c.MustGet("RecommendationLog").(logs.RecommendationLog)
+
+	// compose key for the cache
+	key := fmt.Sprintf("%s#%s", modelName, rr.SignalID)
+	// check if value is in cache
+	if is, ok := cc.Get(key); ok {
+		// write logs
+		lt.Write(logs.RowLog{
+			PublicationPoint: rr.PublicationPoint,
+			Campaign:         rr.Campaign,
+			SignalID:         rr.SignalID,
+			ItemScores:       is,
+		})
+		// return response
+		utils.Response(c, http.StatusOK, &RecommendResponse{
+			ModelName:       modelName,
+			Recommendations: is,
+		})
+		return
+	}
+
 	// get the recommended values
 	r, err := dbc.GetOne(modelName, rr.SignalID)
 	if err != nil {
@@ -97,6 +118,12 @@ func Recommend(c *gin.Context) {
 	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, fmt.Errorf("could not deserialize object. error: %s", err.Error()))
 		return
+	}
+
+	// store in cache
+	if ok := cc.Set(key, itemsScore); !ok {
+		// if an error occur we simply log it and continue
+		zerolog.Error().Msgf("failed to store key %s in cache", key)
 	}
 
 	// write logs in a separate thread for not blocking the server

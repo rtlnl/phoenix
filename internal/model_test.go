@@ -321,5 +321,5 @@ func TestGetDataPreview(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"preview\":[{\"signalId\":\"123\",\"recommended\":[{\"item\":\"111\",\"score\":\"0.6\",\"type\":\"movie\"},{\"item\":\"222\",\"score\":\"0.4\",\"type\":\"movie\"},{\"item\":\"555\",\"score\":\"0.16\",\"type\":\"series\"}]}]}", string(b))
+	assert.Equal(t, "{\"count\":1,\"preview\":[{\"signalId\":\"123\",\"recommended\":[{\"item\":\"111\",\"score\":\"0.6\",\"type\":\"movie\"},{\"item\":\"222\",\"score\":\"0.4\",\"type\":\"movie\"},{\"item\":\"555\",\"score\":\"0.16\",\"type\":\"series\"}]}]}", string(b))
 }

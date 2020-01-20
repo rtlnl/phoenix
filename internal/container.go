@@ -137,6 +137,7 @@ func LinkModel(c *gin.Context) {
 
 // ManagementContainersResponse handles the response when there are multiple containers
 type ManagementContainersResponse struct {
+	Count      int                `json:"count"`
 	Containers []models.Container `json:"containers"`
 	Message    string             `json:"message"`
 }
@@ -146,13 +147,14 @@ func GetAllContainers(c *gin.Context) {
 	dbc := c.MustGet("DB").(db.DB)
 
 	// fetch container
-	containers, err := models.GetAllContainers(dbc)
+	containers, count, err := models.GetAllContainers(dbc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	utils.Response(c, http.StatusOK, &ManagementContainersResponse{
+		Count:      count,
 		Containers: containers,
 		Message:    "containers fetched",
 	})

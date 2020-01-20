@@ -102,21 +102,21 @@ func (c *Container) LinkModel(models []string, dbc db.DB) error {
 }
 
 // GetAllContainers returns all the containers in the database
-func GetAllContainers(dbc db.DB) ([]Container, error) {
+func GetAllContainers(dbc db.DB) ([]Container, int, error) {
 	var containers []Container
-	records, err := dbc.GetAllRecords(tableContainers)
+	records, count, err := dbc.GetAllRecords(tableContainers)
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 	// transform the records in containers
 	for _, serializedContainer := range records {
 		c, err := DeserializeContainer(serializedContainer)
 		if err != nil {
-			return nil, err
+			return nil, -1, err
 		}
 		containers = append(containers, c)
 	}
-	return containers, nil
+	return containers, count, nil
 }
 
 // ContainerUniqueName returns the unique name for the container
