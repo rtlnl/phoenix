@@ -48,6 +48,7 @@ var internalCmd = &cobra.Command{
 		middlewares = append(middlewares, md.DB(redisClient))
 		middlewares = append(middlewares, md.AWSSession(s3Region, s3Endpoint, s3DisableSSL))
 		middlewares = append(middlewares, md.Cors())
+		middlewares = append(middlewares, md.NewWorker(dbHost, workerProducerName, workerQueueName))
 
 		i, err := internal.NewInternalAPI(middlewares...)
 		if err != nil {

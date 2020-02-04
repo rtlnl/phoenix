@@ -26,6 +26,12 @@ github.com/Shopify/sarama v1.24.0 h1:99vo5VAgQybHwZwiOy/RX/S3i0somjGxur3pLeheqzI
 github.com/Shopify/sarama v1.24.0/go.mod h1:fGP8eQ6PugKEI0iUETYYtnP6d1pH/bdDMTel1X5ajsU=
 github.com/Shopify/toxiproxy v2.1.4+incompatible h1:TKdv8HiTLgE5wdJuEML90aBgNWsokNbMijUGhmcoBJc=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
+github.com/adjust/gocheck v0.0.0-20131111155431-fbc315b36e0e h1:eiFUF06iaKUDS3HVFSlRYEL0ddnQ+HAGIis/kENW+Ug=
+github.com/adjust/gocheck v0.0.0-20131111155431-fbc315b36e0e/go.mod h1:x8X/algNhAAR28ODU+0TzjBwcr7CHA1F/o27Ov/rFGQ=
+github.com/adjust/rmq v1.0.0 h1:VTD1iLXIQD3tr4mQlgOOOkz6jMbIiKdnpDXQyAqPOLQ=
+github.com/adjust/rmq v1.0.0/go.mod h1:R3ayojJEWi4WQ7I6q1GYzgeBiHC58+y/6eQc2usiWh4=
+github.com/adjust/uniuri v0.0.0-20130923163420-498743145e60 h1:ogL5Ct/E8o3w/QiBWDFJV9fOXglEiXI+YaYIqWNCJ8Y=
+github.com/adjust/uniuri v0.0.0-20130923163420-498743145e60/go.mod h1:pgVmNTYfZOWG+PrCVPcvgUy5Z/uowI78tK8ARMsdVXw=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
@@ -466,7 +472,11 @@ google.golang.org/grpc v1.21.0/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ij
 google.golang.org/grpc v1.21.1/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=
 google.golang.org/grpc v1.24.0 h1:vb/1TCsVn3DcJlQ0Gs1yB1pKI6Do2/QNwxdKqmc/b0s=
 google.golang.org/grpc v1.24.0/go.mod h1:XDChyiUovWa60DnaeDeZmSW86xtLtjtZbwvSiRnRtcA=
+gopkg.in/adjust/rmq.v1 v1.0.0 h1:IneekSNPlhpSDKxuQC3Myd1oxC9N+styBxHzlZQWWiU=
+gopkg.in/adjust/rmq.v1 v1.0.0/go.mod h1:vLqzIrVtunQhxtNCuFZluUEziASENKcFQDaakX362v8=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=
+gopkg.in/bsm/ratelimit.v1 v1.0.0-20160220154919-db14e161995a h1:stTHdEoWg1pQ8riaP5ROrjS6zy6wewH/Q2iwnLCQUXY=
+gopkg.in/bsm/ratelimit.v1 v1.0.0-20160220154919-db14e161995a/go.mod h1:KF9sEfUPAXdG8Oev9e99iLGnl2uJMjc5B+4y3O7x610=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 h1:qIbj1fsPNlZgppZ+VLlY7N33q108Sa+fhmuc+sWQYwY=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
@@ -489,6 +499,8 @@ gopkg.in/jcmturner/gokrb5.v7 v7.2.3 h1:hHMV/yKPwMnJhPuPx7pH2Uw/3Qyf+thJYlisUc440
 gopkg.in/jcmturner/gokrb5.v7 v7.2.3/go.mod h1:l8VISx+WGYp+Fp7KRbsiUuXTTOnxIc3Tuvyavf11/WM=
 gopkg.in/jcmturner/rpc.v1 v1.1.0 h1:QHIUxTX1ISuAv9dD2wJ9HWQVuWDX/Zc0PfeC2tjc4rU=
 gopkg.in/jcmturner/rpc.v1 v1.1.0/go.mod h1:YIdkC4XfD6GXbzje11McwsDuOlZQSb9W4vfLvuNnlv8=
+gopkg.in/redis.v3 v3.6.4 h1:u7XgPH1rWwsdZnR+azldXC6x9qDU2luydOIeU/l52fE=
+gopkg.in/redis.v3 v3.6.4/go.mod h1:6XeGv/CrsUFDU9aVbUdNykN7k1zVmoeg83KC9RbQfiU=
 gopkg.in/resty.v1 v1.12.0/go.mod h1:mDo4pnntr5jdWRML875a/NmxYqAlA73dVijT2AXvQQo=
 gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 h1:uRGJdciOHaEIrze2W8Q3AKkepLTh2hOroT7a+7czfdQ=
 gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7/go.mod h1:dt/ZhP58zS4L8KSrWDmTeBkI65Dw0HsyUHuEVlX15mw=

@@ -1,16 +1,16 @@
 package cmd
 
 import (
-	"net/http"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rtlnl/phoenix/worker"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var ()
+const (
+	workerConsumerName = "worker-consumer"
+	workerProducerName = "worker-producer"
+	workerQueueName    = "worker-queue"
+)
 
 // workerCmd represents the internal command
 var workerCmd = &cobra.Command{
@@ -19,31 +19,18 @@ var workerCmd = &cobra.Command{
 	Long: `This command will start the server for creating tasks
 	that will be executed one they arrive.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		addr := viper.GetString(addressWorkerFlag)
-		brokerWorker := viper.GetString(brokerWorkerFlag)
-		resultBackendWorker := viper.GetString(resultBackendWorkerFlag)
+		brokerWorker := viper.GetString(workerBrokerFlag)
 
-		w, err := worker.NewWorker(brokerWorker, resultBackendWorker)
+		w, err := worker.New(brokerWorker, workerConsumerName, workerQueueName)
 		if err != nil {
 			panic(err)
 		}
 
-		if err := w.RegisterTasks(nil); err != nil {
+		if err := w.Consume(); err != nil {
 			panic(err)
 		}
-
-		// start prometheus here
-		http.Handle("/metrics", promhttp.HandlerFor(
-			prometheus.DefaultGatherer,
-			promhttp.HandlerOpts{},
-		))
-		go func() {
-			http.ListenAndServe(addr, nil)
-		}()
-
-		if err := w.Launch(); err != nil {
-			panic(err)
-		}
+		// TODO: fix this with sig handling
+		select {}
 	},
 }
 
@@ -52,13 +39,9 @@ func init() {
 
 	f := workerCmd.PersistentFlags()
 
-	f.String(addressWorkerFlag, ":9000", "prometheus address")
-	f.String(brokerWorkerFlag, "redis://127.0.0.1:6379", "broker url for the workers")
-	f.String(resultBackendWorkerFlag, "redis://127.0.0.1:6379", "result backend url for the workers")
+	f.String(workerBrokerFlag, "127.0.0.1:6379", "broker url for the workers")
 
-	viper.BindEnv(addressWorkerFlag, "ADDRESS_HOST")
-	viper.BindEnv(brokerWorkerFlag, "BROKER_URL")
-	viper.BindEnv(resultBackendWorkerFlag, "RESULT_BACKEND_URL")
+	viper.BindEnv(workerBrokerFlag, "WORKER_BROKER_URL")
 
 	viper.BindPFlags(f)
 }

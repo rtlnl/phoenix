@@ -5,6 +5,9 @@ go 1.12
 require (
 	github.com/RichardKnop/machinery v1.7.3
 	github.com/Shopify/sarama v1.24.0
+	github.com/adjust/gocheck v0.0.0-20131111155431-fbc315b36e0e // indirect
+	github.com/adjust/rmq v1.0.0
+	github.com/adjust/uniuri v0.0.0-20130923163420-498743145e60 // indirect
 	github.com/allegro/bigcache v1.2.1
 	github.com/aws/aws-sdk-go v1.25.8
 	github.com/banzaicloud/go-gin-prometheus v0.0.0-20190417120951-df9373ad5327
@@ -35,5 +38,8 @@ require (
 	github.com/tsenart/vegeta v12.7.0+incompatible
 	github.com/ugorji/go v1.1.7 // indirect
 	google.golang.org/grpc v1.24.0
+	gopkg.in/adjust/rmq.v1 v1.0.0 // indirect
+	gopkg.in/bsm/ratelimit.v1 v1.0.0-20160220154919-db14e161995a // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.1
+	gopkg.in/redis.v3 v3.6.4 // indirect
 )
