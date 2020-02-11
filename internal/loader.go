@@ -277,3 +277,89 @@ func BatchStatus(c *gin.Context) {
 		utils.Response(c, http.StatusOK, &BatchStatusResponse{Status: status})
 	}
 }
+
+// StreamingRequest is the object that represents the payload for the request in the streaming endpoints
+type LikeRequest struct {
+	SignalID       string           `json:"signalId" binding:"required"`
+	ModelName      string           `json:"modelName" binding:"required"`
+	Like           bool             `json:"like" binding:"exists"`
+	Recommendation models.ItemScore `json:"recommendation" binding:"required"`
+}
+
+// HandleLike handles a like/dislike on a single recommendation item
+// If it is a dislike, then the recommendation will be updated to leave the disliked item out
+func HandleLike(c *gin.Context) {
+	dbc := c.MustGet("DB").(db.DB)
+
+	var lr LikeRequest
+	if err := c.BindJSON(&lr); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	// get the model
+	m, err := models.GetModel(lr.ModelName, dbc)
+	if err != nil {
+		utils.ResponseError(c, http.StatusNotFound, err)
+		return
+	}
+
+	// validate input
+	if m.RequireSignalFormat() && !m.CorrectSignalFormat(lr.SignalID) {
+		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("the expected signal format must be %s", strings.Join(m.SignalOrder, m.Concatenator)))
+		return
+	}
+
+	// If a dislike was given,
+	// then update the recommendations with the disliked item removed
+	if !lr.Like {
+
+		// get the recommended values
+		rec, err := dbc.GetOne(lr.ModelName, lr.SignalID)
+		if err != nil {
+			utils.ResponseError(c, http.StatusNotFound, err)
+			return
+		}
+
+		// convert the escaped json string to itemscore object
+		var items []models.ItemScore
+		if err := json.Unmarshal([]byte(rec), &items); err != nil {
+			utils.ResponseError(c, http.StatusInternalServerError, err)
+			return
+		}
+
+		// remove the disliked item from the recommendation list
+		items = RemoveItem(lr.Recommendation, items)
+
+		// serialize recommendations
+		ser, err := utils.SerializeObject(items)
+		if err != nil {
+			utils.ResponseError(c, http.StatusInternalServerError, err)
+			return
+		}
+
+		// UPSERT the new recommendation list to the DB
+		if err := dbc.AddOne(lr.ModelName, lr.SignalID, ser); err != nil {
+			utils.ResponseError(c, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	//TODO: Do logging here regardless like/dislike
+
+	utils.Response(c, http.StatusCreated, &StreamingResponse{
+		Message: fmt.Sprintf("Handled like/dislike for SignalId %s", lr.SignalID),
+	})
+}
+
+// Removes a given itemscore item from the itemscore array
+// and returns an array with the item removed
+func RemoveItem(toRemove models.ItemScore, items []models.ItemScore) []models.ItemScore {
+	tmp := items[:0]
+	for _, item := range items {
+		if !(toRemove["item"] == item["item"]) {
+			tmp = append(tmp, item)
+		}
+	}
+	return tmp
+}
