@@ -164,6 +164,40 @@
 			"response": []
 		},
 		{
+			"name": "Streaming data - like/dislike",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signalId\": \"12\",\n\t\"recommendation\": {\"item\":\"1\"},\n\t\"like\": false\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{phoenix_url_internal}}/streaming/like",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"streaming",
+						"like"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Model Data Preview",
 			"request": {
 				"method": "GET",
