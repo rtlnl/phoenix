@@ -63,6 +63,22 @@ func createBatchRequestLocation(modelName string, dataLocation string) (*bytes.R
 	return bytes.NewReader(rb), nil
 }
 
+func createLikeRequest(modelName string, signalID string, like bool, recommendation models.ItemScore) (*bytes.Reader, error) {
+	lr := &LikeRequest{
+		SignalID:       signalID,
+		ModelName:      modelName,
+		Like:           like,
+		Recommendation: recommendation,
+	}
+
+	rb, err := json.Marshal(lr)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewReader(rb), nil
+}
+
 func TestStreaming(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
@@ -836,22 +852,6 @@ func TestCorrectSignalFormat(t *testing.T) {
 		o := m.CorrectSignalFormat(test.input)
 		assert.Equal(t, test.expected, o)
 	}
-}
-
-func createLikeRequest(modelName string, signalID string, like bool, recommendation models.ItemScore) (*bytes.Reader, error) {
-	lr := &LikeRequest{
-		SignalID:       signalID,
-		ModelName:      modelName,
-		Like:           like,
-		Recommendation: recommendation,
-	}
-
-	rb, err := json.Marshal(lr)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes.NewReader(rb), nil
 }
 
 func fillDBForLikeTests(dbc db.DB, t *testing.T) {
