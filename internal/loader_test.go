@@ -966,10 +966,38 @@ func TestDislike(t *testing.T) {
 		t.Fail()
 	}
 
-	// Check if disliked item is not in the recommendations
+	// make sure that disliked item is not in the recommendations
 	for _, rec := range recs {
 		if rec["item"] == "222" {
 			t.Error("Disliked item was not removed from recommendations.")
 		}
 	}
+}
+
+func TestDislikeNonExistingRecommendation(t *testing.T) {
+	dbc, c := GetTestRedisClient()
+	defer c()
+
+	fillDBForLikeTests(dbc, t)
+
+	likedItem := models.ItemScore{"item": "1000"}
+	signal := "890"
+	like := false
+	rl, err := createLikeRequest("alcatraz", signal, like, likedItem)
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming/like", rl)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "{\"error\":\"recommendation does not exist\"}", string(b))
 }
