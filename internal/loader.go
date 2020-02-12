@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -338,7 +339,13 @@ func HandleLike(c *gin.Context) {
 	}
 
 	// remove the disliked item from the recommendation list
-	items = removeItem(lr.Recommendation, items)
+	// only do so if it actually exists
+	var valid bool
+	items, valid = removeItem(lr.Recommendation, items)
+	if !valid {
+		utils.ResponseError(c, http.StatusBadRequest, errors.New("recommendation does not exist"))
+		return
+	}
 
 	// serialize recommendations
 	ser, err := utils.SerializeObject(items)
@@ -362,12 +369,21 @@ func HandleLike(c *gin.Context) {
 
 // Removes a given itemscore item from the itemscore array
 // and returns an array with the item removed
-func removeItem(toRemove models.ItemScore, items []models.ItemScore) []models.ItemScore {
+func removeItem(toRemove models.ItemScore, items []models.ItemScore) ([]models.ItemScore, bool) {
+	found := false
+
+	// If items is not valid, return immediately
+	if items == nil || len(items) == 0 {
+		return items, found
+	}
+
 	tmp := items[:0]
 	for _, item := range items {
 		if !(toRemove["item"] == item["item"]) {
 			tmp = append(tmp, item)
+		} else {
+			found = true
 		}
 	}
-	return tmp
+	return tmp, found
 }
