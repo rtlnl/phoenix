@@ -55,6 +55,8 @@ func tearUp() {
 	router.PUT("/v1/streaming", UpdateStreaming)
 	router.DELETE("/v1/streaming", DeleteStreaming)
 
+	router.POST("/v1/streaming/like", HandleLike)
+
 	router.POST("/v1/batch", Batch)
 	router.GET("/v1/batch/status/:id", BatchStatus)
 

@@ -837,3 +837,139 @@ func TestCorrectSignalFormat(t *testing.T) {
 		assert.Equal(t, test.expected, o)
 	}
 }
+
+func createLikeRequest(modelName string, signalID string, like bool, recommendation models.ItemScore) (*bytes.Reader, error) {
+	lr := &LikeRequest{
+		SignalID:       signalID,
+		ModelName:      modelName,
+		Like:           like,
+		Recommendation: recommendation,
+	}
+
+	rb, err := json.Marshal(lr)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewReader(rb), nil
+}
+
+func fillDBForLikeTests(dbc db.DB, t *testing.T) {
+	// populate data
+	if _, err := models.NewModel("alcatraz", "", []string{"prisoner"}, dbc); err != nil {
+		t.FailNow()
+	}
+
+	signal := "890"
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
+
+	rb, err := createStreamingRequest("alcatraz", signal, recommendationItems)
+	if err != nil {
+		t.Fail()
+	}
+
+	// send the mock data to populate
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"signal 890 created\"}", string(b))
+}
+
+func TestLike(t *testing.T) {
+	dbc, c := GetTestRedisClient()
+	defer c()
+
+	fillDBForLikeTests(dbc, t)
+
+	likedItem := models.ItemScore{"item": "222"}
+	signal := "890"
+	like := true
+	rl, err := createLikeRequest("alcatraz", signal, like, likedItem)
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming/like", rl)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"handled like for SignalId 890\"}", string(b))
+}
+
+func TestDislike(t *testing.T) {
+	dbc, c := GetTestRedisClient()
+	defer c()
+
+	fillDBForLikeTests(dbc, t)
+
+	likedItem := models.ItemScore{"item": "222"}
+	signal := "890"
+	like := false
+	rl, err := createLikeRequest("alcatraz", signal, like, likedItem)
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming/like", rl)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"Handled dislike for SignalId 890\"}", string(b))
+
+	// get the current recommendations string
+	recsAfter, err := dbc.GetOne("alcatraz", "890")
+	if err != nil {
+		t.Fail()
+	}
+
+	// convert the escaped json string to itemscore object
+	var recs []models.ItemScore
+	if err := json.Unmarshal([]byte(recsAfter), &recs); err != nil {
+		t.Fail()
+	}
+
+	// Check if disliked item is not in the recommendations
+	for _, rec := range recs {
+		if rec["item"] == "222" {
+			t.Error("Disliked item was not removed from recommendations.")
+		}
+	}
+}
