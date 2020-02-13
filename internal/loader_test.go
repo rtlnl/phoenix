@@ -854,9 +854,10 @@ func TestCorrectSignalFormat(t *testing.T) {
 	}
 }
 
-func tearUpLikeTests(dbc db.DB, t *testing.T) {
+// Util function that inserts a static recommendation into the db for the given model name
+func createRecommendation(dbc db.DB, t *testing.T, modelName string) {
 	// populate data
-	if _, err := models.NewModel("liketest", "", []string{"prisoner"}, dbc); err != nil {
+	if _, err := models.NewModel(modelName, "", []string{"prisoner"}, dbc); err != nil {
 		t.Error(err)
 		t.Error("creating fill model failed")
 	}
@@ -880,7 +881,7 @@ func tearUpLikeTests(dbc db.DB, t *testing.T) {
 		},
 	}
 
-	rb, err := createStreamingRequest("liketest", signal, recommendationItems)
+	rb, err := createStreamingRequest(modelName, signal, recommendationItems)
 	if err != nil {
 		t.Error("filler streaming request failed ")
 	}
@@ -900,17 +901,11 @@ func tearUpLikeTests(dbc db.DB, t *testing.T) {
 	assert.Equal(t, "{\"message\":\"signal 890 created\"}", string(b))
 }
 
-func tearDownLikeTests(dbc *db.Redis) {
-	if err := dbc.Client.FlushAll().Err(); err != nil {
-		panic(err)
-	}
-}
-
 func TestLike(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
 
-	tearUpLikeTests(dbc, t)
+	createRecommendation(dbc, t, "liketest")
 
 	likedItem := models.ItemScore{"item": "222"}
 	signal := "890"
@@ -932,19 +927,18 @@ func TestLike(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, code)
 	assert.Equal(t, "{\"message\":\"handled like for SignalId 890\"}", string(b))
-	tearDownLikeTests(dbc.(*db.Redis))
 }
 
 func TestDislike(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
 
-	tearUpLikeTests(dbc, t)
+	createRecommendation(dbc, t, "disliketest")
 
 	likedItem := models.ItemScore{"item": "222"}
 	signal := "890"
 	like := false
-	rl, err := createLikeRequest("liketest", signal, like, likedItem)
+	rl, err := createLikeRequest("disliketest", signal, like, likedItem)
 	if err != nil {
 		t.Error("creating request failed")
 	}
@@ -963,7 +957,7 @@ func TestDislike(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"Handled dislike for SignalId 890\"}", string(b))
 
 	// get the current recommendations string
-	recsAfter, err := dbc.GetOne("liketest", "890")
+	recsAfter, err := dbc.GetOne("disliketest", "890")
 	if err != nil {
 		t.Fail()
 	}
@@ -980,19 +974,18 @@ func TestDislike(t *testing.T) {
 			t.Error("Disliked item was not removed from recommendations.")
 		}
 	}
-	tearDownLikeTests(dbc.(*db.Redis))
 }
 
 func TestDislikeNonExistingRecommendation(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
 
-	tearUpLikeTests(dbc, t)
+	createRecommendation(dbc, t, "disliketestexisting")
 
 	likedItem := models.ItemScore{"item": "1000"}
 	signal := "890"
 	like := false
-	rl, err := createLikeRequest("liketest", signal, like, likedItem)
+	rl, err := createLikeRequest("disliketestexisting", signal, like, likedItem)
 	if err != nil {
 		t.Fail()
 	}
@@ -1009,5 +1002,4 @@ func TestDislikeNonExistingRecommendation(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "{\"error\":\"recommendation does not exist\"}", string(b))
-	tearDownLikeTests(dbc.(*db.Redis))
 }
