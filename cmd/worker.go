@@ -1,6 +1,12 @@
 package cmd
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/rs/zerolog/log"
+	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/worker"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -21,6 +27,18 @@ var workerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		brokerWorker := viper.GetString(workerBrokerFlag)
 
+		// instantiate Redis client
+		redisClient, err := db.NewRedisClient(brokerWorker)
+		if err != nil {
+			panic(err)
+		}
+
+		l, err := redisClient.Lock(worker.WorkerLockKey)
+		if l == false || err != nil {
+			log.Error().Msg(err.Error())
+			os.Exit(0)
+		}
+
 		w, err := worker.New(brokerWorker, workerConsumerName, workerQueueName)
 		if err != nil {
 			panic(err)
@@ -29,8 +47,22 @@ var workerCmd = &cobra.Command{
 		if err := w.Consume(); err != nil {
 			panic(err)
 		}
-		// TODO: fix this with sig handling
-		select {}
+
+		log.Info().Msg(" [*] Waiting for messages. To exit press CTRL+C")
+
+		sigterm := make(chan os.Signal, 1)
+		signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
+		select {
+		case <-sigterm:
+			log.Info().Msg("terminating: via signal")
+			w.Close()
+
+			l, err := redisClient.Unlock(worker.WorkerLockKey)
+			if l == false || err != nil {
+				panic(err)
+			}
+		}
+		log.Info().Msg("queue close. Cleaning up...")
 	},
 }
 

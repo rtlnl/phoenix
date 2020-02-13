@@ -15,10 +15,12 @@ import (
 )
 
 const (
-	consumerName = "phoenix-consumer"
-	consumerTag  = "phoenix-consumer-tag"
-	unackedLimit = 10
-	pollDuration = 500 * time.Millisecond
+	// WorkerLockKey is the key for locking/unlocking
+	WorkerLockKey = "worker:lock"
+	consumerName  = "phoenix-consumer"
+	consumerTag   = "phoenix-consumer-tag"
+	unackedLimit  = 10
+	pollDuration  = 500 * time.Millisecond
 )
 
 // Worker encapsulate the queueing system
@@ -111,9 +113,11 @@ func (w *Worker) Consume() error {
 	if w.Queue.StartConsuming(unackedLimit, pollDuration) == false {
 		return errors.New("could not start consuming messages")
 	}
-
-	res := w.Queue.AddConsumer(consumerTag, w.Consumer)
-	log.Info().Msgf("worker added a new consumer %s", res)
-
+	w.Queue.AddConsumer(consumerTag, w.Consumer)
 	return nil
+}
+
+// Close closes the queue
+func (w *Worker) Close() {
+	w.Queue.Close()
 }

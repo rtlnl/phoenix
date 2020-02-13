@@ -9,6 +9,7 @@ require (
 	github.com/adjust/rmq v1.0.0
 	github.com/adjust/uniuri v0.0.0-20130923163420-498743145e60 // indirect
 	github.com/allegro/bigcache v1.2.1
+	github.com/apex/log v1.1.2
 	github.com/aws/aws-sdk-go v1.25.8
 	github.com/banzaicloud/go-gin-prometheus v0.0.0-20190417120951-df9373ad5327
 	github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b // indirect
@@ -28,7 +29,6 @@ require (
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
-	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/prometheus/client_golang v1.2.1
 	github.com/rs/zerolog v1.15.0
 	github.com/spf13/cobra v0.0.5
