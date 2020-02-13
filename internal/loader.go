@@ -313,7 +313,8 @@ func HandleLike(c *gin.Context) {
 
 	// If a like was given then only log it and then this function is done.
 	if lr.Like {
-		//TODO: log it
+
+		log.Info().Str("LIKE", fmt.Sprintf("SignalId %s", lr.SignalID)).Str("MODEL", fmt.Sprintf("name %s", lr.ModelName))
 
 		utils.Response(c, http.StatusCreated, &StreamingResponse{
 			Message: fmt.Sprintf("handled like for SignalId %s", lr.SignalID),
@@ -360,7 +361,7 @@ func HandleLike(c *gin.Context) {
 		return
 	}
 
-	//TODO: log dislike
+	log.Info().Str("DISLIKE", fmt.Sprintf("SignalId %s", lr.SignalID)).Str("MODEL", fmt.Sprintf("name %s", lr.ModelName))
 
 	utils.Response(c, http.StatusCreated, &StreamingResponse{
 		Message: fmt.Sprintf("Handled dislike for SignalId %s", lr.SignalID),
