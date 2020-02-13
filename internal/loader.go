@@ -311,9 +311,7 @@ func HandleLike(c *gin.Context) {
 		return
 	}
 
-	// If a like was given then only log it and then this function is done.
 	if lr.Like {
-
 		log.Info().Str("LIKE", fmt.Sprintf("SignalId %s", lr.SignalID)).Str("MODEL", fmt.Sprintf("name %s", lr.ModelName))
 
 		utils.Response(c, http.StatusCreated, &StreamingResponse{
@@ -321,9 +319,6 @@ func HandleLike(c *gin.Context) {
 		})
 		return
 	}
-
-	// If a dislike was given,
-	// then update the recommendations with the disliked item removed
 
 	// get the recommended values
 	rec, err := dbc.GetOne(lr.ModelName, lr.SignalID)
