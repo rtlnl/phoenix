@@ -34,6 +34,7 @@ var workerCmd = &cobra.Command{
 		}
 
 		l, err := redisClient.Lock(worker.WorkerLockKey)
+		defer redisClient.Unlock(worker.WorkerLockKey)
 		if l == false || err != nil {
 			log.Error().Msg(err.Error())
 			os.Exit(0)
@@ -56,11 +57,6 @@ var workerCmd = &cobra.Command{
 		case <-sigterm:
 			log.Info().Msg("terminating: via signal")
 			w.Close()
-
-			l, err := redisClient.Unlock(worker.WorkerLockKey)
-			if l == false || err != nil {
-				panic(err)
-			}
 		}
 		log.Info().Msg("queue close. Cleaning up...")
 	},

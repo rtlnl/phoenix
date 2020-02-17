@@ -212,6 +212,12 @@ func Batch(c *gin.Context) {
 		return
 	}
 
+	// write to DB that it's uploading
+	if err := dbc.AddOne(batch.TableBulkStatus, batchID, batch.BulkQueued); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
 	// create task payload to send to the queue
 	taskPayload := &worker.TaskPayload{
 		DBURL:        os.Getenv("DB_HOST"),

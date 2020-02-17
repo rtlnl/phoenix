@@ -23,6 +23,8 @@ import (
 type BulkStatus string
 
 const (
+	// BulkQueued represents the status when the batch operation is queued
+	BulkQueued = "QUEUED"
 	// BulkUploading represents the uploading status
 	BulkUploading = "UPLOADING"
 	// BulkSucceeded represents the succeeded status
@@ -77,8 +79,7 @@ func (o *Operator) UploadDataFromFile(file *io.ReadCloser, batchID string) error
 	start := time.Now()
 
 	// write to DB that it's uploading
-	if err := o.DBClient.AddOne(TableBulkStatus, batchID, BulkUploading); err != nil {
-		log.Panic().Msg(err.Error())
+	if err := o.SetStatus(batchID, BulkUploading); err != nil {
 		return err
 	}
 
@@ -100,14 +101,10 @@ func (o *Operator) UploadDataFromFile(file *io.ReadCloser, batchID string) error
 	go func() {
 		if o.StoreErrors(batchID, le) > 0 {
 			// write to DB that it partially uploaded the data
-			if err := o.DBClient.AddOne(TableBulkStatus, batchID, BulkPartialUpload); err != nil {
-				log.Panic().Msg(err.Error())
-			}
+			o.SetStatus(batchID, BulkPartialUpload)
 		} else {
 			// write to DB that it succeeded
-			if err := o.DBClient.AddOne(TableBulkStatus, batchID, BulkSucceeded); err != nil {
-				log.Panic().Msg(err.Error())
-			}
+			o.SetStatus(batchID, BulkSucceeded)
 		}
 	}()
 
@@ -314,4 +311,13 @@ func (o *Operator) StoreErrors(batchID string, le chan models.LineError) int {
 		}
 	}
 	return i
+}
+
+// SetStatus sets the status in the DB. The error message is logged only
+func (o *Operator) SetStatus(batchID, status string) error {
+	err := o.DBClient.AddOne(TableBulkStatus, batchID, status)
+	if err != nil {
+		log.Panic().Msg(err.Error())
+	}
+	return err
 }
