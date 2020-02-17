@@ -126,6 +126,19 @@ func (w *Worker) Consume() error {
 	return nil
 }
 
+// Publish publishes the message in the queue
+func (w *Worker) Publish(tp *TaskPayload) error {
+	b, err := json.Marshal(tp)
+	if err != nil {
+		return err
+	}
+
+	if !w.Queue.PublishBytes(b) {
+		return errors.New("could not publish message to queue")
+	}
+	return nil
+}
+
 // Close closes the queue
 func (w *Worker) Close() {
 	w.Queue.Close()
