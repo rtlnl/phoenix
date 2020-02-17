@@ -48,6 +48,7 @@ func tearUp() {
 
 	router.Use(middleware.DB(dbc))
 	router.Use(middleware.AWSSession(testRegion, testEndpoint, testDisableSSL))
+	router.Use(middleware.NewWorker(testDBHost, "test-worker", "worker-queue"))
 
 	// subscribe routes here due to multiple tests on the same endpoint
 	// it avoids a panic error for registering the route multiple times
