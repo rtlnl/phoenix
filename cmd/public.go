@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	tucsonGRPCAddressFlag                = "tucson-address"
 	recommendationLogsFlag               = "rec-logs-type"
 	recommendationKafkaBrokersFlag       = "kafka-brokers"
 	recommendationKafkaTopicFlag         = "kafka-topic"
@@ -40,7 +39,6 @@ APIs for serving the personalized content.`,
 		addr := viper.GetString(addressPublicFlag)
 		dbHost := viper.GetString(dbHostPublicFlag)
 		logType := viper.GetString(recommendationLogsFlag)
-		tucsonAddress := viper.GetString(tucsonGRPCAddressFlag)
 		logDebug := viper.GetBool(logDebugFlag)
 
 		// log level debug
@@ -83,11 +81,6 @@ APIs for serving the personalized content.`,
 		middlewares = append(middlewares, md.RecommendationLogs(recLogs))
 		middlewares = append(middlewares, md.Cache(cacheClient))
 
-		// only if we pass the tucson flag in the CLI we inject the client
-		if tucsonAddress != "" {
-			middlewares = append(middlewares, md.Tucson(tucsonAddress))
-		}
-
 		// create new Public api object
 		p, err := public.NewPublicAPI(middlewares...)
 		if err != nil {
@@ -121,13 +114,9 @@ func init() {
 	f.StringP(recommendationESHostsFlag, "r", "", "[LOGS] elasticsearch addresses separated by comma. Example addr1:9200,addr2:9200")
 	f.StringP(recommendationESIndexFlag, "i", "", "[LOGS] elasticsearch index on where to push the data")
 
-	// tucson parameters
-	f.String(tucsonGRPCAddressFlag, "", "tucson api gRPC server address")
-
 	viper.BindEnv(addressPublicFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostPublicFlag, "DB_HOST")
 	viper.BindEnv(logDebugFlag, "LOG_DEBUG")
-	viper.BindEnv(tucsonGRPCAddressFlag, "TUCSON_ADDRESS")
 	viper.BindEnv(recommendationLogsFlag, "REC_LOGS_TYPE")
 	viper.BindEnv(recommendationKafkaBrokersFlag, "REC_LOGS_BROKERS")
 	viper.BindEnv(recommendationKafkaTopicFlag, "REC_LOGS_TOPIC")
