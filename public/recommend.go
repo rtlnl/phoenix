@@ -13,7 +13,6 @@ import (
 	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/pkg/logs"
-	"github.com/rtlnl/phoenix/pkg/tucson"
 	"github.com/rtlnl/phoenix/utils"
 )
 
@@ -147,14 +146,8 @@ func Recommend(c *gin.Context) {
 }
 
 func getModelName(c *gin.Context, container models.Container) (string, error) {
-	// check tucson
-	modelName := getModelFromTucson(c, container.PublicationPoint, container.Campaign)
-	if !utils.IsStringEmpty(modelName) {
-		return modelName, nil
-	}
-
 	// check URL
-	modelName = getModelFromURL(c.DefaultQuery("model", ""), container)
+	modelName := getModelFromURL(c.DefaultQuery("model", ""), container)
 	if !utils.IsStringEmpty(modelName) {
 		return modelName, nil
 	}
@@ -174,18 +167,6 @@ func getModelFromURL(modelName string, container models.Container) string {
 		// check if there are models available in the container
 		if len(container.Models) > 0 && utils.StringInSlice(modelName, container.Models) {
 			return modelName
-		}
-	}
-	return ""
-}
-
-func getModelFromTucson(c *gin.Context, publicationPoint, campaign string) string {
-	if tc, exists := c.Get("TucsonClient"); exists {
-		// get model name from tucson
-		if mn, err := tc.(*tucson.Client).GetModel(publicationPoint, campaign); mn != "" {
-			return mn
-		} else if err != nil {
-			zerolog.Error().Msg(err.Error())
 		}
 	}
 	return ""

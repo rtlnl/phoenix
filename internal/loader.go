@@ -1,32 +1,27 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 
 	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/batch"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/utils"
+	"github.com/rtlnl/phoenix/worker"
 )
 
 // used to fast unmarshal json strings
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
-const (
-	// name of the table for storing all the batchIDs
-	tableBulkStatus = "bulkStatus"
-	// name of the error tables for storing all the errors of a specific batch
-	tableBulkErrors = "bulkErrors"
-	// numberErrors
-	maxErrorLines = 50
-)
 
 // StreamingRequest is the object that represents the payload for the request in the streaming endpoints
 type StreamingRequest struct {
@@ -143,18 +138,15 @@ func DeleteStreaming(c *gin.Context) {
 // BatchRequest is the object that represents the payload of the request for the batch endpoints
 // Conditions: Data takes precedence in case also DataLocation is specified
 type BatchRequest struct {
-	ModelName    string      `json:"modelName" binding:"required"`
-	Data         []BatchData `json:"data" description:"used for uploading some information directly from the request"`
-	DataLocation string      `json:"dataLocation" description:"used for specifying where the data lives in S3"`
+	ModelName    string       `json:"modelName" binding:"required"`
+	Data         []batch.Data `json:"data" description:"used for uploading some information directly from the request"`
+	DataLocation string       `json:"dataLocation" description:"used for specifying where the data lives in S3"`
 }
-
-// BatchData is the object representing the content of the data parameter in the batch request
-type BatchData map[string][]models.ItemScore
 
 // BatchResponse is the object that represents the payload of the response for the batch endpoints
 type BatchResponse struct {
 	NumberOfLines string `json:"numberoflines" description:"total count of lines"`
-	ErrorRecords  DataUploadedError
+	ErrorRecords  batch.DataUploadedError
 }
 
 // BatchStatusResponseError is the response paylod when the batch upload failed
@@ -169,16 +161,10 @@ type BatchBulkResponse struct {
 	BatchID string `json:"batchId"`
 }
 
-// DataUploadedError is the response payload when the batch upload failed
-type DataUploadedError struct {
-	NumberOfLinesFailed string             `json:"numberoflinesfailed" description:"total count of lines that were not uploaded"`
-	Errors              []models.LineError `json:"error" description:"errors found"`
-}
-
 // Batch will upload in batch a set to the database
 func Batch(c *gin.Context) {
 	dbc := c.MustGet("DB").(db.DB)
-	sess := c.MustGet("AWSSession").(*session.Session)
+	wrk := c.MustGet("Worker").(*worker.Worker)
 
 	var br BatchRequest
 	if err := c.BindJSON(&br); err != nil {
@@ -194,7 +180,7 @@ func Batch(c *gin.Context) {
 	}
 
 	// upload data from request itself
-	bo := NewBatchOperator(dbc, m)
+	bo := batch.NewOperator(dbc, m)
 	if len(br.Data) > 0 && br.Data != nil {
 		ln, due, err := bo.UploadDataDirectly(br.Data)
 		if err != nil {
@@ -214,25 +200,40 @@ func Batch(c *gin.Context) {
 
 	// upload data from S3 file
 	bucket, key := utils.StripS3URL(br.DataLocation)
-	s := db.NewS3Client(&db.S3Bucket{Bucket: bucket, ACL: ""}, sess)
 
-	// check if file exists
-	if s.ExistsObject(key) == false {
-		utils.ResponseError(c, http.StatusBadRequest, fmt.Errorf("key %s not founds in S3", br.DataLocation))
-		return
-	}
-	// download the file
-	f, err := s.GetObject(key)
+	// generate batchID
+	batchID := uuid.New().String()
+
+	// get from the ENV if we need to disable SSL (used in local development)
+	val := os.Getenv("S3_DISABLE_SSL")
+	disableSSL, err := strconv.ParseBool(val)
 	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	// generate batchID
-	batchID := uuid.New().String()
+	// create task payload to send to the queue
+	taskPayload := &worker.TaskPayload{
+		DBURL:        os.Getenv("DB_HOST"),
+		AWSRegion:    os.Getenv("S3_REGION"),
+		S3Endpoint:   os.Getenv("S3_ENDPOINT"),
+		S3DisableSSL: disableSSL,
+		S3Bucket:     bucket,
+		S3Key:        key,
+		ModelName:    br.ModelName,
+		BatchID:      batchID,
+	}
 
-	// seprate thread
-	go bo.UploadDataFromFile(f, batchID)
+	b, err := json.Marshal(taskPayload)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	if !wrk.Queue.PublishBytes(b) {
+		utils.ResponseError(c, http.StatusInternalServerError, errors.New("could not publish message to queue"))
+		return
+	}
 
 	log.Info().Str("BATCH", fmt.Sprintf("started batchId %s", batchID)).Str("MODEL", fmt.Sprintf("name %s", br.ModelName))
 
@@ -251,16 +252,16 @@ func BatchStatus(c *gin.Context) {
 	batchID := c.Param("id")
 
 	// get the status of the batch
-	status, err := dbc.GetOne(tableBulkStatus, batchID)
+	status, err := dbc.GetOne(batch.TableBulkStatus, batchID)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, fmt.Errorf("batch job with ID %s not found", batchID))
 		return
 	}
 
 	switch status {
-	case BulkPartialUpload:
+	case batch.BulkPartialUpload:
 		// get from table errors
-		ser, err := dbc.GetOne(tableBulkErrors, batchID)
+		ser, err := dbc.GetOne(batch.TableBulkErrors, batchID)
 		if err != nil {
 			utils.ResponseError(c, http.StatusInternalServerError, err)
 			return

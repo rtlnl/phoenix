@@ -11,6 +11,7 @@ var (
 	dbHostPublicFlag    = "db-host-public"
 	addressInternalFlag = "address-host-internal"
 	dbHostInternalFlag  = "db-host-internal"
+	workerBrokerFlag    = "worker-broker-url"
 	logDebugFlag        = "debug"
 )
 

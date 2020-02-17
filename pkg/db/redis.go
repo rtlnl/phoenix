@@ -1,9 +1,18 @@
 package db
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/go-redis/redis"
 	"github.com/rs/zerolog/log"
+)
+
+const (
+	// LockOn sets the lock
+	LockOn = "locked"
+	// LockOff unsets the lock
+	LockOff = "unlocked"
 )
 
 // Redis is a wrapper struct around Redis official package
@@ -130,4 +139,44 @@ func (db *Redis) PipelineExec() error {
 	// we care only about the error and not the actual result of the command
 	_, err := db.Pipeliner.Exec()
 	return err
+}
+
+// Lock allows to lock the resource
+func (db *Redis) Lock(key string) (bool, error) {
+	l, err := db.Client.Get(key).Result()
+	if err != redis.Nil && err != nil {
+		log.Error().Str("REDIS", "could not get key").Str("MSG", err.Error())
+		return false, err
+	}
+	// already a lock in the database
+	if l == LockOn {
+		return false, errors.New("there is already a lock")
+	}
+	// something went wrong in Redis
+	if err := db.Client.Set(key, LockOn, 0).Err(); err != nil {
+		log.Error().Str("REDIS", "could not set key").Str("MSG", err.Error())
+		return false, err
+	}
+	// the lock is on
+	return true, nil
+}
+
+// Unlock unlocks the the key
+func (db *Redis) Unlock(key string) (bool, error) {
+	l, err := db.Client.Get(key).Result()
+	if err != redis.Nil && err != nil {
+		log.Error().Str("REDIS", "could not get key").Str("MSG", err.Error())
+		return false, err
+	}
+	// already unlocked
+	if l == LockOff {
+		return false, errors.New("already unlocked")
+	}
+	// something went wrong in Redis
+	if err := db.Client.Set(key, LockOff, 0).Err(); err != nil {
+		log.Error().Str("REDIS", "could not set key").Str("MSG", err.Error())
+		return false, err
+	}
+	// now it's unlocked
+	return true, nil
 }
