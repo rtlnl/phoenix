@@ -35,6 +35,7 @@ var workerCmd = &cobra.Command{
 
 		l, err := redisClient.Lock(worker.WorkerLockKey)
 		defer redisClient.Unlock(worker.WorkerLockKey)
+
 		if l == false || err != nil {
 			log.Error().Msg(err.Error())
 			os.Exit(0)
