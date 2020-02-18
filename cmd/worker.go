@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/rtlnl/phoenix/pkg/db"
@@ -37,7 +38,7 @@ var workerCmd = &cobra.Command{
 		defer redisClient.Unlock(worker.WorkerLockKey)
 
 		if l == false || err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Err(err).Msg("REDIS failed to acquire lock")
 			os.Exit(0)
 		}
 
@@ -52,12 +53,24 @@ var workerCmd = &cobra.Command{
 
 		log.Info().Msg(" [*] Waiting for messages. To exit press CTRL+C")
 
+		ticker := time.NewTicker(5 * time.Second)
+
 		sigterm := make(chan os.Signal, 1)
 		signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
-		select {
-		case <-sigterm:
-			log.Info().Msg("terminating: via signal")
-			w.Close()
+	EXITLOOP:
+		for {
+			select {
+			case <-ticker.C:
+				if err := redisClient.ExtendTTL(worker.WorkerLockKey); err != nil {
+					log.Error().Msg(err.Error())
+					w.Close()
+					break EXITLOOP
+				}
+			case <-sigterm:
+				log.Info().Msg("terminating: via signal")
+				w.Close()
+				break EXITLOOP
+			}
 		}
 		log.Info().Msg("queue close. Cleaning up...")
 	},
