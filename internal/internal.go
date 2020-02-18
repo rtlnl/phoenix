@@ -41,7 +41,7 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 	sc.POST("/", CreateStreaming)
 	sc.PUT("/", UpdateStreaming)
 	sc.DELETE("/", DeleteStreaming)
-	sc.POST("/like", HandleLike)
+	sc.DELETE("/recommendation", DeleteRecommendation)
 
 	// Management Routes
 	mg := v1.Group("/management")

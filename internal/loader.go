@@ -279,20 +279,20 @@ func BatchStatus(c *gin.Context) {
 	}
 }
 
-// LikeRequest is the object that represents the payload for the request in the like streaming endpoint
-type LikeRequest struct {
+// RecommendationRequest is the object that represents the payload for the request in the like streaming endpoint
+type RecommendationRequest struct {
 	SignalID       string           `json:"signalId" binding:"required"`
 	ModelName      string           `json:"modelName" binding:"required"`
 	Like           bool             `json:"like" binding:"exists"`
 	Recommendation models.ItemScore `json:"recommendation" binding:"required"`
 }
 
-// HandleLike handles a like/dislike on a single recommendation item
+// DeleteRecommendation handles a deletion for a single recommendation item
 // If it is a dislike, then the recommendation will be updated to leave the disliked item out
-func HandleLike(c *gin.Context) {
+func DeleteRecommendation(c *gin.Context) {
 	dbc := c.MustGet("DB").(db.DB)
 
-	var lr LikeRequest
+	var lr RecommendationRequest
 	if err := c.BindJSON(&lr); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
