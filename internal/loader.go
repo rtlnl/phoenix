@@ -370,7 +370,7 @@ func removeItem(toRemove models.ItemScore, items []models.ItemScore) ([]models.I
 	found := false
 
 	// If items is not valid, return immediately
-	if items == nil || len(items) == 0 {
+	if len(items) == 0 {
 		return items, found
 	}
 
