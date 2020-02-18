@@ -364,7 +364,8 @@ func HandleLike(c *gin.Context) {
 }
 
 // Removes a given itemscore item from the itemscore array
-// and returns an array with the item removed
+// and returns an array with the item removed and a boolean if the removal
+// was succesful. True if the item was found and removed, false if it was not found.
 func removeItem(toRemove models.ItemScore, items []models.ItemScore) ([]models.ItemScore, bool) {
 	found := false
 
