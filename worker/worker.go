@@ -72,23 +72,11 @@ func (c TaskConsumer) Consume(delivery rmq.Delivery) {
 	sess := aws.NewAWSSession(task.AWSRegion, task.S3Endpoint, task.S3DisableSSL)
 	s := db.NewS3Client(&db.S3Bucket{Bucket: task.S3Bucket, ACL: ""}, sess)
 
-	// check if file exists
-	if s.ExistsObject(task.S3Key) == false {
-		log.Error().Msgf("key %s not founds in S3", task.S3Key)
-		return
-	}
-
-	// download the file
-	f, err := s.GetObject(task.S3Key)
-	if err != nil {
-		log.Error().Msg(err.Error())
-		return
-	}
-
 	// create batch operator
 	dbc, err := db.NewRedisClient(task.DBURL)
 	if err != nil {
 		log.Error().Msg(err.Error())
+		delivery.Reject()
 		return
 	}
 
@@ -96,11 +84,32 @@ func (c TaskConsumer) Consume(delivery rmq.Delivery) {
 	m, err := models.GetModel(task.ModelName, dbc)
 	if err != nil {
 		log.Error().Msg(err.Error())
+		delivery.Reject()
 		return
 	}
 
+	// create batch operator
 	bo := batch.NewOperator(dbc, m)
+
+	// check if file exists
+	if s.ExistsObject(task.S3Key) == false {
+		bo.SetStatus(task.BatchID, batch.BulkFailed)
+		log.Error().Msgf("key %s not founds in S3", task.S3Key)
+		delivery.Reject()
+		return
+	}
+
+	// download the file
+	f, err := s.GetObject(task.S3Key)
+	if err != nil {
+		bo.SetStatus(task.BatchID, batch.BulkFailed)
+		log.Error().Msg(err.Error())
+		delivery.Reject()
+		return
+	}
+
 	if err := bo.UploadDataFromFile(f, task.BatchID); err != nil {
+		bo.SetStatus(task.BatchID, batch.BulkFailed)
 		delivery.Reject()
 		return
 	}
@@ -114,6 +123,19 @@ func (w *Worker) Consume() error {
 		return errors.New("could not start consuming messages")
 	}
 	w.Queue.AddConsumer(consumerTag, w.Consumer)
+	return nil
+}
+
+// Publish publishes the message in the queue
+func (w *Worker) Publish(tp *TaskPayload) error {
+	b, err := json.Marshal(tp)
+	if err != nil {
+		return err
+	}
+
+	if !w.Queue.PublishBytes(b) {
+		return errors.New("could not publish message to queue")
+	}
 	return nil
 }
 

@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -171,14 +170,12 @@ func Batch(c *gin.Context) {
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
-
 	// retrieve the model
 	m, err := models.GetModel(br.ModelName, dbc)
 	if err != nil {
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
-
 	// upload data from request itself
 	bo := batch.NewOperator(dbc, m)
 	if len(br.Data) > 0 && br.Data != nil {
@@ -190,20 +187,16 @@ func Batch(c *gin.Context) {
 		utils.Response(c, http.StatusCreated, &BatchResponse{NumberOfLines: ln, ErrorRecords: due})
 		return
 	}
-
 	// truncate eventual old data
 	if err := dbc.DropTable(br.ModelName); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
 	log.Info().Str("DELETE", fmt.Sprintf("table %s", br.ModelName))
-
 	// upload data from S3 file
 	bucket, key := utils.StripS3URL(br.DataLocation)
-
 	// generate batchID
 	batchID := uuid.New().String()
-
 	// get from the ENV if we need to disable SSL (used in local development)
 	val := os.Getenv("S3_DISABLE_SSL")
 	disableSSL, err := strconv.ParseBool(val)
@@ -211,7 +204,11 @@ func Batch(c *gin.Context) {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
 		return
 	}
-
+	// write to DB that it's uploading
+	if err := bo.SetStatus(batchID, batch.BulkQueued); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, err)
+		return
+	}
 	// create task payload to send to the queue
 	taskPayload := &worker.TaskPayload{
 		DBURL:        os.Getenv("DB_HOST"),
@@ -223,15 +220,9 @@ func Batch(c *gin.Context) {
 		ModelName:    br.ModelName,
 		BatchID:      batchID,
 	}
-
-	b, err := json.Marshal(taskPayload)
-	if err != nil {
+	// publish message to the queue
+	if err := wrk.Publish(taskPayload); err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	if !wrk.Queue.PublishBytes(b) {
-		utils.ResponseError(c, http.StatusInternalServerError, errors.New("could not publish message to queue"))
 		return
 	}
 
