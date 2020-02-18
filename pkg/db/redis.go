@@ -15,7 +15,9 @@ const (
 	// LockOff unsets the lock
 	LockOff = "unlocked"
 	// TTL for the lock
-	TTL = 10 * time.Second
+	TTL = 30 * time.Second
+	// TTLRefreshInterval intervals for refreshing the TTL of the lock
+	TTLRefreshInterval = 10 * time.Second
 )
 
 // Redis is a wrapper struct around Redis official package
@@ -40,7 +42,7 @@ func NewRedisClient(addr string, opts ...func(*redis.Options)) (*Redis, error) {
 
 	i, err := client.Ping().Result()
 	if err != nil && i != "PONG" {
-		log.Error().Str("REDIS", "could not get client").Str("MSG", err.Error())
+		log.Error().Err(err).Msg("REDIS could not get client")
 		return nil, err
 	}
 
@@ -111,7 +113,7 @@ func (db *Redis) GetAllRecords(table string) (map[string]string, int, error) {
 			return elems, -1, nil
 		}
 		if iter.Err() != nil {
-			log.Error().Err(iter.Err()).Str("REDIS", "could not get records")
+			log.Error().Err(iter.Err()).Msg("REDIS could not get records")
 			continue
 		}
 		val := iter.Val()
@@ -126,7 +128,7 @@ func (db *Redis) GetAllRecords(table string) (map[string]string, int, error) {
 	// retrieve number of elements
 	count, err := db.Client.HLen(table).Result()
 	if err == redis.Nil || err != nil {
-		log.Error().Err(err).Str("REDIS", "could not get count")
+		log.Error().Err(err).Msg("REDIS could not get count")
 	}
 
 	return elems, int(count), nil
@@ -148,7 +150,7 @@ func (db *Redis) PipelineExec() error {
 func (db *Redis) Lock(key string) (bool, error) {
 	res, err := db.Client.SetNX(key, LockOn, TTL).Result()
 	if err == redis.Nil || err != nil || res == false {
-		log.Error().Err(err).Str("REDIS", "could not set key")
+		log.Error().Err(err).Msg("REDIS could not set key")
 		return false, err
 	}
 	// the lock is on
@@ -158,7 +160,7 @@ func (db *Redis) Lock(key string) (bool, error) {
 // Unlock unlocks the the key
 func (db *Redis) Unlock(key string) (bool, error) {
 	if err := db.Client.Del(key).Err(); err != nil {
-		log.Error().Err(err).Str("REDIS", "could not set key")
+		log.Error().Err(err).Msg("REDIS could not set key")
 		return false, err
 	}
 	// now it's unlocked

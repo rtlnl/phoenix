@@ -53,7 +53,7 @@ var workerCmd = &cobra.Command{
 
 		log.Info().Msg(" [*] Waiting for messages. To exit press CTRL+C")
 
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(db.TTLRefreshInterval)
 
 		sigterm := make(chan os.Signal, 1)
 		signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
