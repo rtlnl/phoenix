@@ -63,8 +63,8 @@ func createBatchRequestLocation(modelName string, dataLocation string) (*bytes.R
 	return bytes.NewReader(rb), nil
 }
 
-func createLikeRequest(modelName string, signalID string, like bool, recommendation models.ItemScore) (*bytes.Reader, error) {
-	lr := &LikeRequest{
+func createRecommendationRequest(modelName string, signalID string, like bool, recommendation models.ItemScore) (*bytes.Reader, error) {
+	lr := &RecommendationRequest{
 		SignalID:       signalID,
 		ModelName:      modelName,
 		Like:           like,
@@ -910,12 +910,12 @@ func TestLike(t *testing.T) {
 	likedItem := models.ItemScore{"item": "222"}
 	signal := "890"
 	like := true
-	rl, err := createLikeRequest("liketest", signal, like, likedItem)
+	rl, err := createRecommendationRequest("liketest", signal, like, likedItem)
 	if err != nil {
 		t.Error("creating request failed")
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/v1/streaming/like", rl)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming/recommendation", rl)
 	if err != nil {
 		t.Error("mockrequest failed")
 	}
@@ -938,12 +938,12 @@ func TestDislike(t *testing.T) {
 	likedItem := models.ItemScore{"item": "222"}
 	signal := "890"
 	like := false
-	rl, err := createLikeRequest("disliketest", signal, like, likedItem)
+	rl, err := createRecommendationRequest("disliketest", signal, like, likedItem)
 	if err != nil {
 		t.Error("creating request failed")
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/v1/streaming/like", rl)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming/recommendation", rl)
 	if err != nil {
 		t.Error("mockrequest failed")
 	}
@@ -985,12 +985,12 @@ func TestDislikeNonExistingRecommendation(t *testing.T) {
 	likedItem := models.ItemScore{"item": "1000"}
 	signal := "890"
 	like := false
-	rl, err := createLikeRequest("disliketestexisting", signal, like, likedItem)
+	rl, err := createRecommendationRequest("disliketestexisting", signal, like, likedItem)
 	if err != nil {
 		t.Fail()
 	}
 
-	code, body, err := MockRequest(http.MethodPost, "/v1/streaming/like", rl)
+	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming/recommendation", rl)
 	if err != nil {
 		t.Fail()
 	}
