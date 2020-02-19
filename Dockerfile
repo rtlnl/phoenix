@@ -22,7 +22,7 @@ FROM alpine:3.9
 COPY --from=builder /app /app
 
 RUN apk update && \
-    apk add ca-certificates && \    
+    apk add ca-certificates && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
