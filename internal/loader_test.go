@@ -63,11 +63,10 @@ func createBatchRequestLocation(modelName string, dataLocation string) (*bytes.R
 	return bytes.NewReader(rb), nil
 }
 
-func createRecommendationRequest(modelName string, signalID string, like bool, recommendation models.ItemScore) (*bytes.Reader, error) {
+func createRecommendationRequest(modelName string, signalID string, recommendation models.ItemScore) (*bytes.Reader, error) {
 	lr := &RecommendationRequest{
 		SignalID:       signalID,
 		ModelName:      modelName,
-		Like:           like,
 		Recommendation: recommendation,
 	}
 
@@ -901,16 +900,15 @@ func createRecommendation(dbc db.DB, t *testing.T, modelName string) {
 	assert.Equal(t, "{\"message\":\"signal 890 created\"}", string(b))
 }
 
-func TestLike(t *testing.T) {
+func TestStreamingDeleteRecommendation(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
 
-	createRecommendation(dbc, t, "liketest")
+	createRecommendation(dbc, t, "removaltest")
 
-	likedItem := models.ItemScore{"item": "222"}
+	item := models.ItemScore{"item": "222"}
 	signal := "890"
-	like := true
-	rl, err := createRecommendationRequest("liketest", signal, like, likedItem)
+	rl, err := createRecommendationRequest("removaltest", signal, item)
 	if err != nil {
 		t.Error("creating request failed")
 	}
@@ -926,38 +924,10 @@ func TestLike(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"message\":\"handled like for SignalId 890\"}", string(b))
-}
-
-func TestDislike(t *testing.T) {
-	dbc, c := GetTestRedisClient()
-	defer c()
-
-	createRecommendation(dbc, t, "disliketest")
-
-	likedItem := models.ItemScore{"item": "222"}
-	signal := "890"
-	like := false
-	rl, err := createRecommendationRequest("disliketest", signal, like, likedItem)
-	if err != nil {
-		t.Error("creating request failed")
-	}
-
-	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming/recommendation", rl)
-	if err != nil {
-		t.Error("mockrequest failed")
-	}
-
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Error("read failed")
-	}
-
-	assert.Equal(t, http.StatusCreated, code)
-	assert.Equal(t, "{\"message\":\"Handled dislike for SignalId 890\"}", string(b))
+	assert.Equal(t, "{\"message\":\"Handled recommended item deletion for SignalId 890\"}", string(b))
 
 	// get the current recommendations string
-	recsAfter, err := dbc.GetOne("disliketest", "890")
+	recsAfter, err := dbc.GetOne("removaltest", "890")
 	if err != nil {
 		t.Fail()
 	}
@@ -968,24 +938,23 @@ func TestDislike(t *testing.T) {
 		t.Fail()
 	}
 
-	// make sure that disliked item is not in the recommendations
+	// make sure that removed item is not in the recommendations
 	for _, rec := range recs {
 		if rec["item"] == "222" {
-			t.Error("Disliked item was not removed from recommendations.")
+			t.Error("Item was not removed from recommendations.")
 		}
 	}
 }
 
-func TestDislikeNonExistingRecommendation(t *testing.T) {
+func TestStreamingDeleteNonExistingRecommendation(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
 
-	createRecommendation(dbc, t, "disliketestexisting")
+	createRecommendation(dbc, t, "removalnonexisting")
 
-	likedItem := models.ItemScore{"item": "1000"}
+	item := models.ItemScore{"item": "1000"}
 	signal := "890"
-	like := false
-	rl, err := createRecommendationRequest("disliketestexisting", signal, like, likedItem)
+	rl, err := createRecommendationRequest("removalnonexisting", signal, item)
 	if err != nil {
 		t.Fail()
 	}
