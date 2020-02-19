@@ -279,16 +279,16 @@ func BatchStatus(c *gin.Context) {
 	}
 }
 
-// RecommendationRequest is the object that represents the payload for the request in the like streaming endpoint
+// RecommendationRequest is the object that represents the payload for the request
+//in the recommendation streaming endpoint
 type RecommendationRequest struct {
 	SignalID       string           `json:"signalId" binding:"required"`
 	ModelName      string           `json:"modelName" binding:"required"`
-	Like           bool             `json:"like" binding:"exists"`
 	Recommendation models.ItemScore `json:"recommendation" binding:"required"`
 }
 
-// DeleteRecommendation handles a deletion for a single recommendation item
-// If it is a dislike, then the recommendation will be updated to leave the disliked item out
+// DeleteRecommendation handles a deletion for a single recommendation item in the list
+// given a signalId and modelName
 func DeleteRecommendation(c *gin.Context) {
 	dbc := c.MustGet("DB").(db.DB)
 
@@ -311,15 +311,6 @@ func DeleteRecommendation(c *gin.Context) {
 		return
 	}
 
-	if lr.Like {
-		log.Info().Str("LIKE", fmt.Sprintf("SignalId %s", lr.SignalID)).Str("MODEL", fmt.Sprintf("name %s", lr.ModelName))
-
-		utils.Response(c, http.StatusCreated, &StreamingResponse{
-			Message: fmt.Sprintf("handled like for SignalId %s", lr.SignalID),
-		})
-		return
-	}
-
 	// get the recommended values
 	rec, err := dbc.GetOne(lr.ModelName, lr.SignalID)
 	if err != nil {
@@ -334,7 +325,7 @@ func DeleteRecommendation(c *gin.Context) {
 		return
 	}
 
-	// remove the disliked item from the recommendation list
+	// remove the item from the recommendation list
 	// only do so if it actually exists
 	var valid bool
 	items, valid = removeItem(lr.Recommendation, items)
@@ -356,10 +347,10 @@ func DeleteRecommendation(c *gin.Context) {
 		return
 	}
 
-	log.Info().Str("DISLIKE", fmt.Sprintf("SignalId %s", lr.SignalID)).Str("MODEL", fmt.Sprintf("name %s", lr.ModelName))
+	log.Info().Str("DELETE", fmt.Sprintf("SignalId %s", lr.SignalID)).Str("MODEL", fmt.Sprintf("name %s", lr.ModelName))
 
 	utils.Response(c, http.StatusCreated, &StreamingResponse{
-		Message: fmt.Sprintf("Handled dislike for SignalId %s", lr.SignalID),
+		Message: fmt.Sprintf("Handled recommended item deletion for SignalId %s", lr.SignalID),
 	})
 }
 
