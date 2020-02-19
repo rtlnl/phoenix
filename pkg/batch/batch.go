@@ -37,7 +37,7 @@ const (
 	TableBulkStatus = "bulkStatus"
 	// TableBulkErrors is the name of the error tables for storing all the errors of a specific batch
 	TableBulkErrors = "bulkErrors"
-	// numberErrors
+	// max number of Errors that will be stored in DB
 	maxErrorLines = 50
 )
 
