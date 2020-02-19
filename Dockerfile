@@ -5,6 +5,9 @@ ENV GO111MODULE=on
 
 WORKDIR /app
 
+RUN apt-get update && \
+    apt-get install -y bzr
+
 COPY go.mod .
 COPY go.sum .
 
@@ -18,10 +21,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/api
 FROM alpine:3.9
 COPY --from=builder /app /app
 
-# ENV GIN_MODE=release
-
 RUN apk update && \
-    apk add ca-certificates && \
+    apk add ca-certificates && \    
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
