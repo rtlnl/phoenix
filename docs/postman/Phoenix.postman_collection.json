@@ -149,7 +149,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signalId\": \"11\",\n\t\"recommendations\": [{\"item\":\"1\",\"score\":\"0.8\",\"type\":\"article\"}]\n}"
+					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signalId\": \"11\",\n\t\"recommendations\": [\n\t\t{\"item\":\"1\",\"score\":\"0.8\",\"type\":\"article\"},\n\t\t{\"item\":\"2\",\"score\":\"0.8\",\"type\":\"article\"}\n\t]\n}"
 				},
 				"url": {
 					"raw": "{{phoenix_url_internal}}/streaming",
@@ -164,9 +164,9 @@
 			"response": []
 		},
 		{
-			"name": "Streaming data - like/dislike",
+			"name": "Streaming data - recommendation",
 			"request": {
-				"method": "POST",
+				"method": "DELETE",
 				"header": [
 					{
 						"key": "Content-Type",
@@ -177,7 +177,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signalId\": \"12\",\n\t\"recommendation\": {\"item\":\"1\"},\n\t\"like\": false\n}",
+					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signalId\": \"11\",\n\t\"recommendation\": {\"item\":\"2\"}\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -185,13 +185,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{phoenix_url_internal}}/streaming/like",
+					"raw": "{{phoenix_url_internal}}/streaming/recommendation",
 					"host": [
 						"{{phoenix_url_internal}}"
 					],
 					"path": [
 						"streaming",
-						"like"
+						"recommendation"
 					]
 				}
 			},
