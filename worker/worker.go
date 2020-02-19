@@ -20,7 +20,7 @@ const (
 	consumerName  = "phoenix-consumer"
 	consumerTag   = "phoenix-consumer-tag"
 	unackedLimit  = 10
-	pollDuration  = 500 * time.Millisecond
+	pollDuration  = 15 * time.Second
 )
 
 // Worker encapsulate the queueing system
