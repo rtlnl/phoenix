@@ -5,7 +5,7 @@ package db
 type DB interface {
 	GetOne(table string, key string) (string, error)
 	AddOne(table string, key string, value string) error
-	GetAllRecords(table string) (map[string]string, error)
+	GetAllRecords(table string) (map[string]string, int, error)
 	DeleteOne(table string, key string) error
 	DropTable(table string) error
 	PipelineAddOne(table, key string, values string)

@@ -185,12 +185,13 @@ func TestGetAllModels(t *testing.T) {
 		t.FailNow()
 	}
 
-	models, err := GetAllModels(dbc)
+	models, count, err := GetAllModels(dbc)
 	if err != nil {
 		t.FailNow()
 	}
 
 	assert.Equal(t, 2, len(models))
+	assert.Equal(t, 2, count)
 }
 
 func TestCorrectSignalFormat(t *testing.T) {

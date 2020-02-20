@@ -4,16 +4,19 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 
 	"github.com/rtlnl/phoenix/middleware"
 	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/utils"
@@ -38,6 +41,12 @@ func tearUp() {
 	router = gin.New()
 	router.RedirectTrailingSlash = true
 
+	cacheClient, _ := cache.NewAllegroBigCache(cache.Shards(1024),
+		cache.LifeWindow(time.Minute*10),
+		cache.MaxEntriesInWindow(1000*10*60),
+		cache.MaxEntrySize(500),
+	)
+
 	// instantiate Redis client
 	dbc, err := db.NewRedisClient(testDBHost)
 	if err != nil {
@@ -48,7 +57,9 @@ func tearUp() {
 	}
 
 	router.Use(middleware.DB(dbc))
+
 	router.Use(middleware.RecommendationLogs(logs.NewStdoutLog()))
+	router.Use(middleware.Cache(cacheClient))
 
 	// subscribe route Recommend here due to multiple tests on this route
 	// it avoids a panic error for registering the route multiple times

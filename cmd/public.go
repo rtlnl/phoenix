@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/Shopify/sarama"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/gin-gonic/gin"
@@ -10,12 +12,12 @@ import (
 	"github.com/spf13/viper"
 
 	md "github.com/rtlnl/phoenix/middleware"
+	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/logs"
 	"github.com/rtlnl/phoenix/public"
 )
 
 var (
-	tucsonGRPCAddressFlag                = "tucson-address"
 	recommendationLogsFlag               = "rec-logs-type"
 	recommendationKafkaBrokersFlag       = "kafka-brokers"
 	recommendationKafkaTopicFlag         = "kafka-topic"
@@ -37,7 +39,6 @@ APIs for serving the personalized content.`,
 		addr := viper.GetString(addressPublicFlag)
 		dbHost := viper.GetString(dbHostPublicFlag)
 		logType := viper.GetString(recommendationLogsFlag)
-		tucsonAddress := viper.GetString(tucsonGRPCAddressFlag)
 		logDebug := viper.GetBool(logDebugFlag)
 
 		// log level debug
@@ -48,6 +49,17 @@ APIs for serving the personalized content.`,
 
 		// instantiate Redis client
 		redisClient, err := db.NewRedisClient(dbHost)
+		if err != nil {
+			panic(err)
+		}
+
+		// set caching layer
+		cacheClient, err := cache.NewAllegroBigCache(cache.Shards(1024),
+			cache.LifeWindow(time.Minute*30), // mark an entry as "dead" after 30 minutes
+			cache.CleanWindow(time.Minute*5), // clean "dead" entries every 5 minutes
+			cache.MaxEntriesInWindow(1000*10*60),
+			cache.MaxEntrySize(500),
+		)
 		if err != nil {
 			panic(err)
 		}
@@ -67,11 +79,7 @@ APIs for serving the personalized content.`,
 		var middlewares []gin.HandlerFunc
 		middlewares = append(middlewares, md.DB(redisClient))
 		middlewares = append(middlewares, md.RecommendationLogs(recLogs))
-
-		// only if we pass the tucson flag in the CLI we inject the client
-		if tucsonAddress != "" {
-			middlewares = append(middlewares, md.Tucson(tucsonAddress))
-		}
+		middlewares = append(middlewares, md.Cache(cacheClient))
 
 		// create new Public api object
 		p, err := public.NewPublicAPI(middlewares...)
@@ -106,13 +114,9 @@ func init() {
 	f.StringP(recommendationESHostsFlag, "r", "", "[LOGS] elasticsearch addresses separated by comma. Example addr1:9200,addr2:9200")
 	f.StringP(recommendationESIndexFlag, "i", "", "[LOGS] elasticsearch index on where to push the data")
 
-	// tucson parameters
-	f.String(tucsonGRPCAddressFlag, "", "tucson api gRPC server address")
-
 	viper.BindEnv(addressPublicFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostPublicFlag, "DB_HOST")
 	viper.BindEnv(logDebugFlag, "LOG_DEBUG")
-	viper.BindEnv(tucsonGRPCAddressFlag, "TUCSON_ADDRESS")
 	viper.BindEnv(recommendationLogsFlag, "REC_LOGS_TYPE")
 	viper.BindEnv(recommendationKafkaBrokersFlag, "REC_LOGS_BROKERS")
 	viper.BindEnv(recommendationKafkaTopicFlag, "REC_LOGS_TOPIC")
