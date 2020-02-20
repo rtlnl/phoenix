@@ -1,9 +1,23 @@
 package db
 
 import (
+	"errors"
 	"fmt"
+	"time"
+
 	"github.com/go-redis/redis"
 	"github.com/rs/zerolog/log"
+)
+
+const (
+	// LockOn sets the lock
+	LockOn = "locked"
+	// LockOff unsets the lock
+	LockOff = "unlocked"
+	// TTL for the lock
+	TTL = 30 * time.Second
+	// TTLRefreshInterval intervals for refreshing the TTL of the lock
+	TTLRefreshInterval = 10 * time.Second
 )
 
 // Redis is a wrapper struct around Redis official package
@@ -28,7 +42,7 @@ func NewRedisClient(addr string, opts ...func(*redis.Options)) (*Redis, error) {
 
 	i, err := client.Ping().Result()
 	if err != nil && i != "PONG" {
-		log.Error().Str("REDIS", "could not get client").Str("MSG", err.Error())
+		log.Error().Err(err).Msg("REDIS could not get client")
 		return nil, err
 	}
 
@@ -99,7 +113,7 @@ func (db *Redis) GetAllRecords(table string) (map[string]string, int, error) {
 			return elems, -1, nil
 		}
 		if iter.Err() != nil {
-			log.Error().Str("REDIS", "could not get records").Str("MSG", iter.Err().Error())
+			log.Error().Err(iter.Err()).Msg("REDIS could not get records")
 			continue
 		}
 		val := iter.Val()
@@ -114,7 +128,7 @@ func (db *Redis) GetAllRecords(table string) (map[string]string, int, error) {
 	// retrieve number of elements
 	count, err := db.Client.HLen(table).Result()
 	if err == redis.Nil || err != nil {
-		log.Error().Str("REDIS", "could not get count").Str("MSG", iter.Err().Error())
+		log.Error().Err(err).Msg("REDIS could not get count")
 	}
 
 	return elems, int(count), nil
@@ -130,4 +144,34 @@ func (db *Redis) PipelineExec() error {
 	// we care only about the error and not the actual result of the command
 	_, err := db.Pipeliner.Exec()
 	return err
+}
+
+// Lock allows to lock the resource
+func (db *Redis) Lock(key string) (bool, error) {
+	res, err := db.Client.SetNX(key, LockOn, TTL).Result()
+	if err == redis.Nil || err != nil || res == false {
+		log.Error().Err(err).Msg("REDIS could not set key")
+		return false, err
+	}
+	// the lock is on
+	return true, nil
+}
+
+// Unlock unlocks the the key
+func (db *Redis) Unlock(key string) (bool, error) {
+	if err := db.Client.Del(key).Err(); err != nil {
+		log.Error().Err(err).Msg("REDIS could not set key")
+		return false, err
+	}
+	// now it's unlocked
+	return true, nil
+}
+
+// ExtendTTL ddd
+func (db *Redis) ExtendTTL(key string) error {
+	err := db.Expire(key, TTL).Err()
+	if err != nil && err == redis.Nil {
+		return errors.New("REDIS lock has gone")
+	}
+	return nil
 }

@@ -3,11 +3,13 @@ package internal
 import (
 	"bytes"
 	"fmt"
-	"github.com/rtlnl/phoenix/models"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/rtlnl/phoenix/models"
+	"github.com/rtlnl/phoenix/pkg/batch"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -275,7 +277,7 @@ func TestGetDataPreview(t *testing.T) {
 		t.FailNow()
 	}
 
-	bd := make([]BatchData, 1)
+	bd := make([]batch.Data, 1)
 	d := []models.ItemScore{
 		{
 			"item":  "111",

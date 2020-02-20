@@ -14,6 +14,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	paws "github.com/rtlnl/phoenix/pkg/aws"
+	"github.com/rtlnl/phoenix/pkg/batch"
 
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/db"
@@ -35,7 +36,7 @@ func createStreamingRequest(modelName, signalID string, recommendations []models
 	return bytes.NewReader(rb), nil
 }
 
-func createBatchRequestDirect(modelName string, data []BatchData) (*bytes.Reader, error) {
+func createBatchRequestDirect(modelName string, data []batch.Data) (*bytes.Reader, error) {
 	br := &BatchRequest{
 		ModelName: modelName,
 		Data:      data,
@@ -482,7 +483,7 @@ func TestBatchUploadDirectWithErrors(t *testing.T) {
 		t.FailNow()
 	}
 
-	bd := make([]BatchData, 1)
+	bd := make([]batch.Data, 1)
 	d := []models.ItemScore{
 		{
 			"item":  "111",
@@ -532,7 +533,7 @@ func TestBatchUploadDirectNoErrors(t *testing.T) {
 		t.FailNow()
 	}
 
-	bd := make([]BatchData, 1)
+	bd := make([]batch.Data, 1)
 	d := []models.ItemScore{
 		{
 			"item":  "111",
@@ -575,7 +576,7 @@ func TestBatchUploadDirectNoErrors(t *testing.T) {
 }
 
 func TestBatchUploadDirectModelNotExist(t *testing.T) {
-	bd := make([]BatchData, 1)
+	bd := make([]batch.Data, 1)
 	d := []models.ItemScore{
 		{
 			"item":  "111",
@@ -697,12 +698,12 @@ func TestBatchUploadS3(t *testing.T) {
 	}
 
 	switch srs.Status {
-	case BulkSucceeded:
+	case batch.BulkSucceeded:
 		assert.Equal(t, http.StatusOK, srsCode)
-		assert.Equal(t, BulkSucceeded, srs.Status)
+		assert.Equal(t, batch.BulkSucceeded, srs.Status)
 		return
-	case BulkUploading:
-	case BulkFailed:
+	case batch.BulkUploading:
+	case batch.BulkFailed:
 	default:
 		t.Fail()
 	}
@@ -776,13 +777,13 @@ func TestBadBatchUploadS3(t *testing.T) {
 	}
 
 	switch srs.Status {
-	case BulkPartialUpload:
+	case batch.BulkPartialUpload:
 		assert.Equal(t, http.StatusOK, srsCode)
-		assert.Equal(t, BulkPartialUpload, srs.Status)
+		assert.Equal(t, batch.BulkPartialUpload, srs.Status)
 		return
-	case BulkSucceeded:
-	case BulkUploading:
-	case BulkFailed:
+	case batch.BulkSucceeded:
+	case batch.BulkUploading:
+	case batch.BulkFailed:
 	default:
 		t.Fail()
 	}
