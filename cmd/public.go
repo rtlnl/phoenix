@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rtlnl/phoenix/pkg/db"
+	"github.com/rtlnl/phoenix/pkg/metrics"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -70,6 +71,9 @@ APIs for serving the personalized content.`,
 			panic(err)
 		}
 
+		// create metrics client
+		mc := metrics.NewPrometheus()
+
 		// if log type is kafka, we need to close the producer when the server stops
 		if _, ok := recLogs.(logs.KakfaLog); ok {
 			defer recLogs.(logs.KakfaLog).Close()
@@ -80,6 +84,7 @@ APIs for serving the personalized content.`,
 		middlewares = append(middlewares, md.DB(redisClient))
 		middlewares = append(middlewares, md.RecommendationLogs(recLogs))
 		middlewares = append(middlewares, md.Cache(cacheClient))
+		middlewares = append(middlewares, md.Metrics(mc))
 
 		// create new Public api object
 		p, err := public.NewPublicAPI(middlewares...)
