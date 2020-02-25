@@ -64,7 +64,7 @@ func Recommend(c *gin.Context) {
 	// get container from DB
 	container, err := models.GetContainer(rr.PublicationPoint, rr.Campaign, dbc)
 	if err != nil {
-		mc.FailedRequest()
+		mc.NotFoundRequest()
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
@@ -72,7 +72,7 @@ func Recommend(c *gin.Context) {
 	// get model name either from Tucson or URL
 	modelName, err := getModelName(c, container)
 	if err != nil {
-		mc.FailedRequest()
+		mc.NotFoundRequest()
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
@@ -80,7 +80,7 @@ func Recommend(c *gin.Context) {
 	// model exists
 	m, err := models.GetModel(modelName, dbc)
 	if err != nil {
-		mc.FailedRequest()
+		mc.NotFoundRequest()
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
