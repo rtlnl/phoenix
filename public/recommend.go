@@ -13,6 +13,7 @@ import (
 	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/pkg/logs"
+	"github.com/rtlnl/phoenix/pkg/metrics"
 	"github.com/rtlnl/phoenix/utils"
 )
 
@@ -37,7 +38,12 @@ var rrPool = sync.Pool{
 
 // Recommend will take care of fetching the personalized content for a specific user
 func Recommend(c *gin.Context) {
+	mc := c.MustGet("MetricsClient").(metrics.Metrics)
 	dbc := c.MustGet("DB").(db.DB)
+
+	// start timer for measuring the latency
+	mc.StartTimer()
+	defer mc.Latency()
 
 	// get a new object from the pool and then dispose it
 	rr := rrPool.Get().(*RecommendRequest)
@@ -50,6 +56,7 @@ func Recommend(c *gin.Context) {
 
 	// validate recommendation parameters
 	if err := validateRecommendQueryParameters(rr, pp, cp, sID); err != nil {
+		mc.FailedRequest()
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -57,6 +64,7 @@ func Recommend(c *gin.Context) {
 	// get container from DB
 	container, err := models.GetContainer(rr.PublicationPoint, rr.Campaign, dbc)
 	if err != nil {
+		mc.NotFoundRequest()
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
@@ -64,6 +72,7 @@ func Recommend(c *gin.Context) {
 	// get model name either from Tucson or URL
 	modelName, err := getModelName(c, container)
 	if err != nil {
+		mc.NotFoundRequest()
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
@@ -71,12 +80,14 @@ func Recommend(c *gin.Context) {
 	// model exists
 	m, err := models.GetModel(modelName, dbc)
 	if err != nil {
+		mc.NotFoundRequest()
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
 
 	// validate signal
 	if !m.CorrectSignalFormat(rr.SignalID) {
+		mc.FailedRequest()
 		utils.ResponseError(c, http.StatusBadRequest, errors.New("signal is not formatted correctly"))
 		return
 	}
@@ -97,6 +108,10 @@ func Recommend(c *gin.Context) {
 			SignalID:         rr.SignalID,
 			ItemScores:       is,
 		})
+
+		// track a successful request
+		mc.SuccessRequest()
+
 		// return response
 		utils.Response(c, http.StatusOK, &RecommendResponse{
 			ModelName:       modelName,
@@ -108,6 +123,7 @@ func Recommend(c *gin.Context) {
 	// get the recommended values
 	r, err := dbc.GetOne(modelName, rr.SignalID)
 	if err != nil {
+		mc.NotFoundRequest()
 		utils.ResponseError(c, http.StatusNotFound, err)
 		return
 	}
@@ -115,6 +131,7 @@ func Recommend(c *gin.Context) {
 	// convert single entry from string to []models.ItemScore
 	itemsScore, err := models.DeserializeItemScoreArray(r)
 	if err != nil {
+		mc.FailedRequest()
 		utils.ResponseError(c, http.StatusInternalServerError, fmt.Errorf("could not deserialize object. error: %s", err.Error()))
 		return
 	}
@@ -138,6 +155,9 @@ func Recommend(c *gin.Context) {
 			zerolog.Error().Msg(err.Error())
 		}
 	}()
+
+	// track a successful request
+	mc.SuccessRequest()
 
 	utils.Response(c, http.StatusOK, &RecommendResponse{
 		ModelName:       modelName,
