@@ -64,6 +64,21 @@ func createBatchRequestLocation(modelName string, dataLocation string) (*bytes.R
 	return bytes.NewReader(rb), nil
 }
 
+func createRecommendationRequest(modelName string, signalID string, recommendation models.ItemScore) (*bytes.Reader, error) {
+	lr := &RecommendationRequest{
+		SignalID:       signalID,
+		ModelName:      modelName,
+		Recommendation: recommendation,
+	}
+
+	rb, err := json.Marshal(lr)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewReader(rb), nil
+}
+
 func TestStreaming(t *testing.T) {
 	dbc, c := GetTestRedisClient()
 	defer c()
@@ -837,4 +852,124 @@ func TestCorrectSignalFormat(t *testing.T) {
 		o := m.CorrectSignalFormat(test.input)
 		assert.Equal(t, test.expected, o)
 	}
+}
+
+// Util function that inserts a static recommendation into the db for the given model name
+func createRecommendation(dbc db.DB, t *testing.T, modelName string) {
+	// populate data
+	if _, err := models.NewModel(modelName, "", []string{"prisoner"}, dbc); err != nil {
+		t.Error(err)
+		t.Error("creating fill model failed")
+	}
+
+	signal := "890"
+	recommendationItems := []models.ItemScore{
+		{
+			"item":  "111",
+			"score": "0.6",
+			"type":  "movie",
+		},
+		{
+			"item":  "222",
+			"score": "0.4",
+			"type":  "movie",
+		},
+		{
+			"item":  "555",
+			"score": "0.16",
+			"type":  "series",
+		},
+	}
+
+	rb, err := createStreamingRequest(modelName, signal, recommendationItems)
+	if err != nil {
+		t.Error("filler streaming request failed ")
+	}
+
+	// send the mock data to populate
+	code, body, err := MockRequest(http.MethodPost, "/v1/streaming", rb)
+	if err != nil {
+		t.Error("filler mockrequest failed")
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Error("filler read failed")
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"signal 890 created\"}", string(b))
+}
+
+func TestStreamingDeleteRecommendation(t *testing.T) {
+	dbc, c := GetTestRedisClient()
+	defer c()
+
+	createRecommendation(dbc, t, "removaltest")
+
+	item := models.ItemScore{"item": "222"}
+	signal := "890"
+	rl, err := createRecommendationRequest("removaltest", signal, item)
+	if err != nil {
+		t.Error("creating request failed")
+	}
+
+	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming/recommendation", rl)
+	if err != nil {
+		t.Error("mockrequest failed")
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Error("read failed")
+	}
+
+	assert.Equal(t, http.StatusCreated, code)
+	assert.Equal(t, "{\"message\":\"Handled recommended item deletion for SignalId 890\"}", string(b))
+
+	// get the current recommendations string
+	recsAfter, err := dbc.GetOne("removaltest", "890")
+	if err != nil {
+		t.Fail()
+	}
+
+	// convert the escaped json string to itemscore object
+	var recs []models.ItemScore
+	if err := json.Unmarshal([]byte(recsAfter), &recs); err != nil {
+		t.Fail()
+	}
+
+	// make sure that removed item is not in the recommendations
+	for _, rec := range recs {
+		if rec["item"] == "222" {
+			t.Error("Item was not removed from recommendations.")
+		}
+	}
+}
+
+func TestStreamingDeleteNonExistingRecommendation(t *testing.T) {
+	dbc, c := GetTestRedisClient()
+	defer c()
+
+	createRecommendation(dbc, t, "removalnonexisting")
+
+	item := models.ItemScore{"item": "1000"}
+	signal := "890"
+	rl, err := createRecommendationRequest("removalnonexisting", signal, item)
+	if err != nil {
+		t.Fail()
+	}
+
+	code, body, err := MockRequest(http.MethodDelete, "/v1/streaming/recommendation", rl)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "{\"error\":\"recommendation does not exist\"}", string(b))
 }

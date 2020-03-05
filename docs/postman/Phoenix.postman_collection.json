@@ -1,55 +1,14 @@
 {
 	"info": {
-		"_postman_id": "8f3a1625-b003-4341-b54e-67071cc49dce",
+		"_postman_id": "c3606de8-dfc7-4360-b28c-09187dd46229",
 		"name": "Phoenix",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "Models All",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{phoenix_url_internal}}/management/models/all",
-					"host": [
-						"{{phoenix_url_internal}}"
-					],
-					"path": [
-						"management",
-						"models",
-						"all"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Management Containers All",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{phoenix_url_internal}}/management/containers/all",
-					"host": [
-						"{{phoenix_url_internal}}"
-					],
-					"path": [
-						"management",
-						"containers",
-						"all"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Create model",
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
 			"request": {
-				"method": "GET",
+				"method": "POST",
 				"header": [
 					{
 						"key": "Content-Type",
@@ -81,12 +40,52 @@
 			"response": []
 		},
 		{
-			"name": "Create model container",
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
+			"name": "Get model metadata",
 			"request": {
 				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/models?name=collaborative",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"models"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "collaborative"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Models All",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/models/all",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"models",
+						"all"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create model container",
+			"request": {
+				"method": "POST",
 				"header": [
 					{
 						"key": "Content-Type",
@@ -112,6 +111,112 @@
 					"path": [
 						"management",
 						"containers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Management Containers All",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/containers/all",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"containers",
+						"all"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Streaming data",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signalId\": \"11\",\n\t\"recommendations\": [\n\t\t{\"item\":\"1\",\"score\":\"0.8\",\"type\":\"article\"},\n\t\t{\"item\":\"2\",\"score\":\"0.8\",\"type\":\"article\"}\n\t]\n}"
+				},
+				"url": {
+					"raw": "{{phoenix_url_internal}}/streaming",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"streaming"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Streaming data - recommendation",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signalId\": \"11\",\n\t\"recommendation\": {\"item\":\"2\"}\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{phoenix_url_internal}}/streaming/recommendation",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"streaming",
+						"recommendation"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Model Data Preview",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{phoenix_url_internal}}/management/models/preview?name=collaborative",
+					"host": [
+						"{{phoenix_url_internal}}"
+					],
+					"path": [
+						"management",
+						"models",
+						"preview"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "collaborative"
+						}
 					]
 				}
 			},
@@ -159,83 +264,6 @@
 						"batch",
 						"status",
 						"123"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Streaming data",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"name": "Content-Type",
-						"value": "application/json",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"modelName\": \"collaborative\",\n\t\"signalId\": \"11\",\n\t\"recommendations\": [{\"item\":\"1\",\"score\":\"0.8\",\"type\":\"article\"}]\n}"
-				},
-				"url": {
-					"raw": "{{phoenix_url_internal}}/streaming",
-					"host": [
-						"{{phoenix_url_internal}}"
-					],
-					"path": [
-						"streaming"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get model metadata",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{phoenix_url_internal}}/management/models?name=collaborative",
-					"host": [
-						"{{phoenix_url_internal}}"
-					],
-					"path": [
-						"management",
-						"models"
-					],
-					"query": [
-						{
-							"key": "name",
-							"value": "collaborative"
-						}
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Model Data Preview",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{phoenix_url_internal}}/management/models/preview?name=collaborative",
-					"host": [
-						"{{phoenix_url_internal}}"
-					],
-					"path": [
-						"management",
-						"models",
-						"preview"
-					],
-					"query": [
-						{
-							"key": "name",
-							"value": "collaborative"
-						}
 					]
 				}
 			},

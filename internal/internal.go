@@ -34,11 +34,14 @@ func NewInternalAPI(middlewares ...gin.HandlerFunc) (*Internal, error) {
 
 	// Internal API v1
 	v1 := r.Group("v1")
-	v1.POST("/streaming", CreateStreaming)
-	v1.PUT("/streaming", UpdateStreaming)
-	v1.DELETE("/streaming", DeleteStreaming)
 	v1.POST("/batch", Batch)
 	v1.GET("/batch/status/:id", BatchStatus)
+
+	sc := v1.Group("/streaming")
+	sc.POST("/", CreateStreaming)
+	sc.PUT("/", UpdateStreaming)
+	sc.DELETE("/", DeleteStreaming)
+	sc.DELETE("/recommendation", DeleteRecommendation)
 
 	// Management Routes
 	mg := v1.Group("/management")
