@@ -9,7 +9,7 @@ import (
 )
 
 // Version is the current version of the APIs
-const version = "v0.0.1"
+const version = "v1.0.0"
 
 // VersionResponse is the object that represents the payload of the root endpoint
 type VersionResponse struct {
