@@ -22,5 +22,5 @@ func TestLongVersion(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "{\"version\":\"Internal Phoenix APIs v0.0.1\"}", string(b))
+	assert.Equal(t, "{\"version\":\"Internal Phoenix APIs v1.0.0\"}", string(b))
 }

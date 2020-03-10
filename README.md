@@ -4,6 +4,7 @@ The Project is divided in two main parts:
 
 - Public APIs
 - Internal APIs
+- Worker
 
 ## How to start
 
@@ -43,3 +44,7 @@ The APIs gives the possibility to read a file from S3 and upload it to Redis. To
 The process of uploading the file from S3 to Redis is delegated to a separate `go routine`. The client should store the `batchID` that is returned from the initial request `(POST /v1/batch)` and ask for the status with `GET /v1/batch/status/:id`.
 
 Time taken to upload **1.6M unique keys** from S3 is `3m 33secs`. Check this [PR](https://github.com/rtlnl/phoenix/pull/5) for more information
+
+### Worker
+
+There can be only 1 worker working at the time. The worker is responsible for reading the `batchUpload` requests from the Redis Queue and execute them 1 by 1.
