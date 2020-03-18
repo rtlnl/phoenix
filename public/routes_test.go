@@ -19,6 +19,7 @@ import (
 	"github.com/rtlnl/phoenix/pkg/cache"
 	"github.com/rtlnl/phoenix/pkg/db"
 	"github.com/rtlnl/phoenix/pkg/logs"
+	"github.com/rtlnl/phoenix/pkg/metrics"
 	"github.com/rtlnl/phoenix/utils"
 )
 
@@ -55,11 +56,14 @@ func tearUp() {
 	if err := dbc.Client.FlushAll().Err(); err != nil {
 		panic(err)
 	}
+	// create metrics client
+	mc := metrics.NewPrometheus()
 
 	router.Use(middleware.DB(dbc))
 
 	router.Use(middleware.RecommendationLogs(logs.NewStdoutLog()))
 	router.Use(middleware.Cache(cacheClient))
+	router.Use(middleware.Metrics(mc))
 
 	// subscribe route Recommend here due to multiple tests on this route
 	// it avoids a panic error for registering the route multiple times
