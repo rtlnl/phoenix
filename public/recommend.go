@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -22,6 +23,7 @@ type RecommendRequest struct {
 	SignalID         string `json:"signalId"`
 	PublicationPoint string `json:"publicationPoint"`
 	Campaign         string `json:"campaign"`
+	FlushCache       bool   `json:"flushCache"`
 }
 
 // RecommendResponse is the object that represents the payload of the response for the recommend endpoint
@@ -53,9 +55,10 @@ func Recommend(c *gin.Context) {
 	pp := c.DefaultQuery("publicationPoint", "")
 	cp := c.DefaultQuery("campaign", "")
 	sID := c.DefaultQuery("signalId", "")
+	fc := c.DefaultQuery("flushCache", "false")
 
 	// validate recommendation parameters
-	if err := validateRecommendQueryParameters(rr, pp, cp, sID); err != nil {
+	if err := validateRecommendQueryParameters(rr, pp, cp, sID, fc); err != nil {
 		mc.FailedRequest()
 		utils.ResponseError(c, http.StatusBadRequest, err)
 		return
@@ -96,11 +99,11 @@ func Recommend(c *gin.Context) {
 	cc := c.MustGet("CacheClient").(cache.Cache)
 	// get logging client
 	lt := c.MustGet("RecommendationLog").(logs.RecommendationLog)
-
 	// compose key for the cache
 	key := fmt.Sprintf("%s#%s", modelName, rr.SignalID)
-	// check if value is in cache
-	if is, ok := cc.Get(key); ok {
+
+	// check if value is in cache only if flushing is not specified
+	if is, ok := cc.Get(key); ok && !rr.FlushCache {
 		// write logs
 		lt.Write(logs.RowLog{
 			PublicationPoint: rr.PublicationPoint,
@@ -201,7 +204,7 @@ func getDefaultModelName(container models.Container) string {
 	return ""
 }
 
-func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID string) error {
+func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, campaign, signalID, flushCache string) error {
 	if publicationPoint == "" || signalID == "" || campaign == "" {
 		return errors.New("Request format error: publicationPoint, campaign or signalId are missing")
 	}
@@ -210,6 +213,12 @@ func validateRecommendQueryParameters(rr *RecommendRequest, publicationPoint, ca
 	rr.PublicationPoint = publicationPoint
 	rr.Campaign = campaign
 	rr.SignalID = signalID
+
+	b, err := strconv.ParseBool(flushCache)
+	if err != nil {
+		return err
+	}
+	rr.FlushCache = b
 
 	return nil
 }
