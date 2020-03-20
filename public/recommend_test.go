@@ -1,10 +1,11 @@
 package public
 
 import (
-	"github.com/rtlnl/phoenix/models"
 	"io/ioutil"
 	"net/http"
 	"testing"
+
+	"github.com/rtlnl/phoenix/models"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,6 +37,74 @@ func TestRecommend(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, code)
 	assert.Equal(t, "{\"modelName\":\"model\",\"recommendations\":[{\"item\":\"6456\",\"score\":\"0.6\"},{\"item\":\"1252\",\"score\":\"0.345\"},{\"item\":\"7876\",\"score\":\"0.987\"}]}", string(b))
+
+}
+
+func TestRecommendCacheFlushing(t *testing.T) {
+	dbc, c := GetTestRedisClient()
+	defer c()
+
+	// Test object creation
+	if _, err := models.NewModel("cachemodel", "", []string{"signal"}, dbc); err != nil {
+		t.Error("Failed to create model")
+	}
+
+	if _, err := models.NewContainer("cachepublication", "cachecampaign", []string{"cachemodel"}, dbc); err != nil {
+		t.Error("Failed to create campaign")
+	}
+
+	UploadTestData(t, dbc, "testdata/test_published_model_data.jsonl", "cachemodel")
+
+	code, body, err := MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=cachepublication&campaign=cachecampaign&model=cachemodel&signalId=500083", nil)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, http.StatusOK, code)
+	assert.Equal(t, "{\"modelName\":\"cachemodel\",\"recommendations\":[{\"item\":\"6456\",\"score\":\"0.6\"},{\"item\":\"1252\",\"score\":\"0.345\"},{\"item\":\"7876\",\"score\":\"0.987\"}]}", string(b))
+
+	// delete recommendation from database
+	err = dbc.DeleteOne("cachemodel", "500083")
+	if err != nil {
+		t.Error("Something went wrong deleting the entry")
+		return
+	}
+
+	// do the same request again
+	code, body, err = MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=cachepublication&campaign=cachecampaign&model=cachemodel&signalId=500083", nil)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err = ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	// should still return same results even after removal from database because of caching
+	assert.Equal(t, http.StatusOK, code)
+	assert.Equal(t, "{\"modelName\":\"cachemodel\",\"recommendations\":[{\"item\":\"6456\",\"score\":\"0.6\"},{\"item\":\"1252\",\"score\":\"0.345\"},{\"item\":\"7876\",\"score\":\"0.987\"}]}", string(b))
+
+	// now add `flushCache` param to the request
+	code, body, err = MockRequest(http.MethodGet, "/v1/recommend?publicationPoint=cachepublication&campaign=cachecampaign&model=cachemodel&signalId=500083&flushCache=true", nil)
+	if err != nil {
+		t.Fail()
+	}
+
+	b, err = ioutil.ReadAll(body)
+	if err != nil {
+		t.Fail()
+	}
+
+	// Now the cache should be updated and say the item is not found
+	assert.Equal(t, http.StatusNotFound, code)
+	assert.Equal(t, "{\"error\":\"key 500083 not found\"}", string(b))
+
 }
 
 func TestRecommendFailValidation1(t *testing.T) {
