@@ -12,6 +12,17 @@ Simple, yet powerful API for delivery recommendations
 
 We have being used in production since December 2019 and we haven't had a single downtime since. So far, we have delivered more than 350M recommendations to our users. The average request latency is `35ms`.
 
+## Quick start
+
+Assuming that you have `go`, `docker` and `docker-compose` installed in your machine, you need to have 3 terminals open that points to the directory where the project is. Do the following
+
+1. In terminal number 1, run `docker-compose up -d` to spin up Redis and localstack (for local S3)
+2. In terminal number 1 run `go run main.go worker` for the Worker service
+3. In terminal number 2 run `go run main.go internal` for the Internal APIs
+4. In terminal number 3 run `go run main.go public` for the Public APIs
+
+Now you are ready to go :rocket:
+
 ## Docs
 
 The documentation for developing and using Phoenix is available in the [wiki](https://github.com/rtlnl/phoenix/wiki)
