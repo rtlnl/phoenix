@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "api.fullname" . }}-internal
+  labels:
+    app.kubernetes.io/name: {{ include "api.name" . }}-internal
+    helm.sh/chart: {{ include "api.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    prometheus.io/path: "/metrics"
+    prometheus.io/scheme: http
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9900"
+spec:
+  type: {{ .Values.internal.service.type }}
+  ports:
+    - port: {{ .Values.internal.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "api.name" . }}-internal
+    app.kubernetes.io/instance: {{ .Release.Name }}
