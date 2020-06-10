@@ -4,8 +4,6 @@ Current chart version is `0.3.0`.
 
 ## Deploy Phoenix
 
-We do not provide a public Docker repository where you can download the `phoenix` image from. You need to create your own repository and push the image over there and set it here.
-
 The default values will create all the services that are required to make Phoenix work out of the box. Make sure you are setting properly the `ENV` variables to connect to `S3`. To install the chart simply run the below command:
 
 ```bash
@@ -21,7 +19,7 @@ If you find something that doesn't work, please open up an Issue or a PR! We :he
 | fullnameOverride | string | `""` |  |
 | nameOverride | string | `""` |  |
 | image.pullPolicy | string | `"Always"` | Image pull policy |
-| image.repository | string | `"repository/phoenix"` | Image repository name |
+| image.repository | string | `"docker.pkg.github.com/rtlnl/phoenix/phoenix"` | Image repository name |
 | image.tag | string | `"latest"` | Image tag |
 | ingress.annotations | object | `{}` | Ingress annotations (values are templated) |
 | ingress.enabled | bool | `false` | Enables Ingress |
