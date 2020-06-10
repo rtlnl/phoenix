@@ -1,16 +1,16 @@
 ![Docker](https://github.com/rtlnl/phoenix/workflows/Docker/badge.svg?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/rtlnl/phoenix)](https://goreportcard.com/report/github.com/rtlnl/phoenix)
 
-# Phoenix project
+# Phoenix
+
+Phoenix is the **delivery recommendation systems** that is used at RTL Nederland. These APIs are able to deliver millions of recommendations per day. We use Phoenix for powering [Videoland](https://www.videoland.com/) and [RTL Nieuws](https://www.rtlnieuws.nl/). Our data science team works very hard to generate tailored recommendations to each user and we, as the platform team, make sure that these recommendations are actually delivered.
+
+## How to start
 
 The Project is divided in two main parts:
 
 - Public APIs
 - Internal APIs
 - Worker
-
-Go to the [wiki](https://github.com/rtlnl/phoenix/wiki) for more information about these services.
-
-## How to start
 
 Assuming that you have `go`, `docker` and `docker-compose` installed in your machine, run `docker-compose up -d` to spin up Redis and localstack (for local S3).
 
@@ -23,6 +23,8 @@ If you need to upload some files to the local S3, use the following commands aft
 - `aws --endpoint-url=http://localhost:4572 s3 mb s3://my-bucket` to create a bucket in local S3
 - `aws --endpoint-url=http://localhost:4572 s3api put-bucket-acl --bucket my-bucket --acl public-read` to set up a policy for testing with local s3
 - `aws --endpoint-url=http://localhost:4572 s3 cp /your/path/data.jsonl s3://my-bucket/data/` to copy a file to local S3
+
+To know more in details how to use the system, go to the [wiki](https://github.com/rtlnl/phoenix/wiki) section in this repository. If you have any question, open an Issue and we will help you :rocket:
 
 ## How to run tests
 
