@@ -1,4 +1,4 @@
-![Docker](https://github.com/rtlnl/phoenix/workflows/Docker/badge.svg?branch=master) 
+![Docker](https://github.com/rtlnl/phoenix/workflows/Docker/badge.svg?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/rtlnl/phoenix)](https://goreportcard.com/report/github.com/rtlnl/phoenix)
 
 # Phoenix project
 
