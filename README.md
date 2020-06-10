@@ -1,3 +1,5 @@
+![Docker](https://github.com/rtlnl/phoenix/workflows/Docker/badge.svg?branch=master) 
+
 # Phoenix project
 
 The Project is divided in two main parts:
