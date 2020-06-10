@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "api.fullname" . }}-worker
+  labels:
+    app.kubernetes.io/name: {{ include "api.name" . }}-worker
+    helm.sh/chart: {{ include "api.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.worker.replicaCount }}
+  strategy:
+    # for the worker we need to brutally kill the pod to unlock the db
+    type: Recreate
+    rollingUpdate: null
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "api.name" . }}-worker
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "api.name" . }}-worker
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["worker"]
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "api.fullname" . }}-worker
+          resources:
+{{ toYaml .Values.worker.resources | indent 12 }}
+      affinity:
+{{ toYaml .Values.public.affinity | indent 8 }}
+      tolerations:
+{{ toYaml .Values.internal.tolerations | indent 8 }}  
