@@ -129,7 +129,7 @@ func (c TaskConsumer) Consume(delivery rmq.Delivery) {
 
 // Consume instructs the worker to consuming the messages
 func (w *Worker) Consume() error {
-	if err := w.Queue.StartConsuming(unackedLimit, pollDuration); err != redis.Nil {
+	if err := w.Queue.StartConsuming(unackedLimit, pollDuration); err != nil {
 		return errors.New("could not start consuming messages")
 	}
 	w.Queue.AddConsumer(consumerTag, w.Consumer)
