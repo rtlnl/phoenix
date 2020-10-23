@@ -27,22 +27,23 @@ var workerCmd = &cobra.Command{
 	that will be executed one they arrive.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		brokerWorker := viper.GetString(workerBrokerFlag)
+		passwordWorker := viper.GetString(workerPasswordFlag)
 
 		// instantiate Redis client
-		redisClient, err := db.NewRedisClient(brokerWorker)
+		rc, err := db.NewRedisClient(brokerWorker, db.Password(passwordWorker))
 		if err != nil {
 			panic(err)
 		}
 
-		l, err := redisClient.Lock(worker.WorkerLockKey)
-		defer redisClient.Unlock(worker.WorkerLockKey)
+		l, err := rc.Lock(worker.WorkerLockKey)
+		defer rc.Unlock(worker.WorkerLockKey)
 
 		if l == false || err != nil {
 			log.Error().Err(err).Msg("REDIS failed to acquire lock")
 			os.Exit(0)
 		}
 
-		w, err := worker.New(brokerWorker, workerConsumerName, workerQueueName)
+		w, err := worker.New(rc.Client, workerConsumerName, workerQueueName)
 		if err != nil {
 			panic(err)
 		}
@@ -61,7 +62,7 @@ var workerCmd = &cobra.Command{
 		for {
 			select {
 			case <-ticker.C:
-				if err := redisClient.ExtendTTL(worker.WorkerLockKey); err != nil {
+				if err := rc.ExtendTTL(worker.WorkerLockKey); err != nil {
 					log.Error().Msg(err.Error())
 					w.Close()
 					break EXITLOOP
@@ -82,8 +83,10 @@ func init() {
 	f := workerCmd.PersistentFlags()
 
 	f.String(workerBrokerFlag, "127.0.0.1:6379", "broker url for the workers")
+	f.String(workerPasswordFlag, "qwerty", "broker password")
 
 	viper.BindEnv(workerBrokerFlag, "WORKER_BROKER_URL")
+	viper.BindEnv(workerPasswordFlag, "WORKER_PASSWORD")
 
 	viper.BindPFlags(f)
 }

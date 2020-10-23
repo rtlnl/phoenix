@@ -26,6 +26,7 @@ var internalCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		addr := viper.GetString(addressInternalFlag)
 		dbHost := viper.GetString(dbHostInternalFlag)
+		dbPassword := viper.GetString(dbPasswordInternalFlag)
 		s3Region := viper.GetString(s3RegionFlag)
 		s3Endpoint := viper.GetString(s3EndpointFlag)
 		s3DisableSSL := viper.GetBool(s3DisableSSLFlag)
@@ -38,7 +39,7 @@ var internalCmd = &cobra.Command{
 		}
 
 		// instantiate Redis client
-		redisClient, err := db.NewRedisClient(dbHost)
+		redisClient, err := db.NewRedisClient(dbHost, db.Password(dbPassword))
 		if err != nil {
 			panic(err)
 		}
@@ -48,7 +49,7 @@ var internalCmd = &cobra.Command{
 		middlewares = append(middlewares, md.DB(redisClient))
 		middlewares = append(middlewares, md.AWSSession(s3Region, s3Endpoint, s3DisableSSL))
 		middlewares = append(middlewares, md.Cors())
-		middlewares = append(middlewares, md.NewWorker(dbHost, workerProducerName, workerQueueName))
+		middlewares = append(middlewares, md.NewWorker(redisClient, workerProducerName, workerQueueName))
 
 		i, err := internal.NewInternalAPI(middlewares...)
 		if err != nil {
@@ -68,6 +69,7 @@ func init() {
 
 	f.String(addressInternalFlag, ":8081", "server address")
 	f.String(dbHostInternalFlag, "127.0.0.1:6379", "database host")
+	f.String(dbPasswordInternalFlag, "qwerty", "database password")
 	f.String(s3RegionFlag, "eu-west-1", "s3 region")
 	f.String(s3EndpointFlag, "localhost:4572", "s3 endpoint")
 	f.Bool(s3DisableSSLFlag, true, "disable SSL verification for s3")
@@ -75,6 +77,7 @@ func init() {
 
 	viper.BindEnv(addressInternalFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostInternalFlag, "DB_HOST")
+	viper.BindEnv(dbPasswordInternalFlag, "DB_PASSWORD")
 	viper.BindEnv(s3RegionFlag, "S3_REGION")
 	viper.BindEnv(s3EndpointFlag, "S3_ENDPOINT")
 	viper.BindEnv(s3DisableSSLFlag, "S3_DISABLE_SSL")
