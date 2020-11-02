@@ -16,6 +16,7 @@ import (
 
 var (
 	testDBHost     = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
+	testDBPassword = utils.GetEnv("DB_PASSWORD", "qwerty")
 	testBucket     = "test"
 	testEndpoint   = "localhost:4572"
 	testRegion     = "eu-west-1"
@@ -32,7 +33,7 @@ func TestMain(m *testing.M) {
 }
 
 func tearUp() {
-	dbc, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost, db.Password(testDBPassword))
 	if err != nil {
 		panic(err)
 	}
@@ -48,7 +49,7 @@ func tearUp() {
 
 	router.Use(middleware.DB(dbc))
 	router.Use(middleware.AWSSession(testRegion, testEndpoint, testDisableSSL))
-	router.Use(middleware.NewWorker(testDBHost, "test-worker", "worker-queue"))
+	router.Use(middleware.NewWorker(dbc, "test-worker", "worker-queue"))
 
 	// subscribe routes here due to multiple tests on the same endpoint
 	// it avoids a panic error for registering the route multiple times
@@ -79,7 +80,7 @@ func tearUp() {
 }
 
 func tearDown() {
-	dbc, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost, db.Password(testDBPassword))
 	if err != nil {
 		panic(err)
 	}
@@ -89,7 +90,7 @@ func tearDown() {
 }
 
 func GetTestRedisClient() (db.DB, func()) {
-	dbc, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost, db.Password(testDBPassword))
 	if err != nil {
 		panic(err)
 	}

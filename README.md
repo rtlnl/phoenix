@@ -1,50 +1,37 @@
-# Phoenix project
+![Docker](https://github.com/rtlnl/phoenix/workflows/Docker/badge.svg?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/rtlnl/phoenix)](https://goreportcard.com/report/github.com/rtlnl/phoenix)
 
-The Project is divided in two main parts:
+# Phoenix
 
-- Public APIs
-- Internal APIs
-- Worker
+<a href="https://ibb.co/j6Mv7b5"><img src="https://i.ibb.co/j6Mv7b5/gopher-phoenix.png" align="right" alt="gopher-phoenix" border="0"></a>
 
-## How to start
+Phoenix is the **delivery recommendation systems** that is used at RTL Nederland. These APIs are able to deliver millions of recommendations per day. We use Phoenix for powering [Videoland](https://www.videoland.com/) and [RTL Nieuws](https://www.rtlnieuws.nl/). Our data science team works very hard to generate tailored recommendations to each user and we, as the platform team, make sure that these recommendations are actually delivered.
 
-Assuming that you have `go`, `docker` and `docker-compose` installed in your machine, run `docker-compose up -d` to spin up Redis and localstack (for local S3).
+Simple, yet powerful API for delivery recommendations
 
-After having the services up and running, assuming that you have your Go environment in your `PATH`, you should be able to start directly with `go run main.go --help`. This command should print the `help` message.
+* **Easy to understand** - push and get data from Redis very quickly
+* **Fast in deliverying** - the combination of Go, Redis and Allegro cache makes the project blazing fast
+* **Smart in storing** - the APIs avoid the overload of the Redis database by using a worker for bulk uplaod
 
-Proceed by running `go run main.go internal` for the internal APIs (or `go run main.go public` for the public APIs)
+We have being used in production since December 2019 and we haven't had a single downtime since. So far, we have delivered more than 350M recommendations to our users. The average request latency is `35ms`.
 
-If you need to upload some files to the local S3, use the following commands after `localstack` has been created:
+## Quick start
 
-- `aws --endpoint-url=http://localhost:4572 s3 mb s3://test` to create a bucket in local S3
-- `aws --endpoint-url=http://localhost:4572 s3api put-bucket-acl --bucket test --acl public-read` to set up a policy for testing with local s3
-- `aws --endpoint-url=http://localhost:4572 s3 cp ~/Desktop/data.csv s3://test/content/20190713/` to copy a file to local S3
+Assuming that you have `go`, `docker` and `docker-compose` installed in your machine, you need to have 3 terminals open that points to the directory where the project is. Do the following
 
-## How to run tests
+1. In terminal number 1, run `docker-compose up -d` to spin up Redis and localstack (for local S3)
+2. In terminal number 1 run `go run main.go worker` for the Worker service
+3. In terminal number 2 run `go run main.go internal` for the Internal APIs
+4. In terminal number 3 run `go run main.go public` for the Public APIs
 
-To run all the tests, use the following command:
+Now you are ready to go :rocket:
 
-```bash
-$: go clean -testcache && go test -race ./...
-```
+## Docs
 
-The first part is to avoid that Go will cache the result of the tests. This could lead to some evaluation errors
-if you change some tests. Better without cache.
+The documentation for developing and using Phoenix is available in the [wiki](https://github.com/rtlnl/phoenix/wiki)
 
-## How to perform manual tests
+## Join the Phoenix Community
+In order to contribute to Phoenix, see the [CONTRIBUTING](CONTRIBUTING.md) file for how to go get started.
+If your company or your product is using Phoenix, please let us know by adding yourself to the Phoenix [users](USERS.md) file.
 
-For manual testing of endpoints on the different environments, a [Postman collection](docs/postman/Phoenix.postman_collection.json) has been included in the `docs` directory.
-
-## Batch Upload
-
-The APIs gives the possibility to read a file from S3 and upload it to Redis. To avoid timeouts and having the client hanging waiting for the response, the APIs has a simple `checking` mechanism. The picture below explain how the process works
-
-![](/docs/images/batch_upload.png)
-
-The process of uploading the file from S3 to Redis is delegated to a separate `go routine`. The client should store the `batchID` that is returned from the initial request `(POST /v1/batch)` and ask for the status with `GET /v1/batch/status/:id`.
-
-Time taken to upload **1.6M unique keys** from S3 is `3m 33secs`. Check this [PR](https://github.com/rtlnl/phoenix/pull/5) for more information
-
-### Worker
-
-There can be only 1 worker working at the time. The worker is responsible for reading the `batchUpload` requests from the Redis Queue and execute them 1 by 1.
+## License
+Phoenix is licensed under MIT license as found in the [LICENSE](LICENSE.md) file.

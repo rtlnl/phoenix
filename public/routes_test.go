@@ -24,7 +24,8 @@ import (
 )
 
 var (
-	testDBHost = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
+	testDBHost     = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
+	testDBPassword = utils.GetEnv("DB_PASSWORD", "qwerty")
 )
 
 var router *gin.Engine
@@ -49,7 +50,7 @@ func tearUp() {
 	)
 
 	// instantiate Redis client
-	dbc, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost, db.Password(testDBPassword))
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +74,7 @@ func tearUp() {
 func tearDown() {
 	router = nil
 
-	dbc, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost, db.Password(testDBPassword))
 	if err != nil {
 		panic(err)
 	}
@@ -83,7 +84,7 @@ func tearDown() {
 }
 
 func GetTestRedisClient() (db.DB, func()) {
-	dbc, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost, db.Password(testDBPassword))
 	if err != nil {
 		panic(err)
 	}

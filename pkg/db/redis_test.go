@@ -2,19 +2,20 @@ package db
 
 import (
 	"encoding/json"
-	"github.com/rtlnl/phoenix/utils"
 	"os"
 	"testing"
+
+	"github.com/rtlnl/phoenix/utils"
+	"github.com/stretchr/testify/assert"
 )
 
-import "github.com/stretchr/testify/assert"
-
 var (
-	testRedisHost = utils.GetDefault(os.Getenv("DB_HOST"), "127.0.0.1:6379")
+	testRedisHost     = utils.GetDefault(os.Getenv("DB_HOST"), "127.0.0.1:6379")
+	testRedisPassword = utils.GetDefault(os.Getenv("DB_PASSWORD"), "qwerty")
 )
 
 func TestNewRedis(t *testing.T) {
-	c, err := NewRedisClient(testRedisHost)
+	c, err := NewRedisClient(testRedisHost, Password(testRedisPassword))
 	if err != nil {
 		t.Fail()
 	}
@@ -24,7 +25,7 @@ func TestNewRedis(t *testing.T) {
 }
 
 func TestRedisGetOne(t *testing.T) {
-	c, err := NewRedisClient(testRedisHost)
+	c, err := NewRedisClient(testRedisHost, Password(testRedisPassword))
 	if err != nil {
 		t.Fail()
 	}
@@ -74,7 +75,7 @@ func TestRedisGetOne(t *testing.T) {
 }
 
 func TestRedisGetOneNotExists(t *testing.T) {
-	c, err := NewRedisClient(testRedisHost)
+	c, err := NewRedisClient(testRedisHost, Password(testRedisPassword))
 	if err != nil {
 		t.Fail()
 	}
@@ -88,7 +89,7 @@ func TestRedisGetOneNotExists(t *testing.T) {
 }
 
 func TestRedisAddOne(t *testing.T) {
-	c, err := NewRedisClient(testRedisHost)
+	c, err := NewRedisClient(testRedisHost, Password(testRedisPassword))
 	if err != nil {
 		t.Fail()
 	}
@@ -125,7 +126,7 @@ func TestRedisAddOne(t *testing.T) {
 }
 
 func TestRedisDeleteOne(t *testing.T) {
-	c, err := NewRedisClient(testRedisHost)
+	c, err := NewRedisClient(testRedisHost, Password(testRedisPassword))
 	if err != nil {
 		t.Fail()
 	}
@@ -175,7 +176,7 @@ func TestRedisDeleteOne(t *testing.T) {
 }
 
 func TestRedisDropTable(t *testing.T) {
-	c, err := NewRedisClient(testRedisHost)
+	c, err := NewRedisClient(testRedisHost, Password(testRedisPassword))
 	if err != nil {
 		t.Fail()
 	}
@@ -233,7 +234,7 @@ func TestRedisDropTable(t *testing.T) {
 }
 
 func TestRedisGetAllRecords(t *testing.T) {
-	c, err := NewRedisClient(testRedisHost)
+	c, err := NewRedisClient(testRedisHost, Password(testRedisPassword))
 	if err != nil {
 		t.Fail()
 	}
