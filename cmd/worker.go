@@ -83,7 +83,7 @@ func init() {
 	f := workerCmd.PersistentFlags()
 
 	f.String(workerBrokerFlag, "127.0.0.1:6379", "broker url for the workers")
-	f.String(workerPasswordFlag, "qwerty", "broker password")
+	f.String(workerPasswordFlag, "", "broker password")
 
 	viper.BindEnv(workerBrokerFlag, "WORKER_BROKER_URL")
 	viper.BindEnv(workerPasswordFlag, "WORKER_PASSWORD")

@@ -16,7 +16,7 @@ import (
 
 var (
 	testDBHost     = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
-	testDBPassword = utils.GetEnv("DB_PASSWORD", "qwerty")
+	testDBPassword = utils.GetEnv("DB_PASSWORD", "")
 	testBucket     = "test"
 	testEndpoint   = "localhost:4572"
 	testRegion     = "eu-west-1"

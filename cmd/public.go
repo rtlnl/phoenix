@@ -108,7 +108,7 @@ func init() {
 	// mandatory parameters
 	f.StringP(addressPublicFlag, "a", ":8082", "server address")
 	f.StringP(dbHostPublicFlag, "d", "127.0.0.1:6379", "database host")
-	f.String(dbPasswordPublicFlag, "qwerty", "database password")
+	f.String(dbPasswordPublicFlag, "", "database password")
 	f.Bool(logDebugFlag, false, "sets log level to debug")
 
 	// optional parameters

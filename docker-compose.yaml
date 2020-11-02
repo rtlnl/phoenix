@@ -21,7 +21,7 @@ services:
     restart: always
     command:
       - "redis-server"
-      - "--requirepass qwerty"
+      # - "--requirepass qwerty"
       - "--appendonly yes"
     ports:
       - "6379:6379"

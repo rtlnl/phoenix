@@ -11,7 +11,7 @@ import (
 
 var (
 	testRedisHost     = utils.GetDefault(os.Getenv("DB_HOST"), "127.0.0.1:6379")
-	testRedisPassword = utils.GetDefault(os.Getenv("DB_PASSWORD"), "qwerty")
+	testRedisPassword = utils.GetDefault(os.Getenv("DB_PASSWORD"), "")
 )
 
 func TestNewRedis(t *testing.T) {

@@ -25,7 +25,7 @@ import (
 
 var (
 	testDBHost     = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
-	testDBPassword = utils.GetEnv("DB_PASSWORD", "qwerty")
+	testDBPassword = utils.GetEnv("DB_PASSWORD", "")
 )
 
 var router *gin.Engine
