@@ -67,7 +67,7 @@ worker:
 
   data:
     # all the env variables can be found here: https://github.com/rtlnl/phoenix/blob/master/cmd/worker.go#L79
-    WORKER_BROKER_URL: "edis-master.phoenix:6379"
+    WORKER_BROKER_URL: "redis-master.phoenix:6379"
     WORKER_PASSWORD: ""
 
   resources: {}
