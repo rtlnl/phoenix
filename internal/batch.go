@@ -94,6 +94,7 @@ func Batch(c *gin.Context) {
 	// create task payload to send to the queue
 	taskPayload := &worker.TaskPayload{
 		DBURL:        os.Getenv("DB_HOST"),
+		DBPassword:   os.Getenv("DB_PASSWORD"),
 		AWSRegion:    os.Getenv("S3_REGION"),
 		S3Endpoint:   os.Getenv("S3_ENDPOINT"),
 		S3DisableSSL: disableSSL,

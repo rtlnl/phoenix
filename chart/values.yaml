@@ -25,6 +25,7 @@ internal:
   data:
     # all the env variables can be found here: https://github.com/rtlnl/phoenix/blob/master/cmd/internal.go#L64
     DB_HOST: "redis-master.phoenix:6379"
+    DB_PASSWORD: ""
     S3_REGION: "us-west-1"
     S3_ENDPOINT: "s3.eu-west-1.amazonaws.com"
     S3_DISABLE_SSL: "false"
@@ -43,6 +44,7 @@ public:
 
   data:
     DB_HOST: "redis-master.phoenix:6379"
+    DB_PASSWORD: ""
     # Other ENV you can set in the configmap
     # You can find all the possible variables here: https://github.com/rtlnl/phoenix/blob/master/cmd/public.go#L102
     # REC_LOGS_TYPE: "kafka"
@@ -65,7 +67,8 @@ worker:
 
   data:
     # all the env variables can be found here: https://github.com/rtlnl/phoenix/blob/master/cmd/worker.go#L79
-    WORKER_BROKER_URL: "edis-master.phoenix:6379"
+    WORKER_BROKER_URL: "redis-master.phoenix:6379"
+    WORKER_PASSWORD: ""
 
   resources: {}
   tolerations: {}

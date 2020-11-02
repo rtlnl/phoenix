@@ -39,6 +39,7 @@ APIs for serving the personalized content.`,
 		// read parameters in input
 		addr := viper.GetString(addressPublicFlag)
 		dbHost := viper.GetString(dbHostPublicFlag)
+		dbPassword := viper.GetString(dbPasswordPublicFlag)
 		logType := viper.GetString(recommendationLogsFlag)
 		logDebug := viper.GetBool(logDebugFlag)
 
@@ -49,7 +50,7 @@ APIs for serving the personalized content.`,
 		}
 
 		// instantiate Redis client
-		redisClient, err := db.NewRedisClient(dbHost)
+		redisClient, err := db.NewRedisClient(dbHost, db.Password(dbPassword))
 		if err != nil {
 			panic(err)
 		}
@@ -107,6 +108,7 @@ func init() {
 	// mandatory parameters
 	f.StringP(addressPublicFlag, "a", ":8082", "server address")
 	f.StringP(dbHostPublicFlag, "d", "127.0.0.1:6379", "database host")
+	f.String(dbPasswordPublicFlag, "", "database password")
 	f.Bool(logDebugFlag, false, "sets log level to debug")
 
 	// optional parameters
@@ -121,6 +123,7 @@ func init() {
 
 	viper.BindEnv(addressPublicFlag, "ADDRESS_HOST")
 	viper.BindEnv(dbHostPublicFlag, "DB_HOST")
+	viper.BindEnv(dbPasswordPublicFlag, "DB_PASSWORD")
 	viper.BindEnv(logDebugFlag, "LOG_DEBUG")
 	viper.BindEnv(recommendationLogsFlag, "REC_LOGS_TYPE")
 	viper.BindEnv(recommendationKafkaBrokersFlag, "REC_LOGS_BROKERS")

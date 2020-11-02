@@ -5,8 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/adjust/rmq"
+	"github.com/adjust/rmq/v3"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/go-redis/redis/v7"
 	"github.com/rs/zerolog/log"
 	"github.com/rtlnl/phoenix/models"
 	"github.com/rtlnl/phoenix/pkg/aws"
@@ -40,6 +41,7 @@ type TaskConsumer struct {
 // TaskPayload is the struct that contains the payload for consuming the task
 type TaskPayload struct {
 	DBURL        string `json:"db_url"`
+	DBPassword   string `json:"db_password"`
 	AWSRegion    string `json:"aws_region"`
 	S3Endpoint   string `json:"s3_endpoint"`
 	S3DisableSSL bool   `json:"s3_disable_ssl"`
@@ -50,9 +52,17 @@ type TaskPayload struct {
 }
 
 // New creates a new worker object
-func New(broker, workerName, queueName string) (*Worker, error) {
-	connection := rmq.OpenConnection(workerName, "tcp", broker, 1)
-	queue := connection.OpenQueue(queueName)
+func New(rc *redis.Client, workerName, queueName string) (*Worker, error) {
+	connection, err := rmq.OpenConnectionWithRedisClient(workerName, rc, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	queue, err := connection.OpenQueue(queueName)
+	if err != nil {
+		return nil, err
+	}
+
 	cs := TaskConsumer{
 		name:   consumerName,
 		count:  0,
@@ -73,7 +83,7 @@ func (c TaskConsumer) Consume(delivery rmq.Delivery) {
 	s := db.NewS3Client(&db.S3Bucket{Bucket: task.S3Bucket, ACL: ""}, sess)
 
 	// create batch operator
-	dbc, err := db.NewRedisClient(task.DBURL)
+	dbc, err := db.NewRedisClient(task.DBURL, db.Password(task.DBPassword))
 	if err != nil {
 		log.Error().Msg(err.Error())
 		delivery.Reject()
@@ -119,7 +129,7 @@ func (c TaskConsumer) Consume(delivery rmq.Delivery) {
 
 // Consume instructs the worker to consuming the messages
 func (w *Worker) Consume() error {
-	if w.Queue.StartConsuming(unackedLimit, pollDuration) == false {
+	if err := w.Queue.StartConsuming(unackedLimit, pollDuration); err != nil {
 		return errors.New("could not start consuming messages")
 	}
 	w.Queue.AddConsumer(consumerTag, w.Consumer)
@@ -133,7 +143,7 @@ func (w *Worker) Publish(tp *TaskPayload) error {
 		return err
 	}
 
-	if !w.Queue.PublishBytes(b) {
+	if err := w.Queue.PublishBytes(b); err != nil {
 		return errors.New("could not publish message to queue")
 	}
 	return nil
@@ -141,5 +151,5 @@ func (w *Worker) Publish(tp *TaskPayload) error {
 
 // Close closes the queue
 func (w *Worker) Close() {
-	w.Queue.Close()
+	w.Queue.StopConsuming()
 }

@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	testDBHost = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
+	testDBHost     = utils.GetEnv("DB_HOST", "127.0.0.1:6379")
+	testDBPassword = utils.GetEnv("DB_PASSWORD", "")
 )
 
 func TestMain(m *testing.M) {
@@ -22,7 +23,7 @@ func TestMain(m *testing.M) {
 }
 
 func tearUp() {
-	dbc, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost, db.Password(testDBPassword))
 	if err != nil {
 		panic(err)
 	}
@@ -32,7 +33,7 @@ func tearUp() {
 }
 
 func tearDown() {
-	dbc, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost, db.Password(testDBPassword))
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +43,7 @@ func tearDown() {
 }
 
 func GetTestRedisClient() (db.DB, func()) {
-	dbc, err := db.NewRedisClient(testDBHost)
+	dbc, err := db.NewRedisClient(testDBHost, db.Password(testDBPassword))
 	if err != nil {
 		panic(err)
 	}
