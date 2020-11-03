@@ -34,6 +34,8 @@ spec:
           resources:
 {{ toYaml .Values.worker.resources | indent 12 }}
       affinity:
-{{ toYaml .Values.public.affinity | indent 8 }}
+{{ toYaml .Values.worker.affinity | indent 8 }}
       tolerations:
-{{ toYaml .Values.internal.tolerations | indent 8 }}  
+{{ toYaml .Values.worker.tolerations | indent 8 }}
+      nodeSelector:
+{{ toYaml .Values.worker.nodeSelector | indent 8 }} 

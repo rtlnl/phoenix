@@ -46,4 +46,6 @@ spec:
       affinity:
 {{ toYaml .Values.public.affinity | indent 8 }}
       tolerations:
-{{ toYaml .Values.internal.tolerations | indent 8 }}  
+{{ toYaml .Values.public.tolerations | indent 8 }}  
+      nodeSelector:
+{{ toYaml .Values.public.nodeSelector | indent 8 }} 
