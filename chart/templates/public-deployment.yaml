@@ -48,4 +48,4 @@ spec:
       tolerations:
 {{ toYaml .Values.public.tolerations | indent 8 }}  
       nodeSelector:
-{{ toYaml .Values.public.nodeSelector | indent 8 }} 
+{{ toYaml .Values.public.nodeSelector | indent 8 }}
