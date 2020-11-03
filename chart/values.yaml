@@ -71,6 +71,7 @@ worker:
     WORKER_PASSWORD: ""
 
   resources: {}
+  nodeSelector: {}
   tolerations: {}
   affinity: {}
 
