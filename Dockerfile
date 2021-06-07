@@ -18,7 +18,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/api
 
 # final stage
-FROM alpine:latest
+FROM alpine:3.13
 COPY --from=builder /app /app
 
 RUN apk update && \
