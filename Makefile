@@ -35,10 +35,10 @@ coverage:
 docker-all: docker-build docker-image
 
 docker-build:
-	@docker run -i --rm -v "$(PWD):/go/src/$(PKG)" -w /go/src/$(PKG) golang:1.10 make build OS=linux ARCH=amd64
+	@docker run -i --rm -v "$(PWD):/go/src/$(PKG)" -w /go/src/$(PKG) golang:1.16 make build OS=linux ARCH=amd64
 
 docker-test:
-	@docker run -i --rm -v "$(PWD):/go/src/$(PKG)" -w /go/src/$(PKG) --network greeny_default golang:1.10 make test
+	@docker run -i --rm -v "$(PWD):/go/src/$(PKG)" -w /go/src/$(PKG) --network phoenix_default golang:1.16 make test
 
 docker-image:
 	@docker build -t $(IMAGE):$(VERSION) .
