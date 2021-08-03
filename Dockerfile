@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.13 as builder
+FROM golang:1.16 as builder
 
 ENV GO111MODULE=on
 
@@ -18,7 +18,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/api
 
 # final stage
-FROM alpine:3.9
+FROM alpine:3.13
 COPY --from=builder /app /app
 
 RUN apk update && \

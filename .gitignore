@@ -8,6 +8,7 @@
 # Test binary, build with `go test -c`
 *.test
 
+/bin
 .localstack/
 .vscode/
 data/
