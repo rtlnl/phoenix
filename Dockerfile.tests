@@ -1,6 +1,7 @@
 FROM golang:1.16
 
 ENV GO111MODULE=on
+ENV GOFLAGS=-mod=mod
 
 WORKDIR /app
 
@@ -11,7 +12,5 @@ COPY go.mod .
 COPY go.sum .
 
 RUN go mod download
-
-RUN go mod tidy
 
 COPY . .
