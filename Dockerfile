@@ -15,7 +15,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/api
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/api -mod=mod
 
 # final stage
 FROM alpine:3.13
