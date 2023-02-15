@@ -14,9 +14,9 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/google/uuid v1.1.1
-	github.com/json-iterator/go v1.1.9
+	github.com/json-iterator/go v1.1.11
 	github.com/klauspost/cpuid v1.2.1 // indirect
-	github.com/prometheus/client_golang v1.2.1
+	github.com/prometheus/client_golang v1.11.1
 	github.com/rs/zerolog v1.15.0
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
